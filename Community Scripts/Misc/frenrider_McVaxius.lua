@@ -188,6 +188,13 @@ if fulftype ~= "unchanged" then
 	yield("/wait 1")
 	yield("/fulf "..fulftype)
 end
+
+if follow_in_combat == 1 then
+	yield("/bmrai followincombat on")
+end
+if follow_in_combat == 0 then
+	yield("/bmrai followincombat on")
+end
 ----------------
 ----INIT END----
 ----------------
