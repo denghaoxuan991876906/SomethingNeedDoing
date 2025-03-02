@@ -94,6 +94,7 @@ clingtypeduty = ini_check("clingtypeduty", 2)				-- do we need a diff clingtype 
 follow_in_combat = ini_check("follow_in_combat", 0)			-- 0 = dont follow the leader while in combat, 1 = follow the leader while in combat
 maxbistance = ini_check("maxbistance", 50) 					-- Max distance from fren that we will actually chase them, so that we dont get zone hopping situations ;p
 ddistance = ini_check("ddistance", 100) 					-- DEEP DUNGEON RELATED - if your in a deep dungeon should we even follow? add this to "cling" if we are in a DD, 100 is default but still testing what is a good default.
+hcling_reset = ini_check("hcling_reset", 10) 					-- how many cycles before hcling is 0 and the user is basically forced to navmesh over to fren
 fdistance = ini_check("fdistance", 0) 						-- F.A.T.E. related - if your in a fate, add some more padding to "cling" default is 20 for now until some testing is done
 maxAIdistance = ini_check("maxAIdistance", 2.6) 			-- distance to be from targets in AI mode with BMR, i recommend 2.6 for melee and 10-15 for casters/healers/ranged
 limitpct = ini_check("limitpct", -1)						-- What percentage of life on target should we use LB at. It will automatically use LB3 if that's the cap or it will use LB2 if that's the cap, -1 disables it
@@ -196,6 +197,7 @@ end
 ----------------
 are_we_DD = 0 --no we aren't in a deep dungeon
 hcling = cling --harmonized cling for situations where we want to modify the cling value temporarily such as deep dungeon or fates
+hcling_counter = 0 --counter for hcling_reset
 weirdvar = 1
 shartycardinality = 2 -- leader
 partycardinality = 2 -- me
@@ -299,6 +301,7 @@ end
 function checkAREA()
 	are_we_DD = 0 --always reset this just in case
 	hcling = cling
+	hcling_counter = hcling_counter + 1
 	--check if we are in a deep dungeon
 	if IsAddonVisible("DeepDungeonMap") then
 --		if IsAddonReady("DeepDungeonMap") then
@@ -310,6 +313,10 @@ function checkAREA()
 	--check if we are in a F.A.T.E.
 	if IsInFate() == true then
 		hcling = cling + fdistance
+	end
+	if hcling_counter > hcling_reset then
+		hcling = cling
+		hcling_counter = 0
 	end
 end
 
@@ -353,8 +360,10 @@ function clingmove(nemm)
 			--DEBUG
 			--yield("/echo x->"..GetObjectRawXPos(nemm).."y->"..GetObjectRawYPos(nemm).."z->"..GetObjectRawZPos(nemm))--if its 0,0,0 we are not gonna do shiiiit.
 			--PathfindAndMoveTo(GetObjectRawXPos(nemm),GetObjectRawYPos(nemm),GetObjectRawZPos(nemm), false)
-			if GetCharacterCondition(77) == false then yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm)) end
-			if GetCharacterCondition(77) == true then yield("/vnav flyto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm)) end
+			if bistance > hcling then
+				if GetCharacterCondition(77) == false then yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm)) end
+				if GetCharacterCondition(77) == true then yield("/vnav flyto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm)) end
+			end
 		end
 		--visland
 		if zclingtype == 1 then
