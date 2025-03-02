@@ -87,17 +87,17 @@ fren = ini_check("fren", "Fren Name")  						-- can be partial as long as its un
 fly_you_fools = ini_check("fly_you_fools", false)			-- (fly and follow instead of mount and wait) usecase: you dont have multi seater of sufficient size, or you want to have multiple multiseaters with diff peopel riding diff ones.  sometimes frendalf doesnt want you to ride him and will ask you to ride yourself right up into outer space
 fool_flier = ini_check("fool_flier", "Beast with 3 backs")	-- if you have fly you fools as true, which beast shall you summon? the precise name with correct capitalization such as "Company Chocobo" "Behemoth" etc
 fulftype = ini_check("fulftype", "unchanged")				-- If you have lazyloot installed AND enabled (has to be done manually as it only has a toggle atm) can setup how loot is handled. Leave on "unchanged" if you don't want it to set your loot settings. Other settings include need, greed, pass
-cling = ini_check("cling", 1) 								-- Distance to cling to fren when > bistance, if you dont want to pick, use 424242
+cling = ini_check("cling", 2.6) 							-- Distance to cling to fren when > bistance
 force_gyasahl = ini_check("force_gyasahl", false) 	   		-- force gysahl green usage . maybe cause problems in towns with follow
 clingtype = ini_check("clingtype", 0)						-- Clingtype, 0 = navmesh, 1 = visland, 2 = bmr follow leader, 3 = automaton autofollow, 4 = vanilla game follow
 clingtypeduty = ini_check("clingtypeduty", 2)				-- do we need a diff clingtype in duties? use same numbering as above 
-follow_in_combat = ini_check("follow_in_combat", 0)			-- 0 = dont follow the leader while in combat, 1 = follow the leader while in combat, 42 = let a table decide based on job/role
-positional_in_combat = ini_check("positional_in_combat", 2)		-- 0 = front, 1 = back, 2 = any, use 42 if you want a table to decide.
+follow_in_combat = ini_check("follow_in_combat", 42)		-- 0 = dont follow the leader while in combat, 1 = follow the leader while in combat, 42 = let a table decide based on job/role
+positional_in_combat = ini_check("positional_in_combat", 42)-- 0 = front, 1 = back, 2 = any, use 42 if you want a table to decide.
 maxbistance = ini_check("maxbistance", 50) 					-- Max distance from fren that we will actually chase them, so that we dont get zone hopping situations ;p
 ddistance = ini_check("ddistance", 100) 					-- DEEP DUNGEON RELATED - if your in a deep dungeon should we even follow? add this to "cling" if we are in a DD, 100 is default but still testing what is a good default.
-hcling_reset = ini_check("hcling_reset", 10) 					-- how many cycles before hcling is 0 and the user is basically forced to navmesh over to fren
+hcling_reset = ini_check("hcling_reset", 10) 				-- how many cycles before hcling is 0 and the user is basically forced to navmesh over to fren
 fdistance = ini_check("fdistance", 0) 						-- F.A.T.E. related - if your in a fate, add some more padding to "cling" default is 20 for now until some testing is done
-maxAIdistance = ini_check("maxAIdistance", 2.6) 			-- distance to be from targets in AI mode with BMR, i recommend 2.6 for melee and 10-15 for casters/healers/ranged
+maxAIdistance = ini_check("maxAIdistance", 424242) 			-- distance to targets in combat w BMR, if you dont want to pick, use 424242, otherwise melee 2.6 and caster 10
 limitpct = ini_check("limitpct", -1)						-- What percentage of life on target should we use LB at. It will automatically use LB3 if that's the cap or it will use LB2 if that's the cap, -1 disables it
 rotationplogon = ini_check("rotationplogon", "RSR")			-- Which plogon for rotations? valid options are BMR, VBM, RSR
 autorotationtype = ini_check("autorotationtype", "xan")		-- If we are using BossMod rotation, what preset name shall we use? use "none" to manually configure it yourself.  keep in mind you have to make the rotation and name it in the first place.  "xan" is what i call mine
@@ -343,9 +343,9 @@ if follow_in_combat == 42 then
 	end
 end
 
-if cling == 424242 then
-	cling = returnCuratedDist()
-	yield("/echo Setting Base (non DD/F.A.T.E.) Cling to "..cling)
+if maxAIdistance == 424242 then
+	maxAIdistance = returnCuratedDist()
+	yield("/echo Setting Base (non DD/F.A.T.E.) Cling to during combat -> "..maxAIdistance)
 end
 -------------
 --JOB END---
