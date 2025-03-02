@@ -231,13 +231,6 @@ zoi = {
 1113,--xelphatol --problem. fix later  dont wanna interact with lifts
 1245--halatali
 }
---	White Mage 24, Scholar 28, Astrologian 33, Sage 40
---	Bard 23, Machinist 31, Dancer 38
---	Black Mage 25, Summoner 27, Red Mage 35, Pictomancer 42, Blue Mage 36
-
---	Positional will be role based: Tank front, healer rear, dps flank
---	Distance will be set based on efficient AoE distance, but swapped for some classes against boss (e.g. dancer and scholar move back)
---	Positionals: 0 = any, 1 = flank, 2 = rear, 3 = front
 
 job_configs = {
 --jobID,dist,followincombat 0 or 1,positional,name
@@ -253,16 +246,16 @@ job_configs = {
 {39,2.6,1,1,"Reaper"},
 {31,2.6,1,1,"Viper"},
 
-{25,10,0,2,"Black Mage"},
-{27,10,0,2,"Summoner"},
+{25,10,1,2,"Black Mage"},
+{27,10,1,2,"Summoner"},
 {35,2.6,1,2,"Red Mage"},
-{42,10,0,2,"Pictomancer"},
-{36,10,0,2,"Blue Mage"},
+{42,10,1,2,"Pictomancer"},
+{36,10,1,2,"Blue Mage"},
 
-{24,10,0,2,"White Mage"},
-{28,10,0,2,"Scholar"},
-{33,10,0,2,"Astrologian"},
-{40,10,0,2,"Sage"}
+{24,10,1,2,"White Mage"},
+{28,10,1,2,"Scholar"},
+{33,10,1,2,"Astrologian"},
+{40,10,1,2,"Sage"}
 }
 ----------------
 ----MISC END----
