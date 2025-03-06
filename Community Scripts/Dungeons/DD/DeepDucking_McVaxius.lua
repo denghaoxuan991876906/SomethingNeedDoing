@@ -4,7 +4,7 @@
 
 --important variables
 fatfuck = 1
-number_of_party = 2 --how many
+number_of_party = 2 --how many poople in party
 
 --counters
 fattack = 0
@@ -37,7 +37,9 @@ while fatfuck == 1 do
 	
 	if anal_of_passage > 180 then --every 3 minutes try to leave the floor just in case we stuck
 		anal_of_passage = 0
-		nemm = "Cairn of Passage"
+		nemm = GetPartyMemberName(1)
+		yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm))
+		nemm = "Cairn of Passage"--this works if it exists so we can do this right after trying a party member. it will go to the party member otherwise.
 		yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm))
 	end
 
