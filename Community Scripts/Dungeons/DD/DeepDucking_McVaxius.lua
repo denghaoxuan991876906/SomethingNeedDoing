@@ -67,6 +67,9 @@ while fatfuck == 1 do
 		if fattack > 5 then 
 			--attack stuff
 			yield("/bm on")
+
+			yield("/bmrai on")
+
 			--get thee to next floor
 			pooplecheck()
 			yield("/target Point")
