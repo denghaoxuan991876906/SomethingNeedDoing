@@ -246,6 +246,10 @@ job_configs = {
 {39,2.6,1,1,"Reaper"},
 {31,2.6,1,1,"Viper"},
 
+{38,10,1,2,"Dancer"},
+{23,10,1,2,"Bard"},
+{31,10,1,2,"Machinist"},
+
 {25,10,1,2,"Black Mage"},
 {27,10,1,2,"Summoner"},
 {35,2.6,1,2,"Red Mage"},
