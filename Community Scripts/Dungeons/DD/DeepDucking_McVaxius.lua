@@ -79,11 +79,14 @@ while fatfuck == 1 do
 				nemm = GetPartyMemberName(i)
 				yield("Party member["..i.."] Name->"..GetPartyMemberName(i).." HP->"..GetPartyMemberHP(i))
 				if GetPartyMemberHP(i) < 5 then
-					yield("/echo we need to save x "..GetPartyMemberRawXPos(i).." y "..GetPartyMemberRawYPos(i).." z "..GetPartyMemberRawZPos(i).."!")
+					nemm = GetPartyMemberName(i)					
+					yield("/echo we need to save "..nemm.."->"..GetObjectRawXPos(nemm).." y "..GetObjectRawYPos(nemm).." z "..GetObjectRawZPos(nemm).."!")
+					--yield("/echo we need to save "..GetPartyMemberName(i).."->"..GetPartyMemberRawXPos(i).." y "..GetPartyMemberRawYPos(i).." z "..GetPartyMemberRawZPos(i).."!")
 					yield("/vnav stop")
-					yield("/bmrai off")
-					yield("/wait 1")		
-					yield("/vnav moveto "..GetPartyMemberRawXPos(i).." "..GetPartyMemberRawYPos(i).." "..GetPartyMemberRawZPos(i))
+					--yield("/bmrai off")
+					yield("/wait 1")
+					yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm))
+					--yield("/vnav moveto "..GetPartyMemberRawXPos(i).." "..GetPartyMemberRawYPos(i).." "..GetPartyMemberRawZPos(i))
 					yield("/wait 5")		
 				end
 			end
