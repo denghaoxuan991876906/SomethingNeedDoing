@@ -12,6 +12,7 @@ function pooplecheck()
 	number_of_party = number_of_party - 1 --index starts at 0 anyways
 	for poopy=0,number_of_party-1 do
 		if string.len(GetPartyMemberName(poopy)) < 1 then number_of_party = number_of_party - 1 end
+		yield("/wait 0.1")
 	end
 	number_of_party = number_of_party + 1
 	yield("Number of poople in poopy ->"..number_of_party)
@@ -55,6 +56,10 @@ while fatfuck == 1 do
 		
 		if anal_of_passage > 180 then --every 3 minutes try to leave the floor just in case we stuck
 			if anal_of_passage > 200 then
+				fattack = 0
+				fanav = 0
+				samenav = 0
+				wallitbro = 0
 				anal_of_passage = 0
 			end
 			nemm = GetPartyMemberName(1)
@@ -67,6 +72,8 @@ while fatfuck == 1 do
 		if fattack > 5 then 
 			--attack stuff
 			yield("/bm on")
+			shetzone = GetZoneID()	if shetzone == 561 then yield("/target Death") end --floor 10
+			shetzone = GetZoneID()	if shetzone == 565 then yield("/target Edda") end --floor 50
 
 			yield("/bmrai on")
 
@@ -80,6 +87,7 @@ while fatfuck == 1 do
 			--also check for dead party members and path to them asap
 			for i=0,number_of_party do
 				nemm = GetPartyMemberName(i)
+				yield("/wait 0.1")
 				yield("Party member["..i.."] Name->"..GetPartyMemberName(i).." HP->"..GetPartyMemberHP(i))
 				if GetPartyMemberHP(i) < 5 then
 					nemm = GetPartyMemberName(i)					
