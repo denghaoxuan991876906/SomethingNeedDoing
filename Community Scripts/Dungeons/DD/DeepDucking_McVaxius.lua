@@ -37,6 +37,7 @@ while fatfuck == 1 do
 	yield("/wait 1")
 	if IsPlayerAvailable() == false then
 		yield("/send NUMPAD0")
+		yield("/wait 1")
 	end
 	if IsPlayerAvailable() then
 		--*we should probably check for toad/otter/owl/capybara status and force path to the anal of passage
@@ -72,6 +73,7 @@ while fatfuck == 1 do
 		if fattack > 5 then 
 			--attack stuff
 			yield("/bm on")
+			--yield("/send KEY_1")
 			shetzone = GetZoneID()
 			if shetzone == 561 then yield("/target Death") end --floor 10
 			--if shetzone == 561 then yield("/target Death") end --floor 20
@@ -84,9 +86,15 @@ while fatfuck == 1 do
 			--get thee to next floor
 			pooplecheck()
 			yield("/target Point")
-			yield("/interact")
+			yield("/wait 0.5")
+			--if GetTargetName() == "Entry Point" then
+			--	yield("/interact")  --this seems to be crashy
+			--end
+			yield("/wait 0.5")
 			yield("/send NUMPAD0")
+			yield("/wait 0.5")
 			yield("/send NUMPAD0")
+			yield("/wait 0.5")
 			fattack = 0
 			--also check for dead party members and path to them asap
 			for i=0,number_of_party do
@@ -95,7 +103,7 @@ while fatfuck == 1 do
 				aitchpee = GetPartyMemberHP(i)
 				yield("Party member["..i.."] Name->"..nemm.." HP->"..aitchpee)
 				if aitchpee < 5 then
-					yield("/echo we need to save "..nemm.."->"..GetObjectRawXPos(nemm).." y "..GetObjectRawYPos(nemm).." z "..GetObjectRawZPos(nemm).."!")
+					--yield("/echo we need to save "..nemm.."->"..GetObjectRawXPos(nemm).." y "..GetObjectRawYPos(nemm).." z "..GetObjectRawZPos(nemm).."!")
 					--yield("/echo we need to save "..GetPartyMemberName(i).."->"..GetPartyMemberRawXPos(i).." y "..GetPartyMemberRawYPos(i).." z "..GetPartyMemberRawZPos(i).."!")
 					yield("/vnav stop")
 					--yield("/bmrai off")
@@ -115,9 +123,23 @@ while fatfuck == 1 do
 			yield("/wait 1")
 		end
 
+		npX = GetPlayerRawXPos()
+		npY = GetPlayerRawYPos()
+		npZ = GetPlayerRawZPos()
+		if npX < 0 then npX = npX * -1 end
+		if npY < 0 then npX = npY * -1 end
+		if npZ < 0 then npX = npZ * -1 end
+		if npX - rpX < 3 then samenav = samenav + 1 end
+		if npX - rpY < 3 then samenav = samenav + 1 end
+		if npX - rpZ < 3 then samenav = samenav + 1 end
+		rpX = npX
+		rpY = npY
+		rpZ = npZ
+		--[[
 		if math.abs(GetPlayerRawXPos()-rpX) < 3 then samenav = samenav + 1 end
 		if math.abs(GetPlayerRawYPos()-rpY) < 3 then samenav = samenav + 1 end
 		if math.abs(GetPlayerRawZPos()-rpZ) < 3 then samenav = samenav + 1 end
+		--]]
 		
 		if samenav > 30 then
 			yield("/vnav stop")
