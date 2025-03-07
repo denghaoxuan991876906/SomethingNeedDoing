@@ -12,7 +12,7 @@ function pooplecheck()
 	number_of_party = number_of_party - 1 --index starts at 0 anyways
 	for poopy=0,number_of_party-1 do
 		if string.len(GetPartyMemberName(poopy)) < 1 then number_of_party = number_of_party - 1 end
-		yield("/wait 0.1")
+		yield("/wait 0.5")
 	end
 	number_of_party = number_of_party + 1
 	yield("Number of poople in poopy ->"..number_of_party)
@@ -62,8 +62,8 @@ while fatfuck == 1 do
 				wallitbro = 0
 				anal_of_passage = 0
 			end
-			nemm = GetPartyMemberName(1)
-			yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm))
+			--nemm = GetPartyMemberName(1)
+			--yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm))
 			nemm = "Cairn of Passage"--this works if it exists so we can do this right after trying a party member. it will go to the party member otherwise.
 			yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm))
 			yield("/wait 1")
@@ -72,8 +72,12 @@ while fatfuck == 1 do
 		if fattack > 5 then 
 			--attack stuff
 			yield("/bm on")
-			shetzone = GetZoneID()	if shetzone == 561 then yield("/target Death") end --floor 10
-			shetzone = GetZoneID()	if shetzone == 565 then yield("/target Edda") end --floor 50
+			shetzone = GetZoneID()
+			if shetzone == 561 then yield("/target Death") end --floor 10
+			--if shetzone == 561 then yield("/target Death") end --floor 20
+			--if shetzone == 561 then yield("/target Death") end --floor 30
+			--if shetzone == 561 then yield("/target Death") end --floor 40
+			if shetzone == 565 then yield("/target Edda") end --floor 50
 
 			yield("/bmrai on")
 
@@ -87,10 +91,10 @@ while fatfuck == 1 do
 			--also check for dead party members and path to them asap
 			for i=0,number_of_party do
 				nemm = GetPartyMemberName(i)
-				yield("/wait 0.1")
-				yield("Party member["..i.."] Name->"..GetPartyMemberName(i).." HP->"..GetPartyMemberHP(i))
-				if GetPartyMemberHP(i) < 5 then
-					nemm = GetPartyMemberName(i)					
+				yield("/wait 0.5")
+				aitchpee = GetPartyMemberHP(i)
+				yield("Party member["..i.."] Name->"..nemm.." HP->"..aitchpee)
+				if aitchpee < 5 then
 					yield("/echo we need to save "..nemm.."->"..GetObjectRawXPos(nemm).." y "..GetObjectRawYPos(nemm).." z "..GetObjectRawZPos(nemm).."!")
 					--yield("/echo we need to save "..GetPartyMemberName(i).."->"..GetPartyMemberRawXPos(i).." y "..GetPartyMemberRawYPos(i).." z "..GetPartyMemberRawZPos(i).."!")
 					yield("/vnav stop")
