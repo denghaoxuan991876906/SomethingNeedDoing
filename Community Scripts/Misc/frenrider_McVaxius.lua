@@ -413,7 +413,8 @@ end
 function clingmove(nemm)
 	checkAREA()
 	if GetTargetName() == "Vault Door" then --we in a treasure map dungeon and need to click the door without following the fren
-		yield("/interact")
+		--yield("/interact") --no this is dangerous
+		PandoraSetFeatureState("Auto-interact with Objects in Instances",true)
 		yield("/wait 5")
 		return --don't do the other stuff until we have opened the door
 	end
@@ -767,7 +768,8 @@ while weirdvar == 1 do
 								if type(GetCharacterCondition(34)) == "boolean" and  GetCharacterCondition(34) == false and IsPlayerAvailable() then
 									yield("/callback _Notification true 0 17")
 									yield("/callback ContentsFinderConfirm true 9")
-									yield("/interact")
+									--yield("/interact")
+									PandoraSetFeatureState("Auto-interact with Objects in Instances",true)
 								end
 								yield("/wait 1")
 								if type(GetCharacterCondition(34)) == "boolean" and  GetCharacterCondition(34) == false and IsPlayerAvailable() then

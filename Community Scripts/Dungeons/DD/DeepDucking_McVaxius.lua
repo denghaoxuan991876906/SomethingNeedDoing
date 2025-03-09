@@ -78,8 +78,23 @@ while fatfuck == 1 do
 			if shetzone == 561 then yield("/target Death") end --floor 10
 			--if shetzone == 561 then yield("/target Death") end --floor 20
 			--if shetzone == 561 then yield("/target Death") end --floor 30
-			--if shetzone == 561 then yield("/target Death") end --floor 40
+			if shetzone == 564 then yield("/target Ixtab") end --floor 40
 			if shetzone == 565 then yield("/target Edda") end --floor 50
+			if shetzone == 593 then yield("/target Rider") end --floor 60
+			if shetzone == 594 then yield("/target Yaguaru") end --floor 70
+			if shetzone == 595 then yield("/target Gudanna") end --floor 80
+			if shetzone == 596 then yield("/target Godmother") end --floor 90
+			if shetzone == 597 then yield("/target Nybeth") end --floor 100
+			--if shetzone == 598 then yield("/target Nybeth") end --floor 110
+			if shetzone == 599 then yield("/target Kirtimukha") end --floor 120
+			--if shetzone == 600 then yield("/target Nybeth") end --floor 130
+			--if shetzone == 601 then yield("/target Nybeth") end --floor 140
+			--if shetzone == 602 then yield("/target Nybeth") end --floor 150
+			--if shetzone == 603 then yield("/target Nybeth") end --floor 160
+			--if shetzone == 604 then yield("/target Nybeth") end --floor 170
+			--if shetzone == 605 then yield("/target Nybeth") end --floor 180
+			--if shetzone == 606 then yield("/target Nybeth") end --floor 190
+			--if shetzone == 607 then yield("/target Nybeth") end --floor 200
 
 			yield("/bmrai on")
 
