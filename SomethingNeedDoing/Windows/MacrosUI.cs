@@ -35,14 +35,14 @@ public class MacrosUI : Window
         //using (var tab = ImRaii.TabItem("Native"))
         //    if (tab)
         //    {
-                using var table = ImRaii.Table("Native", 2, ImGuiTableFlags.SizingStretchProp);
-                if (!table) return;
-                ImGui.TableNextColumn();
-                NodesUI.DisplayNodeTree();
-                ImGui.TableNextColumn();
-                DrawStateHeader();
-                DrawRunningMacro();
-                NodesUI.DrawSelected();
+        using var table = ImRaii.Table("Native", 2, ImGuiTableFlags.SizingStretchProp);
+        if (!table) return;
+        ImGui.TableNextColumn();
+        NodesUI.DisplayNodeTree();
+        ImGui.TableNextColumn();
+        DrawStateHeader();
+        DrawRunningMacro();
+        NodesUI.DrawSelected();
         //    }
         //using (var tab = ImRaii.TabItem("Disk"))
         //    if (tab)

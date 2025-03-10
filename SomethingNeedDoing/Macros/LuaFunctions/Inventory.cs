@@ -101,7 +101,6 @@ public class Inventory
     private static unsafe InventoryItem* GetItemForSlot(InventoryType type, int slot)
         => InventoryManager.Instance()->GetInventoryContainer(type)->GetInventorySlot(slot);
 
-
     public List<uint> GetTradeableWhiteItemIDs() => Svc.Data.GetExcelSheet<Item>()!.Where(x => !x.IsUntradable && x.Rarity == (byte)ItemRarity.White).Select(x => x.RowId).ToList();
 
     public string GetItemName(uint itemId) => Svc.Data.GetExcelSheet<Item>()!.GetRow(itemId).Name.ExtractText();

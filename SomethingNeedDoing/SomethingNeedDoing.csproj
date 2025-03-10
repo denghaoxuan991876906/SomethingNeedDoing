@@ -2,10 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<Authors>daemitus, croizat</Authors>
-		<Company>-</Company>
 		<Version>0.0.0.0</Version>
-		<Description></Description>
-		<Copyright></Copyright>
 		<PackageProjectUrl>https://github.com/Jaksuhn/SomethingNeedDoing</PackageProjectUrl>
 	</PropertyGroup>
 

@@ -1,13 +1,12 @@
 using Dalamud.Plugin;
 using ECommons;
 using ECommons.Configuration;
-using ECommons.EzEventManager;
+using ECommons.Logging;
 using ECommons.SimpleGui;
 using ECommons.Singletons;
 using ImGuiNET;
 using SomethingNeedDoing.Interface;
 using SomethingNeedDoing.Macros.Lua;
-using SomethingNeedDoing.Misc;
 
 namespace SomethingNeedDoing;
 
@@ -48,7 +47,6 @@ public sealed class Plugin : IDalamudPlugin
 
             Service.AutoRetainerApi.OnCharacterPostprocessStep += CheckCharacterPostProcess;
             Service.AutoRetainerApi.OnCharacterReadyToPostProcess += DoCharacterPostProcess;
-            //_ = new EzFrameworkUpdate(CheckForMacroCompletion);
         });
     }
 
@@ -69,46 +67,29 @@ public sealed class Plugin : IDalamudPlugin
 
     private void CheckCharacterPostProcess()
     {
+        if (C.ARCharacterPostProcessMacro is not { }) return;
         if (C.ARCharacterPostProcessExcludedCharacters.Any(x => x == Svc.ClientState.LocalContentId))
             Svc.Log.Info("Skipping post process macro for current character.");
         else
             Service.AutoRetainerApi.RequestCharacterPostprocess();
     }
 
-    private bool RunningPostProcess;
     private void DoCharacterPostProcess()
     {
-        if (C.ARCharacterPostProcessMacro != null)
-        {
-            RunningPostProcess = true;
-            Service.MacroManager.OnMacroCompleted += OnPostProcessMacroCompleted;
-            Service.MacroManager.EnqueueMacro(C.ARCharacterPostProcessMacro);
-        }
-        else
-        {
-            RunningPostProcess = false;
-            Service.AutoRetainerApi.FinishCharacterPostProcess();
-        }
+        Service.MacroManager.OnMacroCompleted += OnPostProcessMacroCompleted;
+        Service.MacroManager.EnqueueMacro(C.ARCharacterPostProcessMacro!);
     }
+
     private void OnPostProcessMacroCompleted(MacroNode node)
     {
         if (node.IsPostProcess)
         {
             Svc.Framework.RunOnFrameworkThread(() =>
             {
-                Svc.Log.Debug("Finishing post process macro for current character.");
+                PluginLog.Debug("Finishing post process macro for current character.");
                 Service.AutoRetainerApi.FinishCharacterPostProcess();
             });
             Service.MacroManager.OnMacroCompleted -= OnPostProcessMacroCompleted;
-        }
-    }
-    private void CheckForMacroCompletion()
-    {
-        if (!RunningPostProcess) return;
-        if (Service.MacroManager.State != LoopState.Running)
-        {
-            RunningPostProcess = false;
-            Service.AutoRetainerApi.FinishCharacterPostProcess();
         }
     }
 

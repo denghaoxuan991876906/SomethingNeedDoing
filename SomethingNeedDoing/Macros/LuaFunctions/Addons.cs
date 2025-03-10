@@ -226,7 +226,7 @@ public class Addons
             return ((AtkCounterNode*)node)->NodeText.ToString();
 
         var textNode = (AtkTextNode*)node;
-        return textNode->NodeText.ExtractText();
+        return textNode->NodeText.GetText();
     }
 
     public unsafe void SetNodeText(string addonName, string text, params int[] ids)

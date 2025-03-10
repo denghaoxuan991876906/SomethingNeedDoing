@@ -189,7 +189,7 @@ public class CraftingState()
             return false;
         }
 
-        if (equipped->Loaded == 0)
+        if (!equipped->IsLoaded)
         {
             Svc.Log.Error($"InventoryContainer is not loaded");
             return false;
@@ -226,7 +226,7 @@ public class CraftingState()
             return false;
         }
 
-        if (equipped->Loaded == 0)
+        if (!equipped->IsLoaded)
         {
             Svc.Log.Error("InventoryContainer is not loaded");
             return false;

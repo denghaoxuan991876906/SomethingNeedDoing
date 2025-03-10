@@ -49,9 +49,7 @@ public class Config : IEzConfig
         set
         {
             if (value != null)
-            {
                 value.IsPostProcess = true;
-            }
             field = value;
         }
     }
