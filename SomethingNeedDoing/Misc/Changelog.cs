@@ -19,6 +19,16 @@ internal class Changelog
         using var font = ImRaii.PushFont(UiBuilder.MonoFont);
 
         DisplayChangelog(
+        "2025-03-10",
+        "- Added QuestionableGetCurrentStepData()\n" +
+        "- Added QuestionableIsQuestLocked()\n" +
+        "- Added QuestionableImportQuestPriority()\n" +
+        "- Added QuestionableClearQuestPriority()\n" +
+        "- Added QuestionableAddQuestPriority()\n" +
+        "- Added QuestionableInsertQuestPriority()\n" +
+        "- Added QuestionableExportQuestPriority()");
+
+        DisplayChangelog(
         "2025-02-22",
         "- Added GetItemName()\n");
 

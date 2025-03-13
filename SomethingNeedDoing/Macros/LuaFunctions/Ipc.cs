@@ -85,8 +85,17 @@ public class Ipc
     #endregion
 
     #region Questionable
+
+    
     public bool QuestionableIsRunning() => _questionable.IsRunning();
     public string QuestionableGetCurrentQuestId() => _questionable.GetCurrentQuestId();
+    public Questionable.StepData QuestionableGetCurrentStepData() => _questionable.GetCurrentStepData();
+    public bool QuestionableIsQuestLocked(string questId) => _questionable.IsQuestLocked(questId);
+    public bool QuestionableImportQuestPriority(string encodedQuestPriorities) => _questionable.ImportQuestPriority(encodedQuestPriorities);
+    public bool QuestionableClearQuestPriority() => _questionable.ClearQuestPriority();
+    public bool QuestionableAddQuestPriority(string questId) => _questionable.AddQuestPriority(questId);
+    public bool QuestionableInsertQuestPriority(int index, string questId) => _questionable.InsertQuestPriority(index, questId);
+    public string QuestionableExportQuestPriority() => _questionable.ExportQuestPriority();
     #endregion
 
     #region visland
