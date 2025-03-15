@@ -19,6 +19,10 @@ internal class Changelog
         using var font = ImRaii.PushFont(UiBuilder.MonoFont);
 
         DisplayChangelog(
+        "2025-03-15",
+        "- AutoRetainer post-process scripts will give control back to AR when you stop the script manually.\n");
+
+        DisplayChangelog(
         "2025-03-10",
         "- Added QuestionableGetCurrentStepData()\n" +
         "- Added QuestionableIsQuestLocked()\n" +
@@ -26,7 +30,7 @@ internal class Changelog
         "- Added QuestionableClearQuestPriority()\n" +
         "- Added QuestionableAddQuestPriority()\n" +
         "- Added QuestionableInsertQuestPriority()\n" +
-        "- Added QuestionableExportQuestPriority()");
+        "- Added QuestionableExportQuestPriority()\n");
 
         DisplayChangelog(
         "2025-02-22",

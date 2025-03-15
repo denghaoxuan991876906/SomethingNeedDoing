@@ -181,7 +181,7 @@ internal partial class MacroManager : IDisposable
 
 internal sealed partial class MacroManager
 {
-    public event Action<MacroNode> OnMacroCompleted;
+    public event Action<MacroNode>? OnMacroCompleted;
     public (string Name, int StepIndex)[] MacroStatus
         => macroStack
             .ToArray() // Collection was modified after the enumerator was instantiated.
@@ -247,6 +247,8 @@ internal sealed partial class MacroManager
         {
             PauseAtLoop = false;
             StopAtLoop = false;
+            if (macroStack.TryPeek(out var macro))
+                OnMacroCompleted?.Invoke(macro.Node);
 
             eventLoopTokenSource.TryReset();
 
