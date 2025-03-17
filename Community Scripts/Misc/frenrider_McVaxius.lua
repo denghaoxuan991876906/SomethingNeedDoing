@@ -162,6 +162,39 @@ yield("/vbmai "..bossmodAI)
 yield("/bmrai "..bossmodAI)
 yield("/bmrai maxdistancetarget "..maxAIdistance)
 
+--xBM Handling
+if rotationplogon == "VBM" then
+	if HasPlugin("BossModReborn") then
+		yield("/xldisableplugin BossModReborn")
+		repeat
+			yield("/wait 1")
+		until not HasPlugin("BossModReborn")
+		yield("/xlenableplugin BossMod")
+		repeat
+			yield("/wait 1")
+		until HasPlugin("BossMod")
+		yield("/vbmai "..bossmodAI)
+		yield("/vbm ar set "..autorotationtype)
+		yield("/echo WE SWITCHED TO VBM FROM BMR - please review DTR bar etc.")
+	end
+end
+
+if rotationplogon == "BMR" then
+	if HasPlugin("BossMod") then
+		yield("/xldisableplugin BossMod")
+		repeat
+			yield("/wait 1")
+		until not HasPlugin("BossMod")
+		yield("/xlenableplugin BossModReborn")
+		repeat
+			yield("/wait 1")
+		until HasPlugin("BossModReborn")
+		yield("/bmrai "..bossmodAI)
+		yield("/bmr ar set "..autorotationtype)
+		yield("/echo WE SWITCHED TO BMR FROM VBM - please review DTR bar etc.")
+	end
+end
+
 --rotation handling
 function rhandling()
 	if rotationplogon == "BMR" or rotationplogon == "VBM" then
@@ -171,7 +204,7 @@ function rhandling()
 			yield("/bmr ar set "..autorotationtype)
 		end
 	end
-	if rotationplogon == "RSR" or rotationplogon == "VBM" then
+	if rotationplogon == "RSR" then
 		yield("/bmr ar toggle") --turn off Boss Mod
 		if rotationtype ~= "none" then
 			yield("/rotation "..rotationtype)
@@ -395,23 +428,24 @@ function checkAREA()
 	--check if we are in a deep dungeon
 	if IsAddonVisible("DeepDungeonMap") then
 --		if IsAddonReady("DeepDungeonMap") then
-			are_we_DD = 1
-			hcling = cling + ddistance
-			--yield("/echo we in DD -> hcling is 0> "..hcling)
-			--deep dungeon requires VBM. BMR **WILL** crash your client without any logs or crash dump
-			if HasPlugin("BossModReborn") then
-				yield("/xldisableplugin BossModReborn")
-				repeat
-					yield("/wait 1")
-				until not HasPlugin("BossModReborn")
-				yield("/xlenableplugin BossMod")
-				repeat
-					yield("/wait 1")
-				until HasPlugin("BossMod")
-				yield("/vbmai "..bossmodAI)
-				yield("/vbm ar set "..autorotationtype)
-				yield("/echo WE SWITCHED TO VBM FROM BMR - please review DTR bar etc.")
-			end
+		yield("/vbm ar set "..autorotationtype)
+		are_we_DD = 1
+		hcling = cling + ddistance
+		--yield("/echo we in DD -> hcling is 0> "..hcling)
+		--deep dungeon requires VBM. BMR **WILL** crash your client without any logs or crash dump
+		if HasPlugin("BossModReborn") then
+			yield("/xldisableplugin BossModReborn")
+			repeat
+				yield("/wait 1")
+			until not HasPlugin("BossModReborn")
+			yield("/xlenableplugin BossMod")
+			repeat
+				yield("/wait 1")
+			until HasPlugin("BossMod")
+			yield("/vbmai "..bossmodAI)
+			yield("/vbm ar set "..autorotationtype)
+			yield("/echo WE SWITCHED TO VBM FROM BMR - please review DTR bar etc.")
+		end
 --		end
 	end
 	--check if we are in a F.A.T.E.
@@ -640,10 +674,12 @@ while weirdvar == 1 do
 			--Food check!
 			statoos = GetStatusTimeRemaining(48)
 			---yield("/echo "..statoos)
-			if type(GetItemCount(feedme)) == "number" then
-				if GetItemCount(feedme) > 0 and statoos < 300 then --refresh food if we are below 5 minutes left
-					yield("/item "..feedmeitem)
-					yield("/echo Attempting to eat "..feedmeitem)
+			if GetCharacterCondition(26) == false then -- dont eat while fighting it will upset your stomach
+				if type(GetItemCount(feedme)) == "number" then
+					if GetItemCount(feedme) > 0 and statoos < 300 then --refresh food if we are below 5 minutes left
+						yield("/item "..feedmeitem)
+						yield("/echo Attempting to eat "..feedmeitem)
+					end
 				end
 			end
 

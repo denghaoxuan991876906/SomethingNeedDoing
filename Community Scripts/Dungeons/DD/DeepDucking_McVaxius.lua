@@ -51,6 +51,10 @@ function distance(x1, y1, z1, x2, y2, z2)
     return zoobz
 end
 
+function getRandomNumber(min, max)
+  return math.random(min,max)
+end
+
 function pooplecheck()
 	number_of_party = 4
 	number_of_party = number_of_party - 1 --index starts at 0 anyways
@@ -92,18 +96,27 @@ while fatfuck == 1 do
 		anal_of_passage = anal_of_passage + 1
 		
 		if wallitbro > 50 then
-			--run in a stright line for 3 seconds once every 50 seconds. this will fix stuck hallway bs with no target on HUD
+			--run in a stright line on a random cardinal direction for 3 seconds once every 50 seconds. this will fix stuck hallway bs with no target on HUD
 			--this is a kludge but provides just enough "jostling" for DD module to "get around"
+			--this will not occur if we aren't in a duty.
 			--but only if we aren't near a cairn 
 			nemm = "Cairn of Passage"
 			poostance = distance(GetPlayerRawXPos(), GetPlayerRawYPos(), GetPlayerRawZPos(), GetObjectRawXPos(nemm),GetObjectRawYPos(nemm),GetObjectRawZPos(nemm))
-			if poostance > 10 then
-				yield("/hold W <wait.3.0>")
-				yield("/release W")
+			if poostance > 10 and GetCharacterCondition(34) == true then
+				boop = {
+				"W",
+				"A",
+				"S",
+				"D"
+				}
+				booprand = getRandomNumber(1,4)
+				yield("/hold "..boop[booprand].." <wait.3.0>")
+				yield("/release "..boop[booprand])
 			end
 			--sometimes the cairn is not quite correctly targeted --  we will carefully shift INTO it
 			if poostance < 5 then
-				yield("/hold W <wait.0.1>")
+				yield("/echo sneaking forward a bit just in case")
+				yield("/hold W <wait.1>")
 				yield("/release W")
 			end
 			wallitbro = 0
@@ -138,7 +151,7 @@ while fatfuck == 1 do
 				end
 			end
 			--]]
-			--[[
+		
 			if shetzone == 561 then yield("/target Death") end --floor 10
 			--if shetzone == 561 then yield("/target Death") end --floor 20
 			--if shetzone == 561 then yield("/target Death") end --floor 30
@@ -159,8 +172,9 @@ while fatfuck == 1 do
 			--if shetzone == 605 then yield("/target Nybeth") end --floor 180
 			--if shetzone == 606 then yield("/target Nybeth") end --floor 190
 			--if shetzone == 607 then yield("/target Nybeth") end --floor 200
-			--]]
+			
 			yield("/bmrai on")
+			yield("/vbmai on")
 
 			--get thee to next floor
 			pooplecheck()
