@@ -3,6 +3,22 @@
 
 --config -> turn on everything in the dd module, turn OFF bronze coffers
 
+--deep dungeon requires VBM. BMR **WILL** crash your client without any logs or crash dump
+			--deep dungeon requires VBM. BMR **WILL** crash your client without any logs or crash dump
+if HasPlugin("BossModReborn") then
+	yield("/xldisableplugin BossModReborn")
+	repeat
+		yield("/wait 1")
+	until not HasPlugin("BossModReborn")
+	yield("/xlenableplugin BossMod")
+	repeat
+		yield("/wait 1")
+	until HasPlugin("BossMod")
+	yield("/vbmai on")
+	yield("/vbm ar set DD")
+	yield("/echo WE SWITCHED TO VBM FROM BMR - please review DTR bar etc.")
+end
+
 --important variables
 fatfuck = 1
 number_of_party = 4 --how many poople in party hah well we will check anyhow

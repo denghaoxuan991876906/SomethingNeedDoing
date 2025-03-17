@@ -398,6 +398,20 @@ function checkAREA()
 			are_we_DD = 1
 			hcling = cling + ddistance
 			--yield("/echo we in DD -> hcling is 0> "..hcling)
+			--deep dungeon requires VBM. BMR **WILL** crash your client without any logs or crash dump
+			if HasPlugin("BossModReborn") then
+				yield("/xldisableplugin BossModReborn")
+				repeat
+					yield("/wait 1")
+				until not HasPlugin("BossModReborn")
+				yield("/xlenableplugin BossMod")
+				repeat
+					yield("/wait 1")
+				until HasPlugin("BossMod")
+				yield("/vbmai "..bossmodAI)
+				yield("/vbm ar set "..autorotationtype)
+				yield("/echo WE SWITCHED TO VBM FROM BMR - please review DTR bar etc.")
+			end
 --		end
 	end
 	--check if we are in a F.A.T.E.
