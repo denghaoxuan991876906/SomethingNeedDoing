@@ -97,7 +97,7 @@ while fatfuck == 1 do
 		samenav = 0
 		wallitbro = 0
 		anal_of_passage = 0
-		yield("/echo resetting all counters - we are probably in the menu for starting next set of 10 floors")
+		yield("/echo resetting all counters - we are transiting floors or floor sets")
 	end
 	if IsPlayerAvailable() then
 		--*we should probably check for toad/otter/owl/capybara status and force path to the anal of passage
