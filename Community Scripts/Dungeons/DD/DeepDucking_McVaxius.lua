@@ -1,10 +1,20 @@
+--[[
 --DD helper for solo or party of other cousins
 --this is the party leader script in a group of cousins. the others would run frenrider
 
---config -> turn on everything in the dd module, turn OFF bronze coffers
+config ->
+turn on everything in the dd module, turn OFF bronze coffers
+make a vbm/bmr autorot called DD. ill eventually include an export in here to use(?) idk
+turn on auto leave in CBT. at least until we hit the later floors then frantically go turn it off haha
 
+
+--yesalready
+Proceed to the next floor with your current party?
+Exiting the area with a full inventory may result in the loss of rewards. Record progress and leave the area?
 --deep dungeon requires VBM. BMR **WILL** crash your client without any logs or crash dump
 			--deep dungeon requires VBM. BMR **WILL** crash your client without any logs or crash dump
+			
+--]]
 if HasPlugin("BossModReborn") then
 	yield("/xldisableplugin BossModReborn")
 	repeat
@@ -22,6 +32,24 @@ end
 --important variables
 fatfuck = 1
 number_of_party = 4 --how many poople in party hah well we will check anyhow
+
+
+--The Distance Function
+--why is this so complicated? well because sometimes we get bad values and we need to sanitize that so snd does not STB (shit the bed)
+function distance(x1, y1, z1, x2, y2, z2)
+	if type(x1) ~= "number" then x1 = 0 end
+	if type(y1) ~= "number" then y1 = 0 end
+	if type(z1) ~= "number" then z1 = 0 end
+	if type(x2) ~= "number" then x2 = 0 end
+	if type(y2) ~= "number" then y2	= 0 end
+	if type(z2) ~= "number" then z2 = 0 end
+	zoobz = math.sqrt((x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2)
+	if type(zoobz) ~= "number" then
+		zoobz = 0
+	end
+    --return math.sqrt((x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2)
+    return zoobz
+end
 
 function pooplecheck()
 	number_of_party = 4
@@ -65,8 +93,19 @@ while fatfuck == 1 do
 		
 		if wallitbro > 50 then
 			--run in a stright line for 3 seconds once every 50 seconds. this will fix stuck hallway bs with no target on HUD
-			yield("/hold W <wait.3.0>")
-			yield("/release W")
+			--this is a kludge but provides just enough "jostling" for DD module to "get around"
+			--but only if we aren't near a cairn 
+			nemm = "Cairn of Passage"
+			poostance = distance(GetPlayerRawXPos(), GetPlayerRawYPos(), GetPlayerRawZPos(), GetObjectRawXPos(nemm),GetObjectRawYPos(nemm),GetObjectRawZPos(nemm))
+			if poostance > 10 then
+				yield("/hold W <wait.3.0>")
+				yield("/release W")
+			end
+			--sometimes the cairn is not quite correctly targeted --  we will carefully shift INTO it
+			if poostance < 5 then
+				yield("/hold W <wait.0.1>")
+				yield("/release W")
+			end
 			wallitbro = 0
 			yield("/wait 1")
 		end
@@ -91,6 +130,15 @@ while fatfuck == 1 do
 			yield("/bm on")
 			--yield("/send KEY_1")
 			shetzone = GetZoneID()
+			--[[
+			if shetzone > 560 and shetzone < 608 then
+				if GetCharacterCondition(26) == false then
+					yield("/hold W <wait.3.0>")
+					yield("/release W")
+				end
+			end
+			--]]
+			--[[
 			if shetzone == 561 then yield("/target Death") end --floor 10
 			--if shetzone == 561 then yield("/target Death") end --floor 20
 			--if shetzone == 561 then yield("/target Death") end --floor 30
@@ -111,7 +159,7 @@ while fatfuck == 1 do
 			--if shetzone == 605 then yield("/target Nybeth") end --floor 180
 			--if shetzone == 606 then yield("/target Nybeth") end --floor 190
 			--if shetzone == 607 then yield("/target Nybeth") end --floor 200
-
+			--]]
 			yield("/bmrai on")
 
 			--get thee to next floor
