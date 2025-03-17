@@ -28,6 +28,8 @@ if HasPlugin("BossModReborn") then
 	yield("/vbm ar set DD")
 	yield("/echo WE SWITCHED TO VBM FROM BMR - please review DTR bar etc.")
 end
+	yield("/vbmai on")
+	yield("/vbm ar set DD")
 
 --important variables
 fatfuck = 1
@@ -89,7 +91,9 @@ while fatfuck == 1 do
 	end
 	if IsPlayerAvailable() then
 		--*we should probably check for toad/otter/owl/capybara status and force path to the anal of passage
-		yield("/echo Counters -> attack->"..fattack.." nav->"..fanav.." stopnav->"..samenav.." wall->"..wallitbro.." anal->"..anal_of_passage)
+		--comment this next line out if you don't want spam
+		yield("/echo # -> attack->"..fattack.."/5 nav->"..fanav.."/10 stopnav->"..samenav.."/10 wall->"..wallitbro.."/50 anal->"..anal_of_passage.."/180")
+		--yield("/echo # -> attack->"..fattack.."/5 stopnav->"..samenav.."/10 wall->"..wallitbro.."/50 anal->"..anal_of_passage.."/180")
 		fattack = fattack + 1
 		fanav = fanav + 1
 		wallitbro = wallitbro + 1
@@ -110,6 +114,7 @@ while fatfuck == 1 do
 				"D"
 				}
 				booprand = getRandomNumber(1,4)
+				yield("/echo We moving in cardinal for 3 seconds -> "..boop[booprand])
 				yield("/hold "..boop[booprand].." <wait.3.0>")
 				yield("/release "..boop[booprand])
 			end
@@ -133,6 +138,7 @@ while fatfuck == 1 do
 			end
 			--nemm = GetPartyMemberName(1)
 			--yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm))
+			yield("/echo attempting to get to the exit for the current floor")
 			nemm = "Cairn of Passage"--this works if it exists so we can do this right after trying a party member. it will go to the party member otherwise.
 			yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm))
 			yield("/wait 1")
@@ -141,6 +147,7 @@ while fatfuck == 1 do
 		if fattack > 5 then 
 			--attack stuff
 			yield("/bm on")
+			yield("/echo attempting to attack!")
 			--yield("/send KEY_1")
 			shetzone = GetZoneID()
 			--[[
@@ -194,13 +201,14 @@ while fatfuck == 1 do
 				nemm = GetPartyMemberName(i)
 				yield("/wait 0.5")
 				aitchpee = GetPartyMemberHP(i)
-				yield("Party member["..i.."] Name->"..nemm.." HP->"..aitchpee)
-				if aitchpee < 5 then
+				yield("/echo Party member["..i.."] Name->"..nemm.." HP->"..aitchpee)
+				if aitchpee < 5 and number_of_party > 1 then
 					--yield("/echo we need to save "..nemm.."->"..GetObjectRawXPos(nemm).." y "..GetObjectRawYPos(nemm).." z "..GetObjectRawZPos(nemm).."!")
 					--yield("/echo we need to save "..GetPartyMemberName(i).."->"..GetPartyMemberRawXPos(i).." y "..GetPartyMemberRawYPos(i).." z "..GetPartyMemberRawZPos(i).."!")
 					yield("/vnav stop")
 					--yield("/bmrai off")
 					yield("/wait 1")
+					yield("/echo attempting to reach -> "..nemm.." <- they are low on HP or dead!")
 					yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm))
 					--yield("/vnav moveto "..GetPartyMemberRawXPos(i).." "..GetPartyMemberRawYPos(i).." "..GetPartyMemberRawZPos(i))
 					yield("/wait 5")		
@@ -209,9 +217,11 @@ while fatfuck == 1 do
 			yield("/wait 1")
 		end
 
-		if fanav > 30 and samenav < 30 then
+		--if fanav > 10 and samenav < 10 then
+		if fanav > 10 and GetCharacterCondition(26) == false then
 			fanav = 0
 			nemm = GetTargetName()
+			yield("/echo attempting to move to -> "..nemm)
 			yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm))
 			yield("/wait 1")
 		end
@@ -234,7 +244,8 @@ while fatfuck == 1 do
 		if math.abs(GetPlayerRawZPos()-rpZ) < 3 then samenav = samenav + 1 end
 		--]]
 		
-		if samenav > 30 then
+		if samenav > 10 then
+			yield("/echo We've been idle too long, stopping if we can.")
 			yield("/vnav stop")
 			samenav = 0
 			yield("/wait 1")
