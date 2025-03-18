@@ -15,6 +15,8 @@ Exiting the area with a full inventory may result in the loss of rewards. Record
 			--deep dungeon requires VBM. BMR **WILL** crash your client without any logs or crash dump
 			
 --]]
+
+--[[ --supposedly fixed now
 if HasPlugin("BossModReborn") then
 	yield("/xldisableplugin BossModReborn")
 	repeat
@@ -31,7 +33,7 @@ end
 	yield("/vbmai on")
 	yield("/vbm ar set DD")
 	yield("/rotation off") -- RSR please will cause AI movement problems
-
+--]]
 --important variables
 fatfuck = 1
 number_of_party = 4 --how many poople in party hah well we will check anyhow
