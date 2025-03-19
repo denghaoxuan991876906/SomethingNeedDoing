@@ -87,7 +87,8 @@ fren = ini_check("fren", "Fren Name")  						-- can be partial as long as its un
 fly_you_fools = ini_check("fly_you_fools", false)			-- (fly and follow instead of mount and wait) usecase: you dont have multi seater of sufficient size, or you want to have multiple multiseaters with diff peopel riding diff ones.  sometimes frendalf doesnt want you to ride him and will ask you to ride yourself right up into outer space
 fool_flier = ini_check("fool_flier", "Beast with 3 backs")	-- if you have fly you fools as true, which beast shall you summon? the precise name with correct capitalization such as "Company Chocobo" "Behemoth" etc
 fulftype = ini_check("fulftype", "unchanged")				-- If you have lazyloot installed AND enabled (has to be done manually as it only has a toggle atm) can setup how loot is handled. Leave on "unchanged" if you don't want it to set your loot settings. Other settings include need, greed, pass
-cling = ini_check("cling", 2.6) 							-- Distance to cling to fren when > bistance
+cling = ini_check("cling", 2.6) 							-- Distance to trigger a cling to fren when > bistance
+socialdistancing = ini_check("socialdistancing", 0)			-- if this value is > 0 then it won't get any closer than this even if cling is lower.  The reason is to keep them from looking too much like bots.  it will consider this value only in outdoor areas, and foray areas.
 force_gyasahl = ini_check("force_gyasahl", false) 	   		-- force gysahl green usage . maybe cause problems in towns with follow
 clingtype = ini_check("clingtype", 0)						-- Clingtype, 0 = navmesh, 1 = visland, 2 = bmr follow leader, 3 = automaton autofollow, 4 = vanilla game follow
 clingtypeduty = ini_check("clingtypeduty", 2)				-- do we need a diff clingtype in duties? use same numbering as above 
@@ -101,6 +102,8 @@ maxAIdistance = ini_check("maxAIdistance", 424242) 			-- distance to targets in 
 limitpct = ini_check("limitpct", -1)						-- What percentage of life on target should we use LB at. It will automatically use LB3 if that's the cap or it will use LB2 if that's the cap, -1 disables it
 rotationplogon = ini_check("rotationplogon", "RSR")			-- Which plogon for rotations? valid options are BMR, VBM, RSR
 autorotationtype = ini_check("autorotationtype", "xan")		-- If we are using BossMod rotation, what preset name shall we use? use "none" to manually configure it yourself.  keep in mind you have to make the rotation and name it in the first place.  "xan" is what i call mine
+autorotationtypeDD = ini_check("autorotationtypeDD", "DD")		-- If we are using BossMod rotation, what preset name shall we use for DD
+autorotationtypeFATE = ini_check("autorotationtypeFATE", "FATE")		-- If we are using BossMod rotation, what preset name shall we use for FATE
 rotationtype = ini_check("rotationtype", "Auto")			-- What RSR type shall we use?  Auto or Manual are common ones to pick. if you choose "none" it won't change existing setting.
 bossmodAI = ini_check("bossmodAI", "on")					-- do we want bossmodAI to be "on" or "off"
 xpitem = ini_check("xpitem", 0)								-- xp item - attemp to equip whenever possible azyma_earring = 41081 btw, if this value is 0 it won't do anything
@@ -170,7 +173,7 @@ if rotationplogon == "VBM" then
 			yield("/wait 1")
 		until not HasPlugin("BossModReborn")
 		yield("/xlenableplugin BossMod")
-		repeat
+		repeat	
 			yield("/wait 1")
 		until HasPlugin("BossMod")
 		yield("/vbmai "..bossmodAI)
@@ -245,6 +248,7 @@ partycardinality = 2 -- me
 fartycardinality = 2 --leader ui cardinality
 autotosscount = 0 --i forget its something . i think discard counter
 did_we_toggle = 0 --so we aren't setting this setting multiple times. breaking its ability to function or causing ourselves a crash maybe
+are_we_social_distancing = 0 --var controlled by a function to see if we need to socially distance on a vnavmesh follow.
 
 pandora_interact_toggler_count = 0 -- for checking on pandora interact settings.
 pandora_interact_toggler_count = 0 -- for checking on pandora interact settings.
@@ -263,6 +267,26 @@ zoi = {
 1063,--snowcuck
 1113,--xelphatol --problem. fix later  dont wanna interact with lifts
 1245--halatali
+}
+
+duties_with_distancing = {
+{123123,"Diadem"},
+
+{123123,"Anemos"},
+{123123,"Pagos"},
+{123123,"Pyros"},
+{123123,"Hydatos"},
+
+{123123,"Hydatos"},
+{123123,"Zadnor"},
+
+{123123,"Cosmo1"},
+{123123,"Cosmo2"},
+{123123,"Cosmo3"},
+{123123,"Cosmo4"},
+
+{123123,"Shit Triangle1"},
+{123123,"Shit Triangle2"}
 }
 
 job_configs = {
@@ -421,14 +445,35 @@ function moveToFormationPosition(followerIndex, leaderX, leaderY, leaderZ, leade
     PathfindAndMoveTo(targetX, targetY, leaderZ, false)
 end
 
+function are_we_distancing()
+	returnval = 0
+	zown = GetZoneID()
+	are_we_social_distancing = 0
+	for i=1,#duties_with_distancing do
+		if zown == duties_with_distancing[i][1] then
+			if socialdistancing > 0 then 
+				yield("/echo We are in a social distancing area -> "..duties_with_distancing[i][2].."("..duties_with_distancing[i][1]..")")
+				returnval = 1
+				are_we_social_distancing = 1
+			end
+		end
+	end
+	return returnval
+end
+
 function checkAREA()
 	are_we_DD = 0 --always reset this just in case
 	hcling = cling
+	are_we_social_distancing = 0
 	hcling_counter = hcling_counter + 1
 	--check if we are in a deep dungeon
 	if IsAddonVisible("DeepDungeonMap") then
 --		if IsAddonReady("DeepDungeonMap") then
-		yield("/vbm ar set "..autorotationtype)
+		if HasPlugin("BossMod") then
+			yield("/vbm ar set "..autorotationtypeDD) 
+			yield("/vbmai off")
+		end
+		if HasPlugin("BossModReborn") then yield("/bmrai setpresetname "..autorotationtypeDD) end
 		are_we_DD = 1
 		hcling = cling + ddistance
 		--yield("/echo we in DD -> hcling is 0> "..hcling)
@@ -457,6 +502,11 @@ function checkAREA()
 	if hcling_counter > hcling_reset then
 		hcling = cling
 		hcling_counter = 0
+		if are_we_distancing() == 1 then
+			if socialdistancing > cling then
+				hcling = socialdistancing
+			end
+		end
 	end
 end
 
@@ -502,6 +552,9 @@ function clingmove(nemm)
 			--yield("/echo x->"..GetObjectRawXPos(nemm).."y->"..GetObjectRawYPos(nemm).."z->"..GetObjectRawZPos(nemm))--if its 0,0,0 we are not gonna do shiiiit.
 			--PathfindAndMoveTo(GetObjectRawXPos(nemm),GetObjectRawYPos(nemm),GetObjectRawZPos(nemm), false)
 			if bistance > hcling then
+				if are_we_social_distancing == 1 then
+					--*we will do some stuf here
+				end
 				if GetCharacterCondition(77) == false then yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm)) end
 				if GetCharacterCondition(77) == true then yield("/vnav flyto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm)) end
 			end
