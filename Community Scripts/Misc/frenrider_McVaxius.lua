@@ -454,10 +454,11 @@ function are_we_distancing()
 			if socialdistancing > 0 then 
 				yield("/echo We are in a social distancing area -> "..duties_with_distancing[i][2].."("..duties_with_distancing[i][1]..")")
 				returnval = 1
-				are_we_social_distancing = 1
+				--are_we_social_distancing = 1
 			end
 		end
 	end
+	if GetCharacterCondition(26) == false then returnval = 1 end --obviously if we aren't in a duty we are going to be social distancing by default
 	return returnval
 end
 
@@ -502,7 +503,8 @@ function checkAREA()
 	if hcling_counter > hcling_reset then
 		hcling = cling
 		hcling_counter = 0
-		if are_we_distancing() == 1 then
+		are_we_social_distancing = are_we_distancing()
+		if are_we_social_distancing == 1 then
 			if socialdistancing > cling then
 				hcling = socialdistancing
 			end
