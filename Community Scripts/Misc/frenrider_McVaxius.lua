@@ -285,8 +285,8 @@ duties_with_distancing = {
 {123123,"Cosmo3"},
 {123123,"Cosmo4"},
 
-{123123,"Shit Triangle1"},
-{123123,"Shit Triangle2"}
+{123123,"Shits Triangle1"},
+{123123,"Shits Triangle2"}
 }
 
 job_configs = {
@@ -405,6 +405,25 @@ end
 --JOB END---
 -------------
 
+-- Function to calculate tether point on the buffer circle (social distancing)
+function calculateBufferXY(meX, meZ, theyX, theyZ)
+    local dx, dz = meX - theyX, meZ - theyZ
+    local dist = math.sqrt(dx * dx + dz * dz)
+
+    if dist == 0 then
+        -- Avoid division by zero; just return original position
+        return meX, meZ
+    end
+
+    -- Normalize the direction vector and scale by socialdistancing radius
+    local scale = socialdistancing / dist
+    local calcedX = theyX + dx * scale
+    local calcedY = theyZ + dz * scale
+
+    return calcedX, calcedY
+end
+
+
 -- Function to calculate the offset based on follower index and leader's facing direction
 function calculateOffset(followerIndex, leaderRotation)
     -- Calculate offsetX and offsetY based on follower index and leader's facing direction
@@ -448,7 +467,7 @@ end
 function are_we_distancing()
 	returnval = 0
 	zown = GetZoneID()
-	are_we_social_distancing = 0
+	--are_we_social_distancing = 0
 	for i=1,#duties_with_distancing do
 		if zown == duties_with_distancing[i][1] then
 			if socialdistancing > 0 then 
@@ -458,14 +477,17 @@ function are_we_distancing()
 			end
 		end
 	end
-	if GetCharacterCondition(26) == false then returnval = 1 end --obviously if we aren't in a duty we are going to be social distancing by default
+	if GetCharacterCondition(26) == false then
+		returnval = 1
+		yield("/echo We aren't in a duty so we are social distancing")
+	end --obviously if we aren't in a duty we are going to be social distancing by default
 	return returnval
 end
 
 function checkAREA()
 	are_we_DD = 0 --always reset this just in case
 	hcling = cling
-	are_we_social_distancing = 0
+	--are_we_social_distancing = 0
 	hcling_counter = hcling_counter + 1
 	--check if we are in a deep dungeon
 	if IsAddonVisible("DeepDungeonMap") then
@@ -555,10 +577,15 @@ function clingmove(nemm)
 			--PathfindAndMoveTo(GetObjectRawXPos(nemm),GetObjectRawYPos(nemm),GetObjectRawZPos(nemm), false)
 			if bistance > hcling then
 				if are_we_social_distancing == 1 then
-					--*we will do some stuf here
+					--*we will do some stuff here
+					fartX,fartZ = calculateBufferXY (GetPlayerRawXPos(),GetPlayerRawZPos(),GetObjectRawXPos(nemm),GetObjectRawZPos(nemm))
+					if GetCharacterCondition(77) == false then yield("/vnav moveto "..fartX.." "..GetObjectRawYPos(nemm).." "..fartZ) end
+					if GetCharacterCondition(77) == true then yield("/vnav flyto "..fartX.." "..GetObjectRawYPos(nemm).." "..fartZ) end
 				end
-				if GetCharacterCondition(77) == false then yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm)) end
-				if GetCharacterCondition(77) == true then yield("/vnav flyto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm)) end
+				if are_we_social_distancing == 0 then
+					if GetCharacterCondition(77) == false then yield("/vnav moveto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm)) end
+					if GetCharacterCondition(77) == true then yield("/vnav flyto "..GetObjectRawXPos(nemm).." "..GetObjectRawYPos(nemm).." "..GetObjectRawZPos(nemm)) end
+				end
 			end
 		end
 		--visland
