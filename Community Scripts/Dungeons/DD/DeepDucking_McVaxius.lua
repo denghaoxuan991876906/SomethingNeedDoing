@@ -1,4 +1,9 @@
 --[[
+Changelog
+
+v1.0
+First version. deep dungeon party leader for wiggling around DDs using xan's deep dungeon module in VBM
+
 --DD helper for solo or party of other cousins
 --this is the party leader script in a group of cousins. the others would run frenrider
 
