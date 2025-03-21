@@ -4,6 +4,7 @@ v2.0
 added DD and FATE sections and logic related to them
 added social distancing in forays and outdoor areas
 cleaned up potential crash bugs and added lots of additional cleanups
+added idle shitter emotes
 
 v1.0
 it works™
@@ -116,6 +117,8 @@ force_gyasahl = ini_check("force_gyasahl", false) 	   		-- force gysahl green us
 companionstrat = ini_check("companionstrat", "Free Stance") -- chocobo strat to use . Valid options are: "Follow", "Free Stance", "Defender Stance", "Healer Stance", "Attacker Stance"
 timefriction = ini_check("timefriction", 1)					-- how long to wait between "tics" of the main loop? 1 second default. smaller values will have potential crashy / fps impacts.
 hcling_reset = ini_check("hcling_reset", 10) 				-- how many "tics" before hcling is 0 and the user is basically forced to navmesh over to fren - this also handles some special logic such as DD force cling and social distancing
+idle_shitter =  ini_check("idle_shitter", "nothing") 		-- what shall we do if we are idle, valid options are "list" "nothing" or any slash command, if you choose nothing, then after x tics of being idle it will do nothing, otherwise it will pick from a list randomly or run the specific emote you chose.  if your weird and evil you can throw in a snd script here too with /pcraft run asdfasdf
+idle_shitter_tic =  ini_check("idle_shitter_tic", 10)		-- how many tics till idle shitter?
 ----------------------------
 ---CLING / DIST---
 ----------------------------
@@ -301,9 +304,23 @@ fartycardinality = 2 --leader ui cardinality
 autotosscount = 0 --i forget its something . i think discard counter
 did_we_toggle = 0 --so we aren't setting this setting multiple times. breaking its ability to function or causing ourselves a crash maybe
 are_we_social_distancing = 0 --var controlled by a function to see if we need to socially distance on a vnavmesh follow.
+idle_shitter_counter = 0 --counter for the idle shitters
 
 pandora_interact_toggler_count = 0 -- for checking on pandora interact settings.
 pandora_interact_toggler_count = 0 -- for checking on pandora interact settings.
+
+--idle shitter list --i don't really care about this list if someone wants to improve it lmk . maybe we could have diff lists and make them an option too? --*
+idle_shitter_list = {
+"/laugh",
+"/cry",
+"/dance",
+"/tomestone",
+"/panic",
+"/wave",
+"/goodbye",
+"/yawn",
+"/photograph"
+}
 
 --zones of interact --rule - only put zones that require everyone in party to interact. if its party leader only. dont do it.
 zoi = {
@@ -541,6 +558,12 @@ function checkAREA()
 	hcling = cling
 	--are_we_social_distancing = 0
 	hcling_counter = hcling_counter + 1
+
+	idle_shitter_counter = idle_shitter_counter + 1
+	if GetCharacterCondition(26) == true then
+		idle_shitter_counter = 0
+	end
+
 	--check if we are in a deep dungeon
 	if IsAddonVisible("DeepDungeonMap") then
 --		if IsAddonReady("DeepDungeonMap") then
@@ -573,6 +596,18 @@ function checkAREA()
 	--check if we are in a F.A.T.E.
 	if IsInFate() == true then
 		hcling = cling + fdistance
+	end
+	if idle_shitter_counter > idle_shitter_tic then  --its time to do something idle shitters!
+		idle_shitter_counter = 0
+		if not idle_shitter == "list" and not idle_shitter == "nothing" then
+			yield(idle_shitter)
+		end
+		if idle_shitter == "list" then
+			yield(idle_shitter_list[getRandomNumber(1,#idle_shitter_list)].." /motion")
+		end
+		if idle_shitter == "nothing" then
+			--yield("/echo I'm not an idle shitter")
+		end
 	end
 	if hcling_counter > hcling_reset then
 		hcling = cling
@@ -719,26 +754,26 @@ counting_fartula() --we can call it before mounting because the order changes so
 function checkzoi()
 --pandora memory leak too real
 	if pandora_interact_toggler_count > 10 then
-	pandora_interact_toggler_count = 0
-	are_we_in_i_zone = 0
-	--prae, meri, dze, halatali	
-	for zzz=1,#zoi do
-		if zoi[zzz] == GetZoneID() then
-			are_we_in_i_zone = 1
+		pandora_interact_toggler_count = 0
+		are_we_in_i_zone = 0
+		--prae, meri, dze, halatali	
+		for zzz=1,#zoi do
+			if zoi[zzz] == GetZoneID() then
+				are_we_in_i_zone = 1
+			end
+			yield("/wait 0.5")
 		end
-		yield("/wait 0.5")
-	end
-	if are_we_in_i_zone == 1 and did_we_toggle == 0 then
-		PandoraSetFeatureState("Auto-interact with Objects in Instances",true)
-		did_we_toggle = 1
-		yield("/echo Turning on Pandora Auto Interact -- it will be turned off when we leave this area")
-		--yield("/echo PandoraSetFeatureState(Auto-interact with Objects in Instances,true)")
-	end
-	if are_we_in_i_zone == 0 then
-		PandoraSetFeatureState("Auto-interact with Objects in Instances",false)
-		did_we_toggle = 0
-		--yield("/echo PandoraSetFeatureState(Auto-interact with Objects in Instances,false)")
-	end
+		if are_we_in_i_zone == 1 and did_we_toggle == 0 then
+			PandoraSetFeatureState("Auto-interact with Objects in Instances",true)
+			did_we_toggle = 1
+			yield("/echo Turning on Pandora Auto Interact -- it will be turned off when we leave this area")
+			--yield("/echo PandoraSetFeatureState(Auto-interact with Objects in Instances,true)")
+		end
+		if are_we_in_i_zone == 0 then
+			PandoraSetFeatureState("Auto-interact with Objects in Instances",false)
+			did_we_toggle = 0
+			--yield("/echo PandoraSetFeatureState(Auto-interact with Objects in Instances,false)")
+		end
 	end
 end
 
