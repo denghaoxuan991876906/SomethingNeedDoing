@@ -3,6 +3,13 @@ Changelog
 
 v1.0
 First version. deep dungeon party leader for wiggling around DDs using xan's deep dungeon module in VBM
+the DD module is a WIP feature of VBM - so please don't stress over weird issues. report them if you can to:
+https://github.com/awgil/ffxiv_bossmod/issues/604
+Please be advised as of this version there is the problem of navmesh.  you see DD is layed out in a grid of areas
+the areas always exist. but only a few are active for your instance of the dungeon floor.  that said; only certain room connections
+exist between those few rooms even. and currently navmesh does not know about this so it tries to path to destination as if every room was active and had every possible entrypoint available.
+xan IS aware of this and it is a problem being worked on
+also LOS stuff isn't really great atm because its a very hard problem to solve and is also known/being worked on.
 
 --DD helper for solo or party of other cousins
 --this is the party leader script in a group of cousins. the others would run frenrider
