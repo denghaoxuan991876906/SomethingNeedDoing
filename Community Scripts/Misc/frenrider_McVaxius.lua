@@ -540,13 +540,13 @@ function are_we_distancing()
 	for i=1,#duties_with_distancing do
 		if zown == duties_with_distancing[i][1] then
 			if socialdistancing > 0 then 
-				yield("/echo We are in a social distancing area -> "..duties_with_distancing[i][2].."("..duties_with_distancing[i][1]..")")
+				yield("/echo We are in a social distancing area (foray) -> "..duties_with_distancing[i][2].."("..duties_with_distancing[i][1]..")")
 				returnval = 1
 				--are_we_social_distancing = 1
 			end
 		end
 	end
-	if GetCharacterCondition(26) == false then
+	if GetCharacterCondition(34) == false and returnval == 0 then
 		returnval = 1
 		yield("/echo We aren't in a duty so we are social distancing")
 	end --obviously if we aren't in a duty we are going to be social distancing by default
