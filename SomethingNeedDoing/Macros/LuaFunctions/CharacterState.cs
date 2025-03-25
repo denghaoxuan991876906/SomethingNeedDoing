@@ -53,7 +53,7 @@ public class CharacterState
         return statusID != default;
     }
 
-    public uint GetStatusStackCount(uint statusID) => Svc.ClientState.LocalPlayer?.StatusList.FirstOrDefault(x => x.StatusId == statusID)?.StackCount ?? 0;
+    public uint GetStatusStackCount(uint statusID) => Svc.ClientState.LocalPlayer?.StatusList.FirstOrDefault(x => x.StatusId == statusID)?.Param ?? 0;
     public float GetStatusTimeRemaining(uint statusID) => Svc.ClientState.LocalPlayer?.StatusList.FirstOrDefault(x => x.StatusId == statusID)?.RemainingTime ?? 0;
     public uint GetStatusSourceID(uint statusID) => Svc.ClientState.LocalPlayer?.StatusList.FirstOrDefault(x => x.StatusId == statusID)?.SourceId ?? 0;
 
@@ -74,7 +74,7 @@ public class CharacterState
 
     public unsafe bool IsLevelSynced() => UIState.Instance()->PlayerState.IsLevelSynced == 1;
 
-    public unsafe bool IsMoving() => AgentMap.Instance()->IsPlayerMoving == 1;
+    public unsafe bool IsMoving() => AgentMap.Instance()->IsPlayerMoving;
 
     public bool IsPlayerOccupied() => IsOccupied();
 
@@ -171,8 +171,8 @@ public class CharacterState
     public unsafe void SetFlamesGCRank(byte rank) => PlayerState.Instance()->GCRankImmortalFlames = rank;
     public unsafe void SetAddersGCRank(byte rank) => PlayerState.Instance()->GCRankTwinAdders = rank;
 
-    public unsafe bool HasFlightUnlocked(uint territory = 0) => PlayerState.Instance()->IsAetherCurrentZoneComplete(Svc.Data.GetExcelSheet<TerritoryType>()?.GetRow(territory != 0 ? territory : Svc.ClientState.TerritoryType).Unknown4 ?? 0);
-    public unsafe bool TerritorySupportsMounting() => Svc.Data.GetExcelSheet<TerritoryType>()?.GetRow(Player.Territory).Unknown4 != 0;
+    public unsafe bool HasFlightUnlocked(uint territory = 0) => PlayerState.Instance()->IsAetherCurrentZoneComplete(Svc.Data.GetExcelSheet<TerritoryType>()?.GetRow(territory != 0 ? territory : Svc.ClientState.TerritoryType).AetherCurrentCompFlgSet.RowId ?? 0);
+    public unsafe bool TerritorySupportsMounting() => Svc.Data.GetExcelSheet<TerritoryType>()?.GetRow(Player.Territory).AetherCurrentCompFlgSet.RowId != 0;
     public unsafe bool InSanctuary() => TerritoryInfo.Instance()->InSanctuary;
 
     public unsafe bool HasWeeklyBingoJournal() => PlayerState.Instance()->HasWeeklyBingoJournal;

@@ -7,7 +7,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<TargetFramework>net8.0-windows</TargetFramework>
+		<TargetFramework>net9.0-windows</TargetFramework>
 		<Platforms>x64</Platforms>
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 		<Nullable>enable</Nullable>
@@ -68,11 +68,14 @@
 			<HintPath>$(DalamudLibPath)Lumina.Excel.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
+		<Reference Include="InteropGenerator.Runtime">
+			<HintPath>$(DalamudLibPath)InteropGenerator.Runtime.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
 	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\ECommons\ECommons\ECommons.csproj" />
 		<ProjectReference Include="..\AutoRetainerAPI\AutoRetainerAPI\AutoRetainerAPI.csproj" />
-		<ProjectReference Include="..\OtterGui\OtterGui.csproj" />
 	</ItemGroup>
 </Project>

@@ -4,7 +4,7 @@
   "Punchline": "Work work.",
   "Description": "Now for more than crafting!",
   "ApplicableVersion": "any",
-  "DalamudApiLevel": 11,
+  "DalamudApiLevel": 12,
   "RepoUrl": "https://github.com/Jaksuhn/SomethingNeedDoing",
   "IconUrl": "https://raw.githubusercontent.com/Jaksuhn/SomethingNeedDoing/master/res/orc2.png"
 }

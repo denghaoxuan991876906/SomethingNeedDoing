@@ -21,8 +21,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ECommons", "ECommons\ECommo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoRetainerAPI", "AutoRetainerAPI\AutoRetainerAPI\AutoRetainerAPI.csproj", "{51F3E207-7841-4A04-8523-F12493A9A4CA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OtterGui", "OtterGui\OtterGui.csproj", "{7315E29E-BACD-426E-8BE9-98780FE32F9A}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,14 +53,6 @@ Global
 		{51F3E207-7841-4A04-8523-F12493A9A4CA}.Release|Any CPU.Build.0 = Release|x64
 		{51F3E207-7841-4A04-8523-F12493A9A4CA}.Release|x64.ActiveCfg = Release|x64
 		{51F3E207-7841-4A04-8523-F12493A9A4CA}.Release|x64.Build.0 = Release|x64
-		{7315E29E-BACD-426E-8BE9-98780FE32F9A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7315E29E-BACD-426E-8BE9-98780FE32F9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7315E29E-BACD-426E-8BE9-98780FE32F9A}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{7315E29E-BACD-426E-8BE9-98780FE32F9A}.Debug|x64.Build.0 = Debug|Any CPU
-		{7315E29E-BACD-426E-8BE9-98780FE32F9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7315E29E-BACD-426E-8BE9-98780FE32F9A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7315E29E-BACD-426E-8BE9-98780FE32F9A}.Release|x64.ActiveCfg = Release|Any CPU
-		{7315E29E-BACD-426E-8BE9-98780FE32F9A}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

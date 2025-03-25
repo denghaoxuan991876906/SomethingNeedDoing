@@ -16,7 +16,6 @@ public class Config : IEzConfig
     public bool LockWindow { get; set; } = false;
     public string DefaultFileName { get; set; } = "UntitledMacro";
     public string DefaultFileExtension { get; set; } = ".txt";
-    public List<MacroFile> Files { get; set; } = [];
     public FolderNode RootFolder { get; set; } = new FolderNode { Name = "/" };
     public bool CraftSkip { get; set; } = true;
     public bool SmartWait { get; set; } = false;

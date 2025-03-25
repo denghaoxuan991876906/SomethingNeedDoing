@@ -188,7 +188,6 @@ internal sealed partial class MacroManager
             .Select(macro => (macro.Node.Name, macro.StepIndex + 1))
             .ToArray();
 
-    public void EnqueueMacro(MacroFile file) => EnqueueMacroInternal(new MacroNode(file));
     public void EnqueueMacro(MacroNode node) => EnqueueMacroInternal(node);
 
     private void EnqueueMacroInternal(MacroNode node)

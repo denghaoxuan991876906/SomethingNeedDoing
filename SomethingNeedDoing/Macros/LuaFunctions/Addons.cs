@@ -258,7 +258,7 @@ public class Addons
         var textPtr = popup->EntryNames[index];
         return textPtr == null
             ? throw new MacroCommandError("Text pointer was null")
-            : Marshal.PtrToStringUTF8((nint)textPtr) ?? string.Empty;
+            : Marshal.PtrToStringUTF8((nint)textPtr.Value) ?? string.Empty;
     }
 
     public unsafe string GetSelectIconStringText(int index)
@@ -277,7 +277,7 @@ public class Addons
         var textPtr = popup->EntryNames[index];
         return textPtr == null
             ? throw new MacroCommandError("Text pointer was null")
-            : Marshal.PtrToStringUTF8((nint)textPtr) ?? string.Empty;
+            : Marshal.PtrToStringUTF8((nint)textPtr.Value) ?? string.Empty;
     }
 
     public unsafe int GetNodeListCount(string addonName) => TryGetAddonByName<AtkUnitBase>(addonName, out var addon) ? addon->UldManager.NodeListCount : 0;

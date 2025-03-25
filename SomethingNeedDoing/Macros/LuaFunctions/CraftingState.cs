@@ -241,7 +241,7 @@ public class CraftingState()
             if (item == null)
                 continue;
 
-            var spiritbond = item->Spiritbond / 100;
+            var spiritbond = item->SpiritbondOrCollectability / 100;
             if (spiritbond == 100f)
             {
                 canExtract = true;

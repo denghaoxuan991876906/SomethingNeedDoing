@@ -38,12 +38,6 @@ public class MacroNode : INode
     public Language Language { get; set; } = Language.Native;
 
     public MacroNode() { }
-    public MacroNode(MacroFile file)
-    {
-        Name = file.Name;
-        Contents = file.Contents;
-        Language = file.Language;
-    }
 
     public void Run() => Service.MacroManager.EnqueueMacro(this);
 }
