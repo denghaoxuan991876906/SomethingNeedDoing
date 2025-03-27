@@ -447,13 +447,16 @@ end
 function return_fc_entrance()
 	--saw a weirdness where vnav never finished.. no errors and error traps. need more analysis. wasn't life stream the char isnt registered in it
 	yield("/echo attempting to enter nearby entrance to house")
-	yield("/hold W <wait.1.0>")
+	yield("/hold W")
+	yield("/wait 1")
 	yield("/release W")
-	yield("/target Entrance <wait.1>")
+	yield("/target Entrance")
+	yield("/wait 1")
 	yield("/echo vnavving over")
 	yield("/vnav moveto "..GetTargetRawXPos().." "..GetTargetRawYPos().." "..GetTargetRawZPos())
 	yield("/gaction jump")
-	yield("/target Entrance <wait.1>")
+	yield("/target Entrance")
+	yield("/wait 1")
 	yield("/echo vnavving over!")
 	yield("/vnav moveto "..GetTargetRawXPos().." "..GetTargetRawYPos().." "..GetTargetRawZPos())
 	yield("/wait 1")
@@ -461,11 +464,13 @@ function return_fc_entrance()
 	yield("/echo double check")
 	double_check_nav(GetTargetRawXPos(),GetTargetRawYPos(),GetTargetRawZPos())
 	visland_stop_moving()
-	yield("/target Entrance <wait.1>")
+	yield("/target Entrance")
+	yield("/wait 1")
 end
 
 function open_house_door()
-	yield("/target Entrance <wait.1>")
+	yield("/target Entrance")
+	yield("/wait 1")
 	yield("/interact")
 	yield("/wait 1")
 	if IsAddonReady("SelectYesno") then yield("/callback SelectYesno true 0") end
@@ -606,6 +611,9 @@ function enter_workshop()
 end
 
 function clean_inventory()
+	--* automarket is gone with api 12 - sorry friendskis
+--[[--RIP Automarket
+	
 	--oh yeah you'll need this. and asking about it on punish will result in right click -> block.
 	--https://raw.githubusercontent.com/ffxivcode/DalamudPlugins/main/repo.json
 	--*start cleaning??? need slash command
@@ -669,6 +677,8 @@ function clean_inventory()
 	if exit_cleaning > 9 then
 		ungabungabunga()
 	end
+	
+--]]--RIP AUTOMARKET
 end
 
 function getRandomNumber(min, max)
