@@ -41,7 +41,7 @@ Known issues and resolution
 	changing the table structure right now i can't do dynamically and safely (please help me!) so i am versioning things if i change the table structure so you
 	can at least keep your old configs / counters if you need them.    there is probably a nice way to do this without deleting your configs but this is where we are :(
 	also - if you dont have a fully busy roster of retainers, ocean fishing via this method isnt reccommended, you should just use the persistent ocean fishing script thats also on this repo somewhere. i won't be updating that one though.
-	Automarket is donezo. it was nice while it lasted.  maybe a replacement will appear. i am looking at some script alternative but i don't like it.	for now i set the default value for illegal cleaning to 0 until a solution appears
+	Automarket is donezo. it was nice while it lasted.  maybe a replacement will appear. i am looking at some script alternative but i don't like it.	for now i set the default value for illegal cleaning to 0 until a solution appears. you can leave existing configurations alone as if it comes back it will just start working again if you update _functions.lua
 
 --]]
 ------------------------------------------------------------

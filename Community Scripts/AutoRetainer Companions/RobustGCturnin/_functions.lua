@@ -611,6 +611,9 @@ function enter_workshop()
 end
 
 function clean_inventory()
+	--* automarket is gone with api 12 - sorry friendskis
+--[[--RIP Automarket
+	
 	--oh yeah you'll need this. and asking about it on punish will result in right click -> block.
 	--https://raw.githubusercontent.com/ffxivcode/DalamudPlugins/main/repo.json
 	--*start cleaning??? need slash command
@@ -674,6 +677,8 @@ function clean_inventory()
 	if exit_cleaning > 9 then
 		ungabungabunga()
 	end
+	
+--]]--RIP AUTOMARKET
 end
 
 function getRandomNumber(min, max)
