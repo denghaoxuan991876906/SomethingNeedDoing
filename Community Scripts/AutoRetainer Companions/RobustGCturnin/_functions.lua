@@ -108,10 +108,14 @@ function become_feesher()
 		yield("/wait 2")
 		yield("/interact")
 		yield("/wait 2")
-		yield("/callback SelectIconString true 1 <wait.2>")
-		yield("/callback SelectString true 0 <wait.2>")
-		yield("/callback Shop true 0 4 1 <wait.1.0>")
-		yield("/callback Shop true -1 <wait.1.0>")
+		yield("/callback SelectIconString true 1")
+		yield("/wait 2")
+		yield("/callback SelectString true 0")
+		yield("/wait 2")
+		yield("/callback Shop true 0 4 1")
+		yield("/wait 1")
+		yield("/callback Shop true -1")
+		yield("/wait 1")
 		visland_stop_moving()
 		ungabunga()
 	end
@@ -131,13 +135,17 @@ function become_feesher()
 end
 
 function ungabunga()
-	yield("/send ESCAPE <wait.1.5>")
+	yield("/send ESCAPE")
+	yield("/wait 1.5")
 	if IsAddonReady("SelectYesno") then yield("/callback SelectYesno true 0") end
-	yield("/send ESCAPE <wait.1.5>")
+	yield("/send ESCAPE")
+	yield("/wait 1.5")
 	if IsAddonReady("SelectYesno") then yield("/callback SelectYesno true 0") end
-	yield("/send ESCAPE <wait.1.5>")
+	yield("/send ESCAPE")
+	yield("/wait 1.5")
 	if IsAddonReady("SelectYesno") then yield("/callback SelectYesno true 0") end
-	yield("/send ESCAPE <wait.1>")
+	yield("/send ESCAPE")
+	yield("/wait 1")
 	if IsAddonReady("SelectYesno") then yield("/callback SelectYesno true 0") end
 	yield("/wait 3")
 end
@@ -159,13 +167,17 @@ function ungabungabunga()
 	if GetCharacterCondition(1) == true then
 		tobungaorunga = 0
 		while tobungaorunga == 0 do
-			yield("/send ESCAPE <wait.1.5>")
+			yield("/send ESCAPE")
+			yield("/wait 1.5")
 			if IsAddonReady("SelectYesno") then yield("/callback SelectYesno true 0") end
-			yield("/send ESCAPE <wait.1.5>")
+			yield("/send ESCAPE")
+			yield("/wait 1.5")
 			if IsAddonReady("SelectYesno") then yield("/callback SelectYesno true 0") end
-			yield("/send ESCAPE <wait.1.5>")
+			yield("/send ESCAPE")
+			yield("/wait 1.5")
 			if IsAddonReady("SelectYesno") then yield("/callback SelectYesno true 0") end
-			yield("/send ESCAPE <wait.1>")
+			yield("/send ESCAPE")
+			yield("/wait 1")
 			yield("/wait 3")
 			if IsPlayerAvailable() == true then
 				tobungaorunga = 1
@@ -306,8 +318,10 @@ function WalkToGC()
 end
 
 function TargetedInteract(target)
-    yield("/target "..target.." <wait.0.5>")
-    yield("/interact <wait.1>")
+    yield("/target "..target)
+	yield("/wait 0.5")
+    yield("/interact")
+	yield("/wait 1")
 end
 
 function DidWeLoadcorrectly()
@@ -317,7 +331,8 @@ end
 function CharacterSafeWait()
      yield("/echo 15 second wait for char swap")
 	 yield("/wait 15")
-	 yield("/waitaddon NamePlate <maxwait.600> <wait.5>")
+	 yield("/waitaddon NamePlate <maxwait.600>")
+ 	 yield("/wait 5")
 	 --ZoneTransition()
 end
 
@@ -403,7 +418,8 @@ function return_to_fc()
 	--yield("/waitaddon Nowloading <maxwait.15>")
 	ZoneTransition()
 --	yield("/wait 15")
-	yield("/waitaddon NamePlate <maxwait.600><wait.5>")
+	yield("/waitaddon NamePlate <maxwait.600>")
+	yield("/wait 5")
 end
 
 function return_to_lair()
@@ -413,7 +429,8 @@ function return_to_lair()
 	--yield("/waitaddon Nowloading <maxwait.15>")
 --	yield("/wait 15")
 	ZoneTransition()
-	yield("/waitaddon NamePlate <maxwait.600><wait.5>")
+	yield("/waitaddon NamePlate <maxwait.600>")
+	yield("/wait 5")
 end
 
 function double_check_nav(x3, y3, z3)
@@ -623,7 +640,8 @@ function clean_inventory()
 	yield("/target Summoning Bell")
 	yield("/wait 1")
 	yield("/lockon on")
-	yield("/automove on <wait.5.0>") --sometimes it takes a while to path over 3.5 seconds worked in testing and even 1.5 and 2.5 seconds worked but we gonna do 5 seconds to cover all issues
+	yield("/automove on") --sometimes it takes a while to path over 3.5 seconds worked in testing and even 1.5 and 2.5 seconds worked but we gonna do 5 seconds to cover all issues
+	yield("/wait 5")
 	yield("/interact")
 	yield("/automarket start")
 	yield("/wait 5")
@@ -713,7 +731,8 @@ function try_to_buy_fuel(restock_amt)
 		buyfail = 0 --counter
 
 		--get and set FC points
-		yield("/freecompanycmd <wait.1>")
+		yield("/freecompanycmd")
+		yield("/wait 1")
 		fcpoynts = GetNodeText("FreeCompany", 15)
 		clean_fcpoynts = fcpoynts:gsub(",", "")
 		numeric_fcpoynts = tonumber(clean_fcpoynts)
