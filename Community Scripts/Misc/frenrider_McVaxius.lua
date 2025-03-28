@@ -91,7 +91,7 @@ ini_check("version", vershun)
 
 --*****************************************************************
 --************************** END INIZER ***************************
---*****************************************************************
+	--*****************************************************************
 
 ---------------------------------------
 ---------------------------------------
@@ -117,7 +117,7 @@ force_gyasahl = ini_check("force_gyasahl", false) 	   		-- force gysahl green us
 companionstrat = ini_check("companionstrat", "Free Stance") -- chocobo strat to use . Valid options are: "Follow", "Free Stance", "Defender Stance", "Healer Stance", "Attacker Stance"
 timefriction = ini_check("timefriction", 1)					-- how long to wait between "tics" of the main loop? 1 second default. smaller values will have potential crashy / fps impacts.
 hcling_reset = ini_check("hcling_reset", 10) 				-- how many "tics" before hcling is 0 and the user is basically forced to navmesh over to fren - this also handles some special logic such as DD force cling and social distancing
-idle_shitter =  ini_check("idle_shitter", "nothing") 		-- what shall we do if we are idle, valid options are "list" "nothing" or any slash command, if you choose nothing, then after x tics of being idle it will do nothing, otherwise it will pick from a list randomly or run the specific emote you chose.  if your weird and evil you can throw in a snd script here too with /pcraft run asdfasdf
+idle_shitter =  ini_check("idle_shitter", "/tomescroll")	-- what shall we do if we are idle, valid options are "list" "nothing" or any slash command, if you choose nothing, then after x tics of being idle it will do nothing, otherwise it will pick from a list randomly or run the specific emote you chose.  if your weird and evil you can throw in a snd script here too with /pcraft run asdfasdf
 idle_shitter_tic =  ini_check("idle_shitter_tic", 10)		-- how many tics till idle shitter?
 ----------------------------
 ---CLING / DIST---
@@ -142,7 +142,7 @@ positional_in_combat = ini_check("positional_in_combat", 42)	-- 0 = front, 1 = b
 maxAIdistance = ini_check("maxAIdistance", 424242) 				-- distance to targets in combat w BMR, if you dont want to pick, use 424242, otherwise melee 2.6 and caster 10
 limitpct = ini_check("limitpct", -1)							-- What percentage of life on target should we use LB at. It will automatically use LB3 if that's the cap or it will use LB2 if that's the cap, -1 disables it
 rotationplogon = ini_check("rotationplogon", "RSR")				-- Which plogon for rotations? valid options are BMR, VBM, RSR --does wrath have slash commands now? can we add it?
-autorotationtype = ini_check("autorotationtype", "xan")			-- If we are using BossMod rotation, what preset name shall we use? use "none" to manually configure it yourself.  keep in mind you have to make the rotation and name it in the first place.  "xan" is what i call mine
+autorotationtype = ini_check("autorotationtype", "FRENRIDER")	-- If we are using BossMod rotation, what preset name shall we use? use "none" to manually configure it yourself.  keep in mind you have to make the rotation and name it in the first place.  "xan" is what i call mine
 ----------------------------
 ---EXP / FOOD / REPAIR
 ----------------------------
@@ -319,6 +319,8 @@ idle_shitter_list = {
 "/wave",
 "/goodbye",
 "/yawn",
+"/read",
+"/tomescroll",
 "/photograph"
 }
 
