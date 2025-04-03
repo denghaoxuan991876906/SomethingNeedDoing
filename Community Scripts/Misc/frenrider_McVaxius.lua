@@ -605,7 +605,7 @@ function checkAREA()
 			yield(idle_shitter)
 		end
 		if idle_shitter == "list" then
-			yield(idle_shitter_list[getRandomNumber(1,#idle_shitter_list)].." /motion")
+			yield(idle_shitter_list[getRandomNumber(1,#idle_shitter_list)].." motion")
 		end
 		if idle_shitter == "nothing" then
 			--yield("/echo I'm not an idle shitter")
