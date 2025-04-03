@@ -601,7 +601,7 @@ function checkAREA()
 	end
 	if idle_shitter_counter > idle_shitter_tic then  --its time to do something idle shitters!
 		idle_shitter_counter = 0
-		if not idle_shitter == "list" and not idle_shitter == "nothing" then
+		if idle_shitter ~= "list" and idle_shitter ~= "nothing" then
 			yield(idle_shitter)
 		end
 		if idle_shitter == "list" then
