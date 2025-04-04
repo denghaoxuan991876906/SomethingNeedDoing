@@ -134,6 +134,7 @@ formation = ini_check("formation", false)					-- Follow in formation? If false, 
 ----------------------------
 ---COMBAT / AI---
 ----------------------------
+autorotationtype = ini_check("autorotationtype", "FRENRIDER")	-- If we are using BossMod rotation, what preset name shall we use? use "none" to manually configure it yourself.  keep in mind you have to make the rotation and name it in the first place.  "xan" is what i call mine
 autorotationtypeDD = ini_check("autorotationtypeDD", "DD")		-- If we are using BossMod rotation, what preset name shall we use for DD
 autorotationtypeFATE = ini_check("autorotationtypeFATE", "FATE")-- If we are using BossMod rotation, what preset name shall we use for FATE
 rotationtype = ini_check("rotationtype", "Auto")				-- What RSR type shall we use?  Auto or Manual are common ones to pick. if you choose "none" it won't change existing setting.
@@ -142,7 +143,6 @@ positional_in_combat = ini_check("positional_in_combat", 42)	-- 0 = front, 1 = b
 maxAIdistance = ini_check("maxAIdistance", 424242) 				-- distance to targets in combat w BMR, if you dont want to pick, use 424242, otherwise melee 2.6 and caster 10
 limitpct = ini_check("limitpct", -1)							-- What percentage of life on target should we use LB at. It will automatically use LB3 if that's the cap or it will use LB2 if that's the cap, -1 disables it
 rotationplogon = ini_check("rotationplogon", "RSR")				-- Which plogon for rotations? valid options are BMR, VBM, RSR --does wrath have slash commands now? can we add it?
-autorotationtype = ini_check("autorotationtype", "FRENRIDER")	-- If we are using BossMod rotation, what preset name shall we use? use "none" to manually configure it yourself.  keep in mind you have to make the rotation and name it in the first place.  "xan" is what i call mine
 ----------------------------
 ---EXP / FOOD / REPAIR
 ----------------------------
