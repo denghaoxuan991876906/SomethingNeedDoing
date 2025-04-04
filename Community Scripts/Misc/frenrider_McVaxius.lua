@@ -572,7 +572,7 @@ end
 function checkAREA()
 	are_we_DD = 0 --always reset this just in case
 	hcling = cling
-	if socialdistancing == 1 then
+	if are_we_social_distancing == 1 then
 		hcling = cling + ( socialdistance_x_wiggle + socialdistance_z_wiggle ) / 2   --we need more wiggle room outside.
 	end
 	--are_we_social_distancing = 0
@@ -617,7 +617,7 @@ function checkAREA()
 	if IsInFate() == true then
 		hcling = cling + fdistance
 	end
-	yield("/echo idle_shitter_counter -> "..idle_shitter_counter)
+--	yield("/echo idle_shitter_counter -> "..idle_shitter_counter)
 	if idle_shitter_counter > idle_shitter_tic then  --its time to do something idle shitters!
 		idle_shitter_counter = 0
 --			yield("/echo we attempted to -> shitter to 0 counter")
