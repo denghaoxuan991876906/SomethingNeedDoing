@@ -341,15 +341,18 @@ zoi = {
 }
 
 duties_with_distancing = {
-{123123,"Diadem"},
+{886,"Firmament"},
+{939,"Diadem"},
 
-{123123,"Anemos"},
-{123123,"Pagos"},
-{123123,"Pyros"},
-{123123,"Hydatos"},
+{732,"Anemos"},
+{763,"Pagos"},
+{795,"Pyros"},
+{827,"Hydatos"},
 
-{123123,"Hydatos"},
-{123123,"Zadnor"},
+{759,"Doman Enclave"},
+{915,"Gangos"},
+{920,"Hydatos"},
+{975,"Zadnor"},
 
 {123123,"Cosmo1"},
 {123123,"Cosmo2"},
@@ -598,6 +601,9 @@ function checkAREA()
 	--check if we are in a F.A.T.E.
 	if IsInFate() == true then
 		hcling = cling + fdistance
+		--*autorotationtypeFATE
+		--*level sync
+		--*go to forlorns if they are around and attack them
 	end
 	if idle_shitter_counter > idle_shitter_tic then  --its time to do something idle shitters!
 		idle_shitter_counter = 0
