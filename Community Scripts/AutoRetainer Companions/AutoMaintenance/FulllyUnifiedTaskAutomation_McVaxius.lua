@@ -596,7 +596,7 @@ if equip_from_table == 1 then
 			yield("/wait 0.1")
 	end
 end
-
+yield("/vnav stop") --run case we running into wall at house
 if wheeequeheeheheheheheehhhee == 1 then
 	yield("/ays multi e") --if we had to toggle AR
 end
