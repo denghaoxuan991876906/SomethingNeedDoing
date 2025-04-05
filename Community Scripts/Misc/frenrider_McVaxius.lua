@@ -91,7 +91,7 @@ ini_check("version", vershun)
 
 --*****************************************************************
 --************************** END INIZER ***************************
---*****************************************************************
+	--*****************************************************************
 
 ---------------------------------------
 ---------------------------------------
@@ -116,8 +116,7 @@ fulftype = ini_check("fulftype", "unchanged")				-- If you have lazyloot install
 force_gyasahl = ini_check("force_gyasahl", false) 	   		-- force gysahl green usage . maybe cause problems in towns with follow
 companionstrat = ini_check("companionstrat", "Free Stance") -- chocobo strat to use . Valid options are: "Follow", "Free Stance", "Defender Stance", "Healer Stance", "Attacker Stance"
 timefriction = ini_check("timefriction", 1)					-- how long to wait between "tics" of the main loop? 1 second default. smaller values will have potential crashy / fps impacts.
-hcling_reset = ini_check("hcling_reset", 10) 				-- how many "tics" before hcling is 0 and the user is basically forced to navmesh over to fren - this also handles some special logic such as DD force cling and social distancing
-idle_shitter =  ini_check("idle_shitter", "nothing") 		-- what shall we do if we are idle, valid options are "list" "nothing" or any slash command, if you choose nothing, then after x tics of being idle it will do nothing, otherwise it will pick from a list randomly or run the specific emote you chose.  if your weird and evil you can throw in a snd script here too with /pcraft run asdfasdf
+idle_shitter =  ini_check("idle_shitter", "/tomescroll")	-- what shall we do if we are idle, valid options are "list" "nothing" or any slash command, if you choose nothing, then after x tics of being idle it will do nothing, otherwise it will pick from a list randomly or run the specific emote you chose.  if your weird and evil you can throw in a snd script here too with /pcraft run asdfasdf
 idle_shitter_tic =  ini_check("idle_shitter_tic", 10)		-- how many tics till idle shitter?
 ----------------------------
 ---CLING / DIST---
@@ -126,14 +125,18 @@ cling = ini_check("cling", 2.6) 							-- Distance to trigger a cling to fren wh
 clingtype = ini_check("clingtype", 0)						-- Clingtype, 0 = navmesh [Default], 1 = visland, 2 = bossmod follow leader, 3 = CBT autofollow, 4 = vanilla game follow
 clingtypeduty = ini_check("clingtypeduty", 2)				-- do we need a diff clingtype in duties? use same numbering as above 
 socialdistancing = ini_check("socialdistancing", 5)			-- if this value is > 0 then it won't get any closer than this even if cling is lower.  The reason is to keep them from looking too much like bots.  it will consider this value only in outdoor areas, and foray areas.
+socialdistance_x_wiggle = ini_check("socialdistance_x_wiggle", 1) -- wiggle +/- this many yalms on the x axis during social distancing
+socialdistance_z_wiggle = ini_check("socialdistance_z_wiggle", 1) -- wiggle +/- this many yalms on the z axis during social distancing
 maxbistance = ini_check("maxbistance", 50) 					-- Max distance from fren that we will actually chase them, so that we dont get zone hopping situations ;p
 ddistance = ini_check("ddistance", 100) 					-- DEEP DUNGEON RELATED - if your in a deep dungeon should we even follow? add this to "cling" if we are in a DD, 100 is default
 follow_in_combat = ini_check("follow_in_combat", 42)		-- 0 = dont follow the leader while in combat, 1 = follow the leader while in combat, 42 = let a table decide based on job/role
 fdistance = ini_check("fdistance", 0) 						-- F.A.T.E. related - if your in a fate, add some more padding to "cling" default is 20 for now until some testing is done
 formation = ini_check("formation", false)					-- Follow in formation? If false, then it will "cling", valid values are true or false - see note at bottom to see how formations work (cardinal and intercardinals)
+hcling_reset = ini_check("hcling_reset", 10) 				-- how many "tics" before hcling is 0 and the user is basically forced to navmesh over to fren - this also handles some special logic such as DD/FATE force cling
 ----------------------------
 ---COMBAT / AI---
 ----------------------------
+autorotationtype = ini_check("autorotationtype", "FRENRIDER")	-- If we are using BossMod rotation, what preset name shall we use? use "none" to manually configure it yourself.  keep in mind you have to make the rotation and name it in the first place.  "xan" is what i call mine
 autorotationtypeDD = ini_check("autorotationtypeDD", "DD")		-- If we are using BossMod rotation, what preset name shall we use for DD
 autorotationtypeFATE = ini_check("autorotationtypeFATE", "FATE")-- If we are using BossMod rotation, what preset name shall we use for FATE
 rotationtype = ini_check("rotationtype", "Auto")				-- What RSR type shall we use?  Auto or Manual are common ones to pick. if you choose "none" it won't change existing setting.
@@ -142,7 +145,6 @@ positional_in_combat = ini_check("positional_in_combat", 42)	-- 0 = front, 1 = b
 maxAIdistance = ini_check("maxAIdistance", 424242) 				-- distance to targets in combat w BMR, if you dont want to pick, use 424242, otherwise melee 2.6 and caster 10
 limitpct = ini_check("limitpct", -1)							-- What percentage of life on target should we use LB at. It will automatically use LB3 if that's the cap or it will use LB2 if that's the cap, -1 disables it
 rotationplogon = ini_check("rotationplogon", "RSR")				-- Which plogon for rotations? valid options are BMR, VBM, RSR --does wrath have slash commands now? can we add it?
-autorotationtype = ini_check("autorotationtype", "xan")			-- If we are using BossMod rotation, what preset name shall we use? use "none" to manually configure it yourself.  keep in mind you have to make the rotation and name it in the first place.  "xan" is what i call mine
 ----------------------------
 ---EXP / FOOD / REPAIR
 ----------------------------
@@ -339,15 +341,18 @@ zoi = {
 }
 
 duties_with_distancing = {
-{123123,"Diadem"},
+{886,"Firmament"},
+{939,"Diadem"},
 
-{123123,"Anemos"},
-{123123,"Pagos"},
-{123123,"Pyros"},
-{123123,"Hydatos"},
+{732,"Anemos"},
+{763,"Pagos"},
+{795,"Pyros"},
+{827,"Hydatos"},
 
-{123123,"Hydatos"},
-{123123,"Zadnor"},
+{759,"Doman Enclave"},
+{915,"Gangos"},
+{920,"Hydatos"},
+{975,"Zadnor"},
 
 {123123,"Cosmo1"},
 {123123,"Cosmo2"},
@@ -487,9 +492,20 @@ function calculateBufferXY(meX, meZ, theyX, theyZ)
     -- Normalize the direction vector and scale by socialdistancing radius
     local scale = socialdistancing / dist
     local calcedX = theyX + dx * scale
-    local calcedY = theyZ + dz * scale
+    local calcedZ = theyZ + dz * scale
+	
+	--yield("/echo getRandomNumber -> "..getRandomNumber(0,socialdistance_x_wiggle))
+	--yield("/echo socialdistance_x_wiggle: " .. tostring(socialdistance_x_wiggle))
+	--yield("/echo socialdistance_z_wiggle: " .. tostring(socialdistance_z_wiggle))
 
-    return calcedX, calcedY
+	if socialdistance_x_wiggle > 0 then
+		calcedX = calcedX + getRandomNumber(-1 * socialdistance_x_wiggle,socialdistance_x_wiggle)
+	end
+	if socialdistance_z_wiggle > 0 then
+		calcedZ = calcedZ + getRandomNumber(-1 * socialdistance_z_wiggle,socialdistance_z_wiggle)
+	end
+
+    return calcedX, calcedZ
 end
 
 
@@ -556,10 +572,14 @@ end
 function checkAREA()
 	are_we_DD = 0 --always reset this just in case
 	hcling = cling
+	if are_we_social_distancing == 1 then
+		hcling = cling + ( socialdistance_x_wiggle + socialdistance_z_wiggle ) / 2   --we need more wiggle room outside.
+	end
 	--are_we_social_distancing = 0
 	hcling_counter = hcling_counter + 1
 
 	idle_shitter_counter = idle_shitter_counter + 1
+	--yield("/echo idle shitter counter -> "..idle_shitter_counter)
 	if GetCharacterCondition(26) == true then
 		idle_shitter_counter = 0
 	end
@@ -597,27 +617,39 @@ function checkAREA()
 	if IsInFate() == true then
 		hcling = cling + fdistance
 	end
+--	yield("/echo idle_shitter_counter -> "..idle_shitter_counter)
 	if idle_shitter_counter > idle_shitter_tic then  --its time to do something idle shitters!
 		idle_shitter_counter = 0
-		if not idle_shitter == "list" and not idle_shitter == "nothing" then
+--			yield("/echo we attempted to -> shitter to 0 counter")
+		if idle_shitter ~= "list" and idle_shitter ~= "nothing" then
 			yield(idle_shitter)
+--			yield("/echo we attempted to -> "..idle_shitter)
 		end
 		if idle_shitter == "list" then
-			yield(idle_shitter_list[getRandomNumber(1,#idle_shitter_list)].." /motion")
+			floop = idle_shitter_list[getRandomNumber(1,#idle_shitter_list)]
+			yield(floop.." motion")
+--			yield("/echo we attempted to -> list "..floop)
 		end
 		if idle_shitter == "nothing" then
+--			yield("/echo we attempted to -> nothing")
 			--yield("/echo I'm not an idle shitter")
 		end
 	end
+
 	if hcling_counter > hcling_reset then
 		hcling = cling
 		hcling_counter = 0
-		are_we_social_distancing = are_we_distancing()
-		if are_we_social_distancing == 1 then
-			if socialdistancing > cling then
-				hcling = socialdistancing
-			end
+	end
+
+	are_we_social_distancing = are_we_distancing()
+	if are_we_social_distancing == 1 then
+		if socialdistancing > cling then
+			hcling = socialdistancing
 		end
+	end
+
+	if IsPartyMemberMounted(shartycardinality) == true and fly_you_fools == false then
+		are_we_social_distancing = 0 --turn off social distancing if the party leader is mounted.
 	end
 end
 
