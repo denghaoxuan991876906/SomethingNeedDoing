@@ -275,7 +275,7 @@ public class Config : IEzConfig
                                     LastModified = DateTime.Now,
                                     CraftingLoop = node.CraftingLoop ?? false,
                                     CraftLoopCount = node.CraftLoopCount ?? 0,
-                                    TriggerEvents = node.isPostProcess ? [TriggerEvent.AutoRetainerCharacterPostProcess] : [],
+                                    TriggerEvents = node.isPostProcess ? [TriggerEvent.OnAutoRetainerCharacterPostProcess] : [],
                                 }
                             };
 

@@ -118,7 +118,7 @@ public class MigrationPreviewWindow : Window
                         LastModified = DateTime.Now,
                         CraftingLoop = craftingLoop,
                         CraftLoopCount = craftLoopCount,
-                        TriggerEvents = isPostProcess ? [TriggerEvent.AutoRetainerCharacterPostProcess] : [],
+                        TriggerEvents = isPostProcess ? [TriggerEvent.OnAutoRetainerCharacterPostProcess] : [],
                     }
                 };
                 newMacros[name] = (macro, true);

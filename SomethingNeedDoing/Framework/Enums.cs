@@ -46,7 +46,19 @@ public enum MacroState
     Error
 }
 
+/// <summary>
+/// Defines the events that can trigger a macro
+/// </summary>
 public enum TriggerEvent
 {
-    AutoRetainerCharacterPostProcess
+    None,
+    OnAutoRetainerCharacterPostProcess,
+    OnUpdate,
+    OnCombatStart,
+    OnCombatEnd,
+    OnLogin,
+    OnLogout,
+    OnTerritoryChange,
+    OnChatMessage,
+    OnAddonEvent,
 }

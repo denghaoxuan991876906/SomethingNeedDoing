@@ -37,7 +37,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
         C.Macros.ForEach(m =>
         {
-            if (m.Metadata.TriggerEvents.Contains(TriggerEvent.AutoRetainerCharacterPostProcess))
+            if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnAutoRetainerCharacterPostProcess))
             {
                 _arApis.TryAdd(m.Id, new AutoRetainerApi());
                 _arApis[m.Id].OnCharacterPostprocessStep += () => CheckCharacterPostProcess(m);
@@ -82,9 +82,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     public async Task PauseMacro(string macroId)
     {
         if (_enginesByMacroId.TryGetValue(macroId, out var engine))
-        {
             await engine.PauseMacro(macroId);
-        }
     }
 
     /// <summary>
@@ -94,9 +92,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     public async Task ResumeMacro(string macroId)
     {
         if (_enginesByMacroId.TryGetValue(macroId, out var engine))
-        {
             await engine.ResumeMacro(macroId);
-        }
     }
 
     /// <summary>
