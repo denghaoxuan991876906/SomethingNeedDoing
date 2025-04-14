@@ -1,15 +1,10 @@
-using AutoRetainerAPI;
-using SomethingNeedDoing.IPC;
-using SomethingNeedDoing.Macros;
-using SomethingNeedDoing.Managers;
+﻿using AutoRetainerAPI;
+using SomethingNeedDoing.Old.IPC;
 
 namespace SomethingNeedDoing;
-
-internal class Service
+public class Service
 {
-    internal static AutoRetainerApi AutoRetainerApi { get; set; } = null!;
-    internal static ChatManager ChatManager { get; set; } = null!;
-    internal static GameEventManager GameEventManager { get; set; } = null!;
-    internal static MacroManager MacroManager { get; set; } = null!;
-    internal static Tippy Tippy { get; set; } = null!;
+    public static AutoRetainerApi AutoRetainerApi { get; set; } = null!;
+    public static MacroScheduler MacroScheduler { get; set; } = null!;
+    public static Tippy Tippy { get; set; } = null!;
 }

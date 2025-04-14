@@ -1,29 +1,90 @@
-using Dalamud.Game.Text;
+﻿using Dalamud.Game.Text;
 using ECommons.Configuration;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using SomethingNeedDoing.Macros;
-using System;
-using System.Collections.Generic;
+using Newtonsoft.Json;
 using System.IO;
 using System.Text;
+using System.Collections.Generic;
 
 namespace SomethingNeedDoing;
+/// <summary>
+/// Represents a macro stored in the configuration.
+/// </summary>
+public class ConfigMacro : IMacro
+{
+    /// <summary>
+    /// Gets or sets the unique identifier of the macro.
+    /// </summary>
+    public string Id { get; set; } = Guid.NewGuid().ToString();
 
+    /// <summary>
+    /// Gets or sets the display name of the macro.
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the type of the macro.
+    /// </summary>
+    public MacroType Type { get; set; }
+
+    /// <summary>
+    /// Gets or sets the content of the macro.
+    /// </summary>
+    public string Content { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the folder path of the macro.
+    /// </summary>
+    public string FolderPath { get; set; } = "/";
+
+    /// <summary>
+    /// Gets or sets the metadata for this macro.
+    /// </summary>
+    public MacroMetadata Metadata { get; set; } = new();
+
+    /// <summary>
+    /// Gets the current state of the macro.
+    /// </summary>
+    public MacroState State { get; } = MacroState.Ready;
+
+    /// <summary>
+    /// Gets the commands that make up this macro.
+    /// </summary>
+    public IReadOnlyList<IMacroCommand> Commands { get; } = [];
+
+    /// <summary>
+    /// Updates the last modified timestamp.
+    /// </summary>
+    public void UpdateLastModified() => Metadata.LastModified = DateTime.Now;
+}
+
+/// <summary>
+/// Configuration for the plugin.
+/// </summary>
 public class Config : IEzConfig
 {
-    public int Version { get; set; } = 1;
-    public bool LockWindow { get; set; } = false;
+    public int Version { get; set; } = 2; // Increment from previous version
+
+    #region General Settings
+    public bool LockWindow { get; set; }
+    public bool DisableMonospaced { get; set; }
+    public XivChatType ChatType { get; set; } = XivChatType.Debug;
+    public XivChatType ErrorChatType { get; set; } = XivChatType.Urgent;
+    #endregion
+
+    #region Macro Settings
+    public List<ConfigMacro> Macros { get; set; } = [];
     public string DefaultFileName { get; set; } = "UntitledMacro";
     public string DefaultFileExtension { get; set; } = ".txt";
-    public FolderNode RootFolder { get; set; } = new FolderNode { Name = "/" };
+    #endregion
+
+    #region Crafting Settings
     public bool CraftSkip { get; set; } = true;
-    public bool SmartWait { get; set; } = false;
+    public bool SmartWait { get; set; }
     public bool QualitySkip { get; set; } = true;
-    public bool LoopTotal { get; set; } = false;
-    public bool LoopEcho { get; set; } = false;
-    public bool DisableMonospaced { get; set; } = false;
-    public bool UseCraftLoopTemplate { get; set; } = false;
+    public bool LoopTotal { get; set; }
+    public bool LoopEcho { get; set; }
+    public bool UseCraftLoopTemplate { get; set; }
     public string CraftLoopTemplate { get; set; } =
         "/craft {{count}}\n" +
         "/waitaddon \"RecipeNote\" <maxwait.5>" +
@@ -31,114 +92,517 @@ public class Config : IEzConfig
         "/waitaddon \"Synthesis\" <maxwait.5>" +
         "{{macro}}" +
         "/loop";
-
     public bool CraftLoopFromRecipeNote { get; set; } = true;
     public int CraftLoopMaxWait { get; set; } = 5;
-    public bool CraftLoopEcho { get; set; } = false;
-    public int MaxTimeoutRetries { get; set; } = 0;
-    public bool NoisyErrors { get; set; } = false;
+    public bool CraftLoopEcho { get; set; }
+    #endregion
+
+    #region Error Handling
+    public int MaxTimeoutRetries { get; set; }
+    public bool NoisyErrors { get; set; }
     public int BeepFrequency { get; set; } = 900;
     public int BeepDuration { get; set; } = 250;
     public int BeepCount { get; set; } = 3;
+    #endregion
+
+    #region Targeting
     public bool UseSNDTargeting { get; set; } = true;
+    #endregion
 
-    public MacroNode? ARCharacterPostProcessMacro
-    {
-        get;
-        set
-        {
-            if (value != null)
-                value.IsPostProcess = true;
-            field = value;
-        }
-    }
+    #region AutoRetainer Integration
+    public ConfigMacro? ARCharacterPostProcessMacro { get; set; }
     public List<ulong> ARCharacterPostProcessExcludedCharacters { get; set; } = [];
+    #endregion
 
+    #region Error Conditions
     public bool StopMacroIfActionTimeout { get; set; } = true;
     public bool StopMacroIfItemNotFound { get; set; } = true;
     public bool StopMacroIfCantUseItem { get; set; } = true;
     public bool StopMacroIfTargetNotFound { get; set; } = true;
     public bool StopMacroIfAddonNotFound { get; set; } = true;
     public bool StopMacroIfAddonNotVisible { get; set; } = true;
+    #endregion
 
-    /// <summary>
-    /// Gets or sets the chat channel to use.
-    /// </summary>
-    public XivChatType ChatType { get; set; } = XivChatType.Debug;
-
-    /// <summary>
-    /// Gets or sets the error chat channel to use.
-    /// </summary>
-    public XivChatType ErrorChatType { get; set; } = XivChatType.Urgent;
-
-    /// <summary>
-    /// Gets or sets the paths that lua macros will use when requiring files
-    /// </summary>
+    #region Lua Settings
     public string[] LuaRequirePaths { get; set; } = [];
+    public bool UseMacroFileSystem { get; set; }
+    #endregion
 
-    public bool UseMacroFileSystem { get; set; } = false;
-
-    internal void Save() => EzConfig.Save();
-
-    internal IEnumerable<INode> GetAllNodes() => new INode[] { RootFolder }.Concat(GetAllNodes(RootFolder.Children));
-
-    internal IEnumerable<INode> GetAllNodes(IEnumerable<INode> nodes)
+    /// <summary>
+    /// Migrates configuration from an older version.
+    /// </summary>
+    public void Migrate(dynamic oldConfig)
     {
-        foreach (var node in nodes)
+        try
         {
-            yield return node;
-            if (node is FolderNode folder)
+            // Migrate from version 1
+            if (oldConfig.Version == 1)
             {
-                var childNodes = GetAllNodes(folder.Children);
-                foreach (var childNode in childNodes)
+                // Log the old config structure for debugging
+                Svc.Log.Info($"Old config type: {oldConfig.GetType().Name}");
+                foreach (var prop in oldConfig.GetType().GetProperties())
                 {
-                    yield return childNode;
+                    Svc.Log.Info($"Property: {prop.Name} = {prop.GetValue(oldConfig)}");
+                }
+
+                // Migrate general settings
+                LockWindow = oldConfig.LockWindow;
+                DisableMonospaced = oldConfig.DisableMonospaced;
+                ChatType = oldConfig.ChatType;
+                ErrorChatType = oldConfig.ErrorChatType;
+
+                // Migrate macros from old tree structure
+                if (oldConfig.RootFolder != null)
+                {
+                    MigrateMacrosFromOldStructure(oldConfig.RootFolder);
+                }
+
+                // Migrate other settings
+                CraftSkip = oldConfig.CraftSkip;
+                SmartWait = oldConfig.SmartWait;
+                QualitySkip = oldConfig.QualitySkip;
+                LoopTotal = oldConfig.LoopTotal;
+                LoopEcho = oldConfig.LoopEcho;
+                UseCraftLoopTemplate = oldConfig.UseCraftLoopTemplate;
+                CraftLoopTemplate = oldConfig.CraftLoopTemplate;
+                CraftLoopFromRecipeNote = oldConfig.CraftLoopFromRecipeNote;
+                CraftLoopMaxWait = oldConfig.CraftLoopMaxWait;
+                CraftLoopEcho = oldConfig.CraftLoopEcho;
+
+                // Migrate AR settings if they exist
+                if (oldConfig.ARCharacterPostProcessMacro is { } arMacro)
+                {
+                    // Find the macro by name in our new structure
+                    var migratedMacro = GetMacroByName(arMacro.Name);
+                    if (migratedMacro != null)
+                    {
+                        migratedMacro.Metadata.RunDuringARPostProcess = true;
+                    }
+                }
+
+                ARCharacterPostProcessExcludedCharacters = new List<ulong>(oldConfig.ARCharacterPostProcessExcludedCharacters);
+
+                // Migrate error settings
+                MaxTimeoutRetries = oldConfig.MaxTimeoutRetries;
+                NoisyErrors = oldConfig.NoisyErrors;
+                BeepFrequency = oldConfig.BeepFrequency;
+                BeepDuration = oldConfig.BeepDuration;
+                BeepCount = oldConfig.BeepCount;
+
+                // Migrate stop conditions
+                StopMacroIfActionTimeout = oldConfig.StopMacroIfActionTimeout;
+                StopMacroIfItemNotFound = oldConfig.StopMacroIfItemNotFound;
+                StopMacroIfCantUseItem = oldConfig.StopMacroIfCantUseItem;
+                StopMacroIfTargetNotFound = oldConfig.StopMacroIfTargetNotFound;
+                StopMacroIfAddonNotFound = oldConfig.StopMacroIfAddonNotFound;
+                StopMacroIfAddonNotVisible = oldConfig.StopMacroIfAddonNotVisible;
+
+                // Migrate Lua settings
+                LuaRequirePaths = oldConfig.LuaRequirePaths;
+                UseMacroFileSystem = oldConfig.UseMacroFileSystem;
+
+                // Log migration results
+                Svc.Log.Info($"Migration completed. Total macros migrated: {Macros.Count}");
+                foreach (var macro in Macros)
+                {
+                    Svc.Log.Info($"Migrated macro: {macro.Name} in {macro.FolderPath}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Svc.Log.Error(ex, "Failed to migrate configuration");
+        }
+    }
+
+    private void MigrateMacrosFromOldStructure(dynamic rootFolder)
+    {
+        // First, determine the root folder name
+        string? rootFolderName;
+        try
+        {
+            if (rootFolder.Name != null)
+            {
+                rootFolderName = rootFolder.Name.ToString();
+                Svc.Log.Info($"Root folder name: {rootFolderName}");
+            }
+            else
+            {
+                Svc.Log.Warning("Root folder has no name, using default");
+                rootFolderName = "Root";
+            }
+        }
+        catch (Exception ex)
+        {
+            Svc.Log.Error(ex, "Error determining root folder name");
+            rootFolderName = "Root";
+        }
+
+        void TraverseFolderStructure(dynamic folder, string currentPath, bool isRoot = false)
+        {
+            if (folder == null) return;
+
+            // Log the current folder for debugging
+            Svc.Log.Info($"Traversing folder: {currentPath}");
+
+            try
+            {
+                // Get the Children property safely
+                var children = folder.Children;
+                if (children == null)
+                {
+                    Svc.Log.Warning($"No Children property found in folder: {currentPath}");
+                    return;
+                }
+
+                foreach (dynamic node in children)
+                {
+                    try
+                    {
+                        // Check if this is a macro node by looking for Contents property
+                        if (node.Contents != null)
+                        {
+                            // This is a macro node
+                            var macro = new ConfigMacro
+                            {
+                                Id = Guid.NewGuid().ToString(),
+                                Name = node.Name ?? "Unknown",
+                                Type = node.Language?.ToString() == "1" ? MacroType.Lua : MacroType.Native,
+                                Content = node.Contents.ToString(),
+                                FolderPath = isRoot ? "/" : currentPath,
+                                Metadata = new MacroMetadata
+                                {
+                                    LastModified = DateTime.Now,
+                                    CraftingLoop = node.CraftingLoop ?? false,
+                                    CraftLoopCount = node.CraftLoopCount ?? 0,
+                                    TriggerEvents = node.isPostProcess ? [TriggerEvent.AutoRetainerCharacterPostProcess] : [],
+                                }
+                            };
+
+                            Svc.Log.Info($"Adding macro: {macro.Name} in {macro.FolderPath}");
+                            Macros.Add(macro);
+                        }
+                        else if (node.Name != null)
+                        {
+                            // This is a folder node
+                            var folderName = node.Name.ToString();
+
+                            // If this is the root folder's children, use "/" as the path
+                            if (isRoot)
+                            {
+                                TraverseFolderStructure(node, "/");
+                            }
+                            else
+                            {
+                                // For other folders, build the path normally
+                                var newPath = Path.Combine(currentPath, folderName).Replace('\\', '/');
+                                TraverseFolderStructure(node, newPath);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Svc.Log.Error(ex, $"Error processing node in folder {currentPath}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Svc.Log.Error(ex, $"Error traversing folder {currentPath}");
+            }
+        }
+
+        try
+        {
+            // Start with the root folder, marking it as the root
+            TraverseFolderStructure(rootFolder, rootFolderName, true);
+            Svc.Log.Info($"Migration completed. Total macros migrated: {Macros.Count}");
+        }
+        catch (Exception ex)
+        {
+            Svc.Log.Error(ex, "Failed to traverse folder structure");
+        }
+    }
+
+    public void ValidateMigration()
+    {
+        Svc.Log.Info($"Configuration version: {Version}");
+        Svc.Log.Info($"Total macros: {Macros.Count}");
+        foreach (var macro in Macros)
+            Svc.Log.Info($"Macro: {macro.Name} in {macro.FolderPath}");
+    }
+
+    public void Save() => EzConfig.Save();
+
+    /// <summary>
+    /// Gets all macros in a specific folder.
+    /// </summary>
+    public IEnumerable<ConfigMacro> GetMacrosInFolder(string folderPath) => Macros.Where(m => m.FolderPath == folderPath);
+
+    /// <summary>
+    /// Gets all folder paths.
+    /// </summary>
+    public IEnumerable<string> GetFolderPaths() => Macros.Select(m => m.FolderPath).Distinct();
+
+    /// <summary>
+    /// Moves a macro to a different folder.
+    /// </summary>
+    public void MoveMacro(string macroId, string newFolderPath)
+    {
+        var macro = Macros.FirstOrDefault(m => m.Id == macroId);
+        if (macro != null)
+        {
+            macro.FolderPath = newFolderPath;
+        }
+    }
+
+    /// <summary>
+    /// Deletes a macro.
+    /// </summary>
+    public void DeleteMacro(string macroId) => Macros.RemoveAll(m => m.Id == macroId);
+
+    #region Helper Methods
+
+    /// <summary>
+    /// Gets a macro by its ID.
+    /// </summary>
+    public ConfigMacro? GetMacro(string macroId)
+        => Macros.FirstOrDefault(m => m.Id == macroId);
+
+    /// <summary>
+    /// Gets a macro by its name, optionally in a specific folder.
+    /// </summary>
+    public ConfigMacro? GetMacroByName(string name, string? folderPath = null)
+        => Macros.FirstOrDefault(m =>
+            m.Name.Equals(name, StringComparison.OrdinalIgnoreCase) &&
+            (folderPath == null || m.FolderPath == folderPath));
+
+    /// <summary>
+    /// Gets all macros of a specific type.
+    /// </summary>
+    public IEnumerable<ConfigMacro> GetMacrosByType(MacroType type)
+        => Macros.Where(m => m.Type == type);
+
+    /// <summary>
+    /// Gets all macros in a folder and its subfolders.
+    /// </summary>
+    public IEnumerable<ConfigMacro> GetMacrosInFolderRecursive(string folderPath)
+        => Macros.Where(m => m.FolderPath.StartsWith(folderPath));
+
+    /// <summary>
+    /// Gets the immediate subfolders of a folder.
+    /// </summary>
+    public IEnumerable<string> GetSubfolders(string folderPath)
+    {
+        var prefix = folderPath == "/" ? "" : folderPath + "/";
+        return Macros
+            .Select(m => m.FolderPath)
+            .Where(p => p.StartsWith(prefix))
+            .Select(p => p.Split('/', StringSplitOptions.RemoveEmptyEntries)[0])
+            .Distinct()
+            .Select(f => prefix + f);
+    }
+
+    /// <summary>
+    /// Creates a new instance of the macro with default metadata.
+    /// </summary>
+    public ConfigMacro Create(string name, MacroType type, string content, string folderPath = "/")
+    {
+        return new ConfigMacro
+        {
+            Name = name,
+            Type = type,
+            Content = content,
+            FolderPath = folderPath,
+            Metadata = new MacroMetadata { LastModified = DateTime.Now }
+        };
+    }
+
+    /// <summary>
+    /// Renames a macro.
+    /// </summary>
+    public bool RenameMacro(string macroId, string newName)
+    {
+        var macro = GetMacro(macroId);
+        if (macro == null) return false;
+        macro.Name = newName;
+        return true;
+    }
+
+    /// <summary>
+    /// Duplicates a macro.
+    /// </summary>
+    public ConfigMacro? DuplicateMacro(string macroId, string? newName = null)
+    {
+        var macro = GetMacro(macroId);
+        if (macro == null) return null;
+
+        var duplicate = new ConfigMacro
+        {
+            Name = newName ?? $"{macro.Name} (Copy)",
+            Type = macro.Type,
+            Content = macro.Content,
+            FolderPath = macro.FolderPath
+        };
+        Macros.Add(duplicate);
+        return duplicate;
+    }
+
+    /// <summary>
+    /// Gets the full path of a macro.
+    /// </summary>
+    public string GetMacroPath(string macroId)
+    {
+        var macro = GetMacro(macroId);
+        return macro == null ? string.Empty : Path.Combine(macro.FolderPath, macro.Name);
+    }
+
+    /// <summary>
+    /// Gets the parent folder path of a macro.
+    /// </summary>
+    public string GetMacroParentFolder(string macroId)
+    {
+        var macro = GetMacro(macroId);
+        if (macro == null) return string.Empty;
+
+        var lastSlash = macro.FolderPath.LastIndexOf('/');
+        return lastSlash <= 0 ? "/" : macro.FolderPath[..lastSlash];
+    }
+
+    /// <summary>
+    /// Validates if a macro name is valid for the given folder.
+    /// </summary>
+    public bool IsValidMacroName(string name, string folderPath)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return false;
+        return !GetMacrosInFolder(folderPath)
+            .Any(m => m.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Gets the number of macros in a folder.
+    /// </summary>
+    public int GetMacroCount(string folderPath)
+        => GetMacrosInFolder(folderPath).Count();
+
+    /// <summary>
+    /// Gets the total number of macros in a folder and its subfolders.
+    /// </summary>
+    public int GetTotalMacroCount(string folderPath)
+        => GetMacrosInFolderRecursive(folderPath).Count();
+
+    /// <summary>
+    /// Gets all macros that contain a specific text in their content.
+    /// </summary>
+    public IEnumerable<ConfigMacro> SearchMacros(string searchText, bool caseSensitive = false)
+    {
+        var comparison = caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        return Macros.Where(m =>
+            m.Name.Contains(searchText, comparison) ||
+            m.Content.Contains(searchText, comparison));
+    }
+
+    /// <summary>
+    /// Gets all folder paths and their depths in the tree.
+    /// </summary>
+    public IEnumerable<(string Path, int Depth)> GetFolderTree()
+    {
+        // Get all unique folder paths from macros
+        var paths = Macros
+            .Select(m => m.FolderPath)
+            .Distinct()
+            .OrderBy(p => p);
+
+        // Track processed paths to avoid duplicates
+        var processedPaths = new HashSet<string>();
+
+        foreach (var path in paths)
+        {
+            // Skip the root folder itself - we don't want to display it
+            if (path == "/")
+                continue;
+
+            // Split path into parts and calculate depth
+            var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+            // If this is a direct child of root (depth 1), yield it with depth 0
+            if (parts.Length == 1)
+            {
+                yield return (path, 0);
+                processedPaths.Add(path);
+                continue;
+            }
+
+            // For deeper paths, build each part of the path
+            var currentPath = "";
+            for (var i = 0; i < parts.Length; i++)
+            {
+                currentPath = i == 0 ? "/" + parts[i] : currentPath + "/" + parts[i];
+                if (!currentPath.StartsWith("/"))
+                    currentPath = "/" + currentPath;
+
+                // Only yield if we haven't processed this path yet
+                if (!processedPaths.Contains(currentPath))
+                {
+                    // For paths with depth > 1, adjust the depth to be relative to the first level
+                    var adjustedDepth = i;
+                    yield return (currentPath, adjustedDepth);
+                    processedPaths.Add(currentPath);
                 }
             }
         }
     }
 
-    internal bool TryFindParent(INode node, out FolderNode? parent)
+    /// <summary>
+    /// Gets the folder structure as a tree with macro counts.
+    /// </summary>
+    public IEnumerable<(string Path, int Depth, int Count)> GetFolderTreeWithCounts()
     {
-        foreach (var candidate in GetAllNodes())
+        var allFolders = GetFolderTree().ToList();
+        var folderCounts = new Dictionary<string, int>();
+
+        // First calculate counts for all folders
+        foreach (var macro in Macros)
         {
-            if (candidate is FolderNode folder && folder.Children.Contains(node))
-            {
-                parent = folder;
-                return true;
-            }
+            var path = macro.FolderPath;
+            if (!folderCounts.ContainsKey(path))
+                folderCounts[path] = 0;
+            folderCounts[path]++;
         }
 
-        parent = null;
-        return false;
-    }
-
-    internal void SetProperty(string key, string value)
-    {
-        var property = typeof(Config).GetProperty(key);
-        if (property != null && property.Name != "Version" && property.CanWrite && (property.PropertyType == typeof(int) || property.PropertyType == typeof(bool)))
+        // Return folder info with counts
+        foreach (var (path, depth) in allFolders)
         {
-            if (property.PropertyType == typeof(int) && int.TryParse(value, out var intValue))
-                property.SetValue(this, intValue);
-            else if (property.PropertyType == typeof(bool) && bool.TryParse(value, out var boolValue))
-                property.SetValue(this, boolValue);
-            else
-                Svc.Log.Error($"Value type does not match property type for {key}: {value.GetType()} != {property.PropertyType}");
+            var count = folderCounts.TryGetValue(path, out var c) ? c : 0;
+            yield return (path, depth, count);
         }
-        else
-            Svc.Log.Error($"Invalid configuration key or type");
     }
 
-    internal object? GetProperty(string key)
+    /// <summary>
+    /// Gets all nodes in the configuration.
+    /// </summary>
+    public IEnumerable<ConfigMacro> GetAllNodes() => Macros;
+
+    /// <summary>
+    /// Sets a property value by name.
+    /// </summary>
+    public void SetProperty(string name, string value)
     {
-        var property = typeof(Config).GetProperty(key);
-        return property != null && property.Name != "Version" && property.CanWrite ? property.GetValue(this) : null;
+        var property = GetType().GetProperty(name);
+        if (property == null) return;
+
+        try
+        {
+            var convertedValue = Convert.ChangeType(value, property.PropertyType);
+            property.SetValue(this, convertedValue);
+        }
+        catch (Exception ex)
+        {
+            Svc.Log.Error(ex, $"Failed to set property {name} to {value}");
+        }
     }
 
-    [JsonIgnore]
-    internal string RootFolderPath
-        => Directory.GetDirectories(Svc.PluginInterface.GetPluginConfigDirectory()).Select(x => new DirectoryInfo(x)).FirstOrDefault(x => x.Name == RootFolder.Name)?.FullName
-        ?? Directory.CreateDirectory(Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(), RootFolder.Name)).FullName;
+    #endregion
 }
 
 public class ConfigFactory : ISerializationFactory
@@ -163,7 +627,7 @@ public class ConfigFactory : ISerializationFactory
         => JsonConvert.SerializeObject(data, JsonSerializerSettings);
     public string? Serialize(object config) => Serialize(config, false);
     public T? Deserialize<T>(byte[] inputData) => Deserialize<T>(Encoding.UTF8.GetString(inputData));
-    public byte[]? SerializeAsBin(object config) => Encoding.UTF8.GetBytes(Serialize(config));
+    public byte[]? SerializeAsBin(object config) => Serialize(config) is { } serialized ? Encoding.UTF8.GetBytes(serialized) : [];
 
     public static readonly JsonSerializerSettings JsonSerializerSettings = new()
     {
@@ -190,3 +654,4 @@ public class ConfigFactory : ISerializationFactory
         }
     }
 }
+

@@ -10,10 +10,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Content Include="..\res\icon.png" Link="images\icon.png" CopyToOutputDirectory="PreserveNewest" Visible="false" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="NLua" Version="1.6.0" />
 	</ItemGroup>
 
