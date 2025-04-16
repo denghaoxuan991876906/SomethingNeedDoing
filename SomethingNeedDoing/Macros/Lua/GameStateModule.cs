@@ -3,10 +3,12 @@
 namespace SomethingNeedDoing.Macros.Lua;
 public class GameStateModule : LuaModuleBase
 {
-    public override string ModuleName => "game";
+    public override string ModuleName => "Game";
 
+    [LuaFunction]
     public bool IsCrafting() => Svc.Condition[ConditionFlag.Crafting];
 
+    [LuaFunction]
     public uint GetCurrentProgress()
     {
         unsafe

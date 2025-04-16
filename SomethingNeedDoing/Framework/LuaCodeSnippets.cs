@@ -93,10 +93,46 @@ table.insert(package.searchers, function(name) -- find macros
   return 'no matching macro: ' .. chunkname
 end)
 ";
-}
 
-public static class LuaExtensions
-{
-    public static object[] LoadEntryPointWrappedScript(this Lua lua, string script) => lua.DoString(string.Format(LuaCodeSnippets.EntrypointTemplate, script));
-    public static void LoadFStrings(this Lua lua) => lua.DoString(LuaCodeSnippets.FStringSnippet);
+    /// <summary>
+    /// Lua code snippet to enhance error reporting with stack traces.
+    /// </summary>
+    public const string ErrorHandlerSnippet = @"
+-- Enhanced error handler for better debugging
+function enhanced_error_handler(err)
+  local error_info = debug.getinfo(2, ""Sln"")
+  local error_source = error_info and error_info.source or ""unknown""
+  local error_line = error_info and error_info.currentline or 0
+  local error_name = error_info and error_info.name or ""unknown""
+
+  local stack_trace = """"
+  local level = 2
+  while true do
+    local info = debug.getinfo(level, ""Sln"")
+    if not info then break end
+
+    local source = info.source
+    if source:sub(1,1) == ""@"" then
+      source = source:sub(2)
+    elseif source:sub(1,1) == ""="" then
+      source = ""[string]"" .. source:sub(2)
+    end
+
+    stack_trace = stack_trace .. string.format(""  %s:%d in function '%s'\n"",
+      source, info.currentline, info.name or ""(anonymous)"")
+
+    level = level + 1
+  end
+
+  return string.format(""Error: %s\nSource: %s:%d in function '%s'\nStack trace:\n%s"",
+    err, error_source, error_line, error_name, stack_trace)
+end
+
+-- Set the error handler
+debug.sethook(function(event, line)
+  if event == ""error"" then
+    error(enhanced_error_handler(debug.traceback()), 0)
+  end
+end, ""l"")
+";
 }

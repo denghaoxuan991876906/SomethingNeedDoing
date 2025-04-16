@@ -61,7 +61,7 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
 
         try
         {
-            state.ExecutionTask = ExecuteMacroAsync(state, token);
+            state.ExecutionTask = ExecuteMacro(state, token);
             await state.ExecutionTask;
         }
         catch (Exception ex)
@@ -76,7 +76,7 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
         }
     }
 
-    private async Task ExecuteMacroAsync(MacroInstance macro, CancellationToken externalToken)
+    private async Task ExecuteMacro(MacroInstance macro, CancellationToken externalToken)
     {
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken, macro.CancellationSource.Token);
         var token = linkedCts.Token;
@@ -85,17 +85,17 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
 
         try
         {
-            // Create a new Lua instance for this macro
             using var lua = new Lua();
             lua.State.Encoding = Encoding.UTF8;
+
             lua.LoadCLRPackage();
             lua.LoadFStrings();
+            lua.LoadErrorHandler();
 
             // Register modules and services
             LuaServiceProxy.RegisterServices(lua);
             _moduleManager.RegisterAll(lua);
 
-            // Execute the script on the framework thread
             await Svc.Framework.RunOnFrameworkThread(() =>
             {
                 try
@@ -103,17 +103,47 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
                     // Execute the script
                     var results = lua.LoadEntryPointWrappedScript(macro.Macro.Content);
                     if (results.Length == 0 || results[0] is not LuaFunction func)
-                        return;
+                        throw new LuaException("Failed to load Lua script: No function returned");
+
                     macro.LuaGenerator = func;
-                    var result = func.Call();
-                    if (result.First() is not string text)
-                        throw new MacroException($"Lua Macro yielded a non-string value [{(result.First() is null ? "null" : result.First().ToString())}]");
-                    // add text as the next step. Must be parsed by the native macro engine.
+
+                    try
+                    {
+                        var result = func.Call();
+                        if (result.Length == 0)
+                            return;
+
+                        if (result.First() is not string text)
+                        {
+                            var valueType = result.First()?.GetType().Name ?? "null";
+                            var valueStr = result.First()?.ToString() ?? "null";
+                            throw new MacroException($"Lua Macro yielded a non-string value [{valueType}: {valueStr}]");
+                        }
+
+                        // TODO: add text as the next step. Must be parsed by the native macro engine.
+                    }
+                    catch (LuaException ex)
+                    {
+                        Svc.Log.Error($"Lua execution error: {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        var errorDetails = "Unknown error";
+                        try
+                        {
+                            errorDetails = lua.GetLuaErrorDetails();
+                        }
+                        catch
+                        {
+                            errorDetails = ex.Message;
+                        }
+
+                        Svc.Log.Error($"Error executing Lua function: {errorDetails}", ex);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Svc.Log.Error($"Error executing Lua script: {ex}");
-                    throw;
+                    Svc.Log.Error($"{ex}");
                 }
             });
 
@@ -206,4 +236,18 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
 /// <summary>
 /// Exception thrown by Lua code.
 /// </summary>
-public class LuaException(string message) : Exception(message) { }
+public class LuaException : Exception
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LuaException"/> class.
+    /// </summary>
+    /// <param name="message">The error message.</param>
+    public LuaException(string message) : base(message) { }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LuaException"/> class.
+    /// </summary>
+    /// <param name="message">The error message.</param>
+    /// <param name="innerException">The inner exception.</param>
+    public LuaException(string message, Exception innerException) : base(message, innerException) { }
+}

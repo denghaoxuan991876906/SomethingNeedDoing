@@ -1,7 +1,6 @@
 ﻿using NLua;
 using System.Dynamic;
 using System.Reflection;
-using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.Framework;
 /// <summary>
@@ -15,7 +14,6 @@ public class LuaServiceProxy
 
         public override bool TryGetMember(GetMemberBinder binder, out object? result)
         {
-            // Get the property from the service when it's accessed
             var service = typeof(Svc).GetProperty(serviceName)?.GetValue(null);
             if (service == null)
             {
@@ -36,7 +34,6 @@ public class LuaServiceProxy
 
         public override bool TryInvokeMember(InvokeMemberBinder binder, object?[]? args, out object? result)
         {
-            // Get the service when the method is called
             var service = typeof(Svc).GetProperty(serviceName)?.GetValue(null);
             if (service == null)
             {
