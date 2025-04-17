@@ -17,4 +17,6 @@ public static class ConfigMacroExtensions
     public static void Move(this ConfigMacro macro, string folderPath) => macro.FolderPath = folderPath;
     public static void Start(this ConfigMacro macro) => _ = Service.MacroScheduler.StartMacro(macro);
     public static void Stop(this ConfigMacro macro) => _ = Service.MacroScheduler.StopMacro(macro.Id);
+    public static void Pause(this ConfigMacro macro) => _ = Service.MacroScheduler.PauseMacro(macro.Id);
+    public static void Resume(this ConfigMacro macro) => _ = Service.MacroScheduler.ResumeMacro(macro.Id);
 }

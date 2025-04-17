@@ -83,13 +83,13 @@ public class LuaDocumentation
                 sb.AppendLine("```");
                 sb.AppendLine();
 
-                if (func.Parameters.Any())
+                if (func.Parameters.HasAny())
                 {
                     sb.AppendLine("#### Parameters");
                     foreach (var (name, type, desc) in func.Parameters)
                     {
                         var typeStr = type.ToString();
-                        if (type.GenericArguments?.Count > 0)
+                        if (type.GenericArguments.HasAny())
                         {
                             // Add more detailed type information for complex types
                             typeStr += " - " + string.Join(", ", type.GenericArguments.Select(t => t.ToString()));
@@ -101,7 +101,7 @@ public class LuaDocumentation
 
                 sb.AppendLine("#### Returns");
                 var returnTypeStr = func.ReturnType.ToString();
-                if (func.ReturnType.GenericArguments?.Count > 0)
+                if (func.ReturnType.GenericArguments.HasAny())
                 {
                     returnTypeStr += "\n\nGeneric type parameters:";
                     foreach (var genericType in func.ReturnType.GenericArguments)
@@ -112,7 +112,7 @@ public class LuaDocumentation
                 sb.AppendLine($"`{returnTypeStr}`");
                 sb.AppendLine();
 
-                if (func.Examples?.Any() == true)
+                if (func.Examples.HasAny())
                 {
                     sb.AppendLine("#### Examples");
                     foreach (var example in func.Examples)
@@ -191,28 +191,24 @@ public class LuaDocumentation
                 if (func.Description != null)
                     helpText.AppendLine($"\n{func.Description}");
 
-                if (func.Parameters.Count > 0)
+                if (func.Parameters.HasAny())
                 {
                     helpText.AppendLine("\nParameters:");
                     foreach (var (name, type, desc) in func.Parameters)
                     {
                         var typeStr = type.ToString();
-                        if (type.GenericArguments?.Count > 0)
-                        {
+                        if (type.GenericArguments.HasAny())
                             typeStr += $" <{string.Join(", ", type.GenericArguments.Select(t => t.ToString()))}>";
-                        }
                         helpText.AppendLine($"  {name} ({typeStr}){(desc != null ? $": {desc}" : "")}");
                     }
                 }
 
                 var returnTypeStr = func.ReturnType.ToString();
-                if (func.ReturnType.GenericArguments?.Count > 0)
-                {
+                if (func.ReturnType.GenericArguments.HasAny())
                     returnTypeStr += $" <{string.Join(", ", func.ReturnType.GenericArguments.Select(t => t.ToString()))}>";
-                }
                 helpText.AppendLine($"\nReturns: {returnTypeStr}");
 
-                if (func.Examples?.Length > 0)
+                if (func.Examples.HasAny())
                 {
                     helpText.AppendLine("\nExamples:");
                     foreach (var example in func.Examples)

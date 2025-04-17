@@ -47,32 +47,59 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     }
 
     /// <summary>
+    /// Gets all currently running macros.
+    /// </summary>
+    public IEnumerable<ConfigMacro> GetRunningMacros() => _macroStates.Values.Where(s => s.State is MacroState.Running or MacroState.Paused).Select(s => (ConfigMacro)s.Macro);
+
+    /// <summary>
+    /// Gets the current state of a macro.
+    /// </summary>
+    public MacroState GetMacroState(string macroId) => _macroStates.TryGetValue(macroId, out var state) ? state.State : MacroState.Ready;
+
+    /// <summary>
     /// Starts execution of a macro.
     /// </summary>
     /// <param name="macro">The macro to execute.</param>
     public async Task StartMacro(IMacro macro)
     {
-        IMacroEngine engine = macro.Type switch
+        try
         {
-            MacroType.Native => _nativeEngine,
-            MacroType.Lua => _luaEngine,
-            _ => throw new ArgumentException($"Unsupported macro type: {macro.Type}")
-        };
-
-        if (_enginesByMacroId.TryAdd(macro.Id, engine))
-        {
-            try
+            // If the macro is already running, stop it first and wait for it to complete
+            if (_enginesByMacroId.TryGetValue(macro.Id, out var existingEngine))
             {
-                await engine.StartMacro(macro, CancellationToken.None);
-            }
-            catch
-            {
+                await existingEngine.StopMacro(macro.Id);
                 _enginesByMacroId.TryRemove(macro.Id, out _);
-                throw;
+                // Give a small delay to ensure cleanup is complete
+                await Task.Delay(100);
             }
+
+            IMacroEngine engine = macro.Type switch
+            {
+                MacroType.Native => _nativeEngine,
+                MacroType.Lua => _luaEngine,
+                _ => throw new ArgumentException($"Unsupported macro type: {macro.Type}")
+            };
+
+            if (_enginesByMacroId.TryAdd(macro.Id, engine))
+            {
+                try
+                {
+                    await engine.StartMacro(macro, CancellationToken.None);
+                }
+                catch
+                {
+                    _enginesByMacroId.TryRemove(macro.Id, out _);
+                    throw;
+                }
+            }
+            else
+                throw new InvalidOperationException($"Macro {macro.Id} is already running");
         }
-        else
-            throw new InvalidOperationException($"Macro {macro.Id} is already running");
+        catch (Exception ex)
+        {
+            PluginLog.Error($"Failed to start macro {macro.Id}: {ex.Message}");
+            throw;
+        }
     }
 
     /// <summary>

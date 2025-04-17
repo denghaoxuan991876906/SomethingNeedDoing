@@ -42,6 +42,9 @@ public class MacroUI : Window
             }
         }
 
+        // Draw the running macros panel at the top
+        RunningMacrosPanel.Draw();
+
         // Split window into sidebar and main content
         var sidebarWidth = 250f;
         var mainWidth = ImGui.GetWindowWidth() - sidebarWidth;

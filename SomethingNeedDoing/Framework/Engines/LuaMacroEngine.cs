@@ -96,7 +96,7 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
             LuaServiceProxy.RegisterServices(lua);
             _moduleManager.RegisterAll(lua);
 
-            await Svc.Framework.RunOnFrameworkThread(() =>
+            await Svc.Framework.RunOnTick(async () =>
             {
                 try
                 {
@@ -120,7 +120,26 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
                             throw new MacroException($"Lua Macro yielded a non-string value [{valueType}: {valueStr}]");
                         }
 
-                        // TODO: add text as the next step. Must be parsed by the native macro engine.
+                        // Create a temporary macro with the text as content
+                        var tempMacro = new TemporaryMacro(text);
+                        var nativeMacroId = $"{macro.Macro.Id}_native_{Guid.NewGuid()}";
+
+                        // Create a task completion source to wait for the native macro to complete
+                        var tcs = new TaskCompletionSource<bool>();
+                        void OnMacroStateChanged(object? sender, MacroStateChangedEventArgs e)
+                        {
+                            if (e.MacroId == nativeMacroId && e.NewState is MacroState.Completed or MacroState.Error)
+                            {
+                                Service.MacroScheduler.MacroStateChanged -= OnMacroStateChanged;
+                                tcs.SetResult(e.NewState == MacroState.Completed);
+                            }
+                        }
+
+                        Service.MacroScheduler.MacroStateChanged += OnMacroStateChanged;
+
+                        // Start the native macro and wait for it to complete
+                        _ = Service.MacroScheduler.StartMacro(tempMacro);
+                        await tcs.Task;
                     }
                     catch (LuaException ex)
                     {
@@ -145,7 +164,7 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
                 {
                     Svc.Log.Error($"{ex}");
                 }
-            });
+            }, cancellationToken: externalToken).ConfigureAwait(false);
 
             macro.CurrentState = MacroState.Completed;
         }
