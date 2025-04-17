@@ -1,4 +1,6 @@
-﻿namespace SomethingNeedDoing.Framework;
+﻿using Dalamud.Game.Addon.Lifecycle;
+
+namespace SomethingNeedDoing.Framework;
 /// <summary>
 /// Represents metadata for a macro.
 /// </summary>
@@ -43,4 +45,25 @@ public class MacroMetadata
     /// Gets or sets any additional metadata as a dictionary.
     /// </summary>
     public Dictionary<string, string> AdditionalData { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the addon event configuration for this macro.
+    /// </summary>
+    public AddonEventConfig? AddonEventConfig { get; set; }
+}
+
+/// <summary>
+/// Configuration for addon event triggers.
+/// </summary>
+public class AddonEventConfig
+{
+    /// <summary>
+    /// Gets or sets the name of the addon to monitor.
+    /// </summary>
+    public string AddonName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the type of addon event to monitor.
+    /// </summary>
+    public AddonEvent EventType { get; set; } = AddonEvent.PostSetup;
 }

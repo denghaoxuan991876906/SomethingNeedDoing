@@ -4,6 +4,11 @@ using System.Threading.Tasks;
 using AutoRetainerAPI;
 using ECommons.Logging;
 using SomethingNeedDoing.Framework.Engines;
+using Dalamud.Game.Text;
+using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
+using Dalamud.Game.Addon.Lifecycle;
+using Dalamud.Plugin.Services;
+using Dalamud.Game.Text.SeStringHandling;
 
 namespace SomethingNeedDoing.Framework;
 /// <summary>
@@ -16,6 +21,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private readonly Dictionary<string, AutoRetainerApi> _arApis = [];
     private readonly NativeMacroEngine _nativeEngine = new();
     private readonly LuaMacroEngine _luaEngine = new();
+    private readonly Dictionary<string, AddonEventConfig> _addonEvents = [];
     private bool _isDisposed;
 
     /// <summary>
@@ -34,17 +40,77 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _nativeEngine.MacroError += OnEngineError;
         _luaEngine.MacroStateChanged += OnEngineStateChanged;
         _luaEngine.MacroError += OnEngineError;
-
-        C.Macros.ForEach(m =>
-        {
-            if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnAutoRetainerCharacterPostProcess))
-            {
-                _arApis.TryAdd(m.Id, new AutoRetainerApi());
-                _arApis[m.Id].OnCharacterPostprocessStep += () => CheckCharacterPostProcess(m);
-                _arApis[m.Id].OnCharacterReadyToPostProcess += () => DoCharacterPostProcess(m);
-            }
-        });
+        SubscribeToTriggerEvents();
     }
+
+    private void SubscribeToTriggerEvents()
+    {
+        C.Macros.ForEach(SubscribeCustomTriggers);
+
+        Svc.Framework.Update += OnFrameworkUpdate;
+        Svc.Condition.ConditionChange += OnConditionChange;
+        Svc.ClientState.TerritoryChanged += OnTerritoryChanged;
+        Svc.Chat.ChatMessage += OnChatMessage;
+        Svc.ClientState.Login += OnLogin;
+        Svc.ClientState.Logout += OnLogout;
+    }
+
+    private void SubscribeCustomTriggers(ConfigMacro macro)
+    {
+        foreach (var triggerEvent in macro.Metadata.TriggerEvents)
+        {
+            switch (triggerEvent)
+            {
+                case TriggerEvent.OnAutoRetainerCharacterPostProcess:
+                    if (!_arApis.ContainsKey(macro.Id))
+                    {
+                        _arApis.TryAdd(macro.Id, new AutoRetainerApi());
+                        _arApis[macro.Id].OnCharacterPostprocessStep += () => CheckCharacterPostProcess(macro);
+                        _arApis[macro.Id].OnCharacterReadyToPostProcess += () => DoCharacterPostProcess(macro);
+                    }
+                    break;
+                case TriggerEvent.OnAddonEvent:
+                    if (macro.Metadata.AddonEventConfig is { } cfg)
+                    {
+                        if (!_addonEvents.ContainsKey(macro.Id))
+                        {
+                            _addonEvents.TryAdd(macro.Id, cfg);
+                            Svc.AddonLifecycle.RegisterListener(cfg.EventType, cfg.AddonName, OnAddonEvent);
+                        }
+                    }
+                    break;
+            }
+        }
+    }
+
+    private void OnAddonEvent(AddonEvent type, AddonArgs args)
+    {
+        foreach (var kvp in _addonEvents)
+            if (kvp.Value is { } cfg && cfg.EventType == type && cfg.AddonName == args.AddonName && C.GetMacro(kvp.Key) is { } macro)
+                macro.Start();
+    }
+
+    private void OnFrameworkUpdate(IFramework framework) => C.Macros.ForEach(m => { if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnUpdate)) m.Start(); });
+
+    private void OnConditionChange(ConditionFlag flag, bool value)
+    {
+        if (flag == ConditionFlag.InCombat && value)
+            C.Macros.ForEach(m => { if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnCombatStart)) m.Start(); });
+        if (flag == ConditionFlag.InCombat && !value)
+            C.Macros.ForEach(m => { if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnCombatEnd)) m.Start(); });
+    }
+
+    private void OnTerritoryChanged(ushort territoryId)
+        => C.Macros.ForEach(m => { if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnTerritoryChange)) m.Start(); });
+
+    private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+        => C.Macros.ForEach(m => { if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnChatMessage)) m.Start(); });
+
+    private void OnLogin()
+        => C.Macros.ForEach(m => { if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogin)) m.Start(); });
+
+    private void OnLogout(int type, int code)
+        => C.Macros.ForEach(m => { if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogout)) m.Start(); });
 
     /// <summary>
     /// Gets all currently running macros.
@@ -69,6 +135,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             {
                 await existingEngine.StopMacro(macro.Id);
                 _enginesByMacroId.TryRemove(macro.Id, out _);
+                _macroStates.TryRemove(macro.Id, out _);
                 // Give a small delay to ensure cleanup is complete
                 await Task.Delay(100);
             }
@@ -84,11 +151,13 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             {
                 try
                 {
+                    _macroStates.TryAdd(macro.Id, new MacroExecutionState(macro));
                     await engine.StartMacro(macro, CancellationToken.None);
                 }
                 catch
                 {
                     _enginesByMacroId.TryRemove(macro.Id, out _);
+                    _macroStates.TryRemove(macro.Id, out _);
                     throw;
                 }
             }
@@ -213,8 +282,20 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnEngineStateChanged(object? sender, MacroStateChangedEventArgs e)
     {
+        PluginLog.Debug($"Macro state changed for {e.MacroId}: {e.NewState}");
+
+        if (_macroStates.TryGetValue(e.MacroId, out var state))
+            state.State = e.NewState;
+        else if (e.NewState is MacroState.Running)
+            // If we don't have a state but the macro is running, something went wrong
+            PluginLog.Warning($"Received running state for macro {e.MacroId} but no state exists");
+
         if (e.NewState is MacroState.Completed or MacroState.Error)
+        {
             _enginesByMacroId.TryRemove(e.MacroId, out _);
+            _macroStates.TryRemove(e.MacroId, out _);
+        }
+
         MacroStateChanged?.Invoke(this, e);
     }
 
@@ -253,11 +334,20 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     {
         if (_isDisposed) return;
 
+        Svc.Framework.Update -= OnFrameworkUpdate;
+        Svc.Condition.ConditionChange -= OnConditionChange;
+        Svc.ClientState.TerritoryChanged -= OnTerritoryChanged;
+        Svc.Chat.ChatMessage -= OnChatMessage;
+        Svc.ClientState.Login -= OnLogin;
+        Svc.ClientState.Logout -= OnLogout;
+        Svc.AddonLifecycle.UnregisterListener(OnAddonEvent);
+
         _nativeEngine.Dispose();
         _luaEngine.Dispose();
         _enginesByMacroId.Clear();
         _arApis.Values.ForEach(a => a.Dispose());
         _arApis.Clear();
+        _addonEvents.Clear();
 
         _isDisposed = true;
     }

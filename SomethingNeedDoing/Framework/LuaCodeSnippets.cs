@@ -1,6 +1,4 @@
-﻿using NLua;
-
-namespace SomethingNeedDoing.Framework;
+﻿namespace SomethingNeedDoing.Framework;
 public static class LuaCodeSnippets
 {
     public const string EntrypointTemplate = @"

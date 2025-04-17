@@ -22,9 +22,8 @@ public class RunningMacrosPanel
         // Get all running and enabled macros
         var runningMacros = Service.MacroScheduler.GetRunningMacros();
         var enabledMacros = C.Macros.Where(m => m.Metadata.TriggerEvents.HasAny());
-
         // Draw running macros section
-        if (runningMacros.HasAny())
+        if (runningMacros.Any())
         {
             ImGui.TextColored(EzColor.OrangeBright.Vector4, "Running Macros:");
             foreach (var macro in runningMacros)

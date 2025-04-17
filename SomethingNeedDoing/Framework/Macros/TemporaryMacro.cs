@@ -1,6 +1,4 @@
-﻿using SomethingNeedDoing.Old.Macros;
-
-namespace SomethingNeedDoing.Framework;
+﻿namespace SomethingNeedDoing.Framework;
 /// <summary>
 /// A temporary macro that is not persisted in configuration.
 /// </summary>
