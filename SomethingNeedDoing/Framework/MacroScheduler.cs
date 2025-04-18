@@ -134,7 +134,36 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// </summary>
     public MacroState GetMacroState(string macroId) => _macroStates.TryGetValue(macroId, out var state) ? state.State : MacroState.Ready;
 
+    /// <summary>
+    /// Checks if a macro is actually running.
+    /// </summary>
+    /// <param name="macroId">The ID of the macro to check.</param>
+    /// <returns>True if the macro is running, false otherwise.</returns>
+    private bool IsMacroActuallyRunning(string macroId)
+    {
+        if (_macroStates.TryGetValue(macroId, out var state))
+        {
+            // Check if the execution task is still running
+            if (state.ExecutionTask != null && !state.ExecutionTask.IsCompleted)
+                return true;
+
+            // If the task is completed but the macro is still in the dictionary, remove it
+            ForceCleanupMacro(macroId);
+        }
+        return false;
+    }
+
     public async Task StartMacro(IMacro macro) => await StartMacro(macro, null);
+
+    /// <summary>
+    /// Forces cleanup of a macro's state.
+    /// </summary>
+    /// <param name="macroId">The ID of the macro to clean up.</param>
+    private void ForceCleanupMacro(string macroId)
+    {
+        _enginesByMacroId.TryRemove(macroId, out _);
+        _macroStates.TryRemove(macroId, out _);
+    }
 
     /// <summary>
     /// Starts execution of a macro.
@@ -144,15 +173,15 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     {
         try
         {
-            // If the macro is already running, stop it first and wait for it to complete
-            if (_enginesByMacroId.TryGetValue(macro.Id, out var existingEngine))
-            {
-                await existingEngine.StopMacro(macro.Id);
-                _enginesByMacroId.TryRemove(macro.Id, out _);
-                _macroStates.TryRemove(macro.Id, out _);
-                // Give a small delay to ensure cleanup is complete
-                await Task.Delay(100);
-            }
+            // Check if the macro is already running
+            if (IsMacroActuallyRunning(macro.Id))
+                throw new InvalidOperationException($"Macro {macro.Id} is already running");
+
+            // Force cleanup of any existing state for this macro
+            ForceCleanupMacro(macro.Id);
+
+            // Give a small delay to ensure cleanup is complete
+            await Task.Delay(100);
 
             IMacroEngine engine = macro.Type switch
             {
@@ -165,13 +194,13 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             {
                 try
                 {
-                    _macroStates.TryAdd(macro.Id, new MacroExecutionState(macro));
-                    await engine.StartMacro(macro, CancellationToken.None, triggerArgs);
+                    var state = new MacroExecutionState(macro);
+                    _macroStates.TryAdd(macro.Id, state);
+                    state.ExecutionTask = engine.StartMacro(macro, state.CancellationSource.Token, triggerArgs);
                 }
                 catch
                 {
-                    _enginesByMacroId.TryRemove(macro.Id, out _);
-                    _macroStates.TryRemove(macro.Id, out _);
+                    ForceCleanupMacro(macro.Id);
                     throw;
                 }
             }
@@ -191,8 +220,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// <param name="macroId">The ID of the macro to pause.</param>
     public async Task PauseMacro(string macroId)
     {
-        if (_enginesByMacroId.TryGetValue(macroId, out var engine))
+        if (_enginesByMacroId.TryGetValue(macroId, out var engine) && _macroStates.TryGetValue(macroId, out var state))
+        {
+            state.PauseEvent.Reset();
+            state.State = MacroState.Paused;
             await engine.PauseMacro(macroId);
+        }
     }
 
     /// <summary>
@@ -201,8 +234,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// <param name="macroId">The ID of the macro to resume.</param>
     public async Task ResumeMacro(string macroId)
     {
-        if (_enginesByMacroId.TryGetValue(macroId, out var engine))
+        if (_enginesByMacroId.TryGetValue(macroId, out var engine) && _macroStates.TryGetValue(macroId, out var state))
+        {
+            state.PauseEvent.Set();
+            state.State = MacroState.Running;
             await engine.ResumeMacro(macroId);
+        }
     }
 
     /// <summary>
@@ -211,10 +248,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// <param name="macroId">The ID of the macro to stop.</param>
     public async Task StopMacro(string macroId)
     {
-        if (_enginesByMacroId.TryGetValue(macroId, out var engine))
+        if (_enginesByMacroId.TryGetValue(macroId, out var engine) && _macroStates.TryGetValue(macroId, out var state))
         {
+            state.CancellationSource.Cancel();
+            state.State = MacroState.Completed;
             await engine.StopMacro(macroId);
-            _enginesByMacroId.TryRemove(macroId, out _);
+            ForceCleanupMacro(macroId);
         }
     }
 
@@ -286,6 +325,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         public bool StopAtLoop { get; set; }
         public CancellationTokenSource CancellationSource { get; } = new CancellationTokenSource();
         public ManualResetEventSlim PauseEvent { get; } = new ManualResetEventSlim(true);
+        public Task? ExecutionTask { get; set; }
 
         public void Dispose()
         {
@@ -306,8 +346,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
         if (e.NewState is MacroState.Completed or MacroState.Error)
         {
-            _enginesByMacroId.TryRemove(e.MacroId, out _);
-            _macroStates.TryRemove(e.MacroId, out _);
+            ForceCleanupMacro(e.MacroId);
         }
 
         MacroStateChanged?.Invoke(this, e);

@@ -12,7 +12,6 @@ namespace SomethingNeedDoing.Framework.Engines;
 public class LuaMacroEngine : IMacroEngine, IMacroScheduler
 {
     private readonly LuaModuleManager _moduleManager = new();
-    private readonly ConcurrentDictionary<string, MacroInstance> _runningMacros = [];
     private bool _isDisposed;
 
     /// <inheritdoc/>
@@ -56,23 +55,16 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
             throw new ArgumentException("This engine only supports Lua macros", nameof(macro));
 
         var state = new MacroInstance(this, macro);
-        if (!_runningMacros.TryAdd(macro.Id, state))
-            throw new InvalidOperationException($"Macro {macro.Id} is already running");
 
         try
         {
-            state.ExecutionTask = ExecuteMacro(state, token);
+            state.ExecutionTask = ExecuteMacro(state, token, triggerArgs);
             await state.ExecutionTask;
         }
         catch (Exception ex)
         {
             OnMacroError(macro.Id, "Macro execution failed", ex);
             throw;
-        }
-        finally
-        {
-            if (_runningMacros.TryRemove(macro.Id, out var removedState))
-                removedState.Dispose();
         }
     }
 
@@ -110,65 +102,87 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
 
                     macro.LuaGenerator = func;
 
-                    try
+                    while (!token.IsCancellationRequested)
                     {
-                        var result = func.Call();
-                        if (result.Length == 0)
-                            return;
-
-                        if (result.First() is not string text)
-                        {
-                            var valueType = result.First()?.GetType().Name ?? "null";
-                            var valueStr = result.First()?.ToString() ?? "null";
-                            throw new MacroException($"Lua Macro yielded a non-string value [{valueType}: {valueStr}]");
-                        }
-
-                        // Create a temporary macro with the text as content
-                        var tempMacro = new TemporaryMacro(text);
-                        var nativeMacroId = $"{macro.Macro.Id}_native_{Guid.NewGuid()}";
-
-                        // Create a task completion source to wait for the native macro to complete
-                        var tcs = new TaskCompletionSource<bool>();
-                        void OnMacroStateChanged(object? sender, MacroStateChangedEventArgs e)
-                        {
-                            if (e.MacroId == nativeMacroId && e.NewState is MacroState.Completed or MacroState.Error)
-                            {
-                                Service.MacroScheduler.MacroStateChanged -= OnMacroStateChanged;
-                                tcs.SetResult(e.NewState == MacroState.Completed);
-                            }
-                        }
-
-                        Service.MacroScheduler.MacroStateChanged += OnMacroStateChanged;
-
-                        // Start the native macro and wait for it to complete
-                        _ = Service.MacroScheduler.StartMacro(tempMacro);
-                        await tcs.Task;
-                    }
-                    catch (LuaException ex)
-                    {
-                        Svc.Log.Error($"Lua execution error: {ex.Message}");
-                    }
-                    catch (Exception ex)
-                    {
-                        var errorDetails = "Unknown error";
                         try
                         {
-                            errorDetails = lua.GetLuaErrorDetails();
+                            // Wait if paused
+                            macro.PauseEvent.Wait(token);
+
+                            var result = func.Call();
+                            if (result.Length == 0)
+                                break;
+
+                            if (result.First() is not string text)
+                            {
+                                var valueType = result.First()?.GetType().Name ?? "null";
+                                var valueStr = result.First()?.ToString() ?? "null";
+                                throw new MacroException($"Lua Macro yielded a non-string value [{valueType}: {valueStr}]");
+                            }
+
+                            // Create a temporary macro with the text as content
+                            var tempMacro = new TemporaryMacro(text);
+                            var nativeMacroId = $"{macro.Macro.Id}_native_{Guid.NewGuid()}";
+
+                            // Create a task completion source to wait for the native macro to complete
+                            var tcs = new TaskCompletionSource<bool>();
+                            void OnMacroStateChanged(object? sender, MacroStateChangedEventArgs e)
+                            {
+                                if (e.MacroId == nativeMacroId && e.NewState is MacroState.Completed or MacroState.Error)
+                                {
+                                    Service.MacroScheduler.MacroStateChanged -= OnMacroStateChanged;
+                                    tcs.SetResult(e.NewState == MacroState.Completed);
+                                }
+                            }
+
+                            Service.MacroScheduler.MacroStateChanged += OnMacroStateChanged;
+
+                            // Start the native macro and wait for it to complete
+                            _ = Service.MacroScheduler.StartMacro(tempMacro);
+                            await tcs.Task;
                         }
-                        catch
+                        catch (OperationCanceledException)
                         {
-                            errorDetails = ex.Message;
+                            throw;
+                        }
+                        catch (LuaException ex)
+                        {
+                            Svc.Log.Error($"Lua execution error: {ex.Message}");
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            var errorDetails = "Unknown error";
+                            try
+                            {
+                                errorDetails = lua.GetLuaErrorDetails();
+                            }
+                            catch
+                            {
+                                errorDetails = ex.Message;
+                            }
+
+                            Svc.Log.Error($"Error executing Lua function: {errorDetails}", ex);
+                            break;
                         }
 
-                        Svc.Log.Error($"Error executing Lua function: {errorDetails}", ex);
+                        await Svc.Framework.DelayTicks(1);
                     }
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
                     Svc.Log.Error($"{ex}");
                 }
-            }, cancellationToken: externalToken).ConfigureAwait(false);
+            }, cancellationToken: token).ConfigureAwait(false);
 
+            macro.CurrentState = MacroState.Completed;
+        }
+        catch (OperationCanceledException)
+        {
             macro.CurrentState = MacroState.Completed;
         }
         catch (Exception ex)
@@ -176,6 +190,10 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
             macro.CurrentState = MacroState.Error;
             OnMacroError(macro.Macro.Id, "Error executing macro", ex);
             throw;
+        }
+        finally
+        {
+            macro.Dispose();
         }
     }
 
@@ -185,52 +203,34 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
     /// <inheritdoc/>
     public Task PauseMacro(string macroId)
     {
-        if (_runningMacros.TryGetValue(macroId, out var macro))
-        {
-            macro.PauseEvent.Reset();
-            macro.CurrentState = MacroState.Paused;
-        }
+        // This method is now handled by the MacroScheduler
         return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
     public Task ResumeMacro(string macroId)
     {
-        if (_runningMacros.TryGetValue(macroId, out var macro))
-        {
-            macro.PauseEvent.Set();
-            macro.CurrentState = MacroState.Running;
-        }
+        // This method is now handled by the MacroScheduler
         return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
     public Task StopMacro(string macroId)
     {
-        if (_runningMacros.TryGetValue(macroId, out var macro))
-            macro.CancellationSource.Cancel();
+        // This method is now handled by the MacroScheduler
         return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
     public void CheckLoopPause(string macroId)
     {
-        if (_runningMacros.TryGetValue(macroId, out var macro) && macro.PauseAtLoop)
-        {
-            macro.PauseAtLoop = false;
-            macro.PauseEvent.Reset();
-            macro.CurrentState = MacroState.Paused;
-        }
+        // This method is now handled by the MacroScheduler
     }
 
     /// <inheritdoc/>
     public void CheckLoopStop(string macroId)
     {
-        if (_runningMacros.TryGetValue(macroId, out var macro) && macro.StopAtLoop)
-        {
-            macro.StopAtLoop = false;
-            macro.CancellationSource.Cancel();
-        }
+        // This method is now handled by the MacroScheduler
     }
 
     protected virtual void OnMacroStateChanged(string macroId, MacroState newState, MacroState oldState)
@@ -243,13 +243,6 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
     public void Dispose()
     {
         if (_isDisposed) return;
-
-        foreach (var state in _runningMacros.Values)
-        {
-            state.CancellationSource.Cancel();
-            state.Dispose();
-        }
-        _runningMacros.Clear();
 
         _isDisposed = true;
     }
