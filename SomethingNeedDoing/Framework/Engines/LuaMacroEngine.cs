@@ -30,14 +30,6 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
         public CancellationTokenSource CancellationSource { get; } = new();
         public ManualResetEventSlim PauseEvent { get; } = new(true);
         public Task? ExecutionTask { get; set; }
-        public MacroState CurrentState
-        {
-            get; set
-            {
-                if (field != value)
-                    engine.OnMacroStateChanged(Macro.Id, value, field);
-            }
-        } = MacroState.Ready;
         public bool PauseAtLoop { get; set; } = false;
         public bool StopAtLoop { get; set; } = false;
 
@@ -73,7 +65,7 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken, macro.CancellationSource.Token);
         var token = linkedCts.Token;
 
-        macro.CurrentState = MacroState.Running;
+        macro.Macro.State = MacroState.Running;
 
         try
         {
@@ -179,15 +171,15 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
                 }
             }, cancellationToken: token).ConfigureAwait(false);
 
-            macro.CurrentState = MacroState.Completed;
+            macro.Macro.State = MacroState.Completed;
         }
         catch (OperationCanceledException)
         {
-            macro.CurrentState = MacroState.Completed;
+            macro.Macro.State = MacroState.Completed;
         }
         catch (Exception ex)
         {
-            macro.CurrentState = MacroState.Error;
+            macro.Macro.State = MacroState.Error;
             OnMacroError(macro.Macro.Id, "Error executing macro", ex);
             throw;
         }

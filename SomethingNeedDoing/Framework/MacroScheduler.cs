@@ -127,12 +127,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// <summary>
     /// Gets all currently running macros.
     /// </summary>
-    public IEnumerable<IMacro> GetRunningMacros() => _macroStates.Values.Where(s => s.State is MacroState.Running or MacroState.Paused).Select(s => s.Macro);
+    public IEnumerable<IMacro> GetRunningMacros() => _macroStates.Values.Where(s => s.Macro.State is MacroState.Running or MacroState.Paused).Select(s => s.Macro);
 
     /// <summary>
     /// Gets the current state of a macro.
     /// </summary>
-    public MacroState GetMacroState(string macroId) => _macroStates.TryGetValue(macroId, out var state) ? state.State : MacroState.Ready;
+    public MacroState GetMacroState(string macroId) => _macroStates.TryGetValue(macroId, out var state) ? state.Macro.State : MacroState.Ready;
 
     /// <summary>
     /// Checks if a macro is actually running.
@@ -161,8 +161,13 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// <param name="macroId">The ID of the macro to clean up.</param>
     private void ForceCleanupMacro(string macroId)
     {
+        if (_macroStates.TryRemove(macroId, out var state))
+        {
+            // Unsubscribe from the macro's state change event
+            state.Macro.StateChanged -= OnMacroStateChanged;
+        }
+
         _enginesByMacroId.TryRemove(macroId, out _);
-        _macroStates.TryRemove(macroId, out _);
     }
 
     /// <summary>
@@ -196,6 +201,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 {
                     var state = new MacroExecutionState(macro);
                     _macroStates.TryAdd(macro.Id, state);
+
+                    // Subscribe to the macro's state change event
+                    macro.StateChanged += OnMacroStateChanged;
+
                     state.ExecutionTask = engine.StartMacro(macro, state.CancellationSource.Token, triggerArgs);
                 }
                 catch
@@ -223,7 +232,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         if (_enginesByMacroId.TryGetValue(macroId, out var engine) && _macroStates.TryGetValue(macroId, out var state))
         {
             state.PauseEvent.Reset();
-            state.State = MacroState.Paused;
+            state.Macro.State = MacroState.Paused;
             await engine.PauseMacro(macroId);
         }
     }
@@ -237,7 +246,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         if (_enginesByMacroId.TryGetValue(macroId, out var engine) && _macroStates.TryGetValue(macroId, out var state))
         {
             state.PauseEvent.Set();
-            state.State = MacroState.Running;
+            state.Macro.State = MacroState.Running;
             await engine.ResumeMacro(macroId);
         }
     }
@@ -251,7 +260,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         if (_enginesByMacroId.TryGetValue(macroId, out var engine) && _macroStates.TryGetValue(macroId, out var state))
         {
             state.CancellationSource.Cancel();
-            state.State = MacroState.Completed;
+            state.Macro.State = MacroState.Completed;
             await engine.StopMacro(macroId);
             ForceCleanupMacro(macroId);
         }
@@ -275,7 +284,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         {
             state.PauseAtLoop = false;
             state.PauseEvent.Reset();
-            state.State = MacroState.Paused;
+            state.Macro.State = MacroState.Paused;
         }
     }
 
@@ -320,7 +329,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private class MacroExecutionState(IMacro macro)
     {
         public IMacro Macro { get; } = macro;
-        public MacroState State { get; set; } = MacroState.Ready;
         public bool PauseAtLoop { get; set; }
         public bool StopAtLoop { get; set; }
         public CancellationTokenSource CancellationSource { get; } = new CancellationTokenSource();
@@ -339,7 +347,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         PluginLog.Debug($"Macro state changed for {e.MacroId}: {e.NewState}");
 
         if (_macroStates.TryGetValue(e.MacroId, out var state))
-            state.State = e.NewState;
+        {
+            // No need to set the state here as it's already set by the macro
+            // and the event has been raised
+        }
         else if (e.NewState is MacroState.Running)
             // If we don't have a state but the macro is running, something went wrong
             PluginLog.Warning($"Received running state for macro {e.MacroId} but no state exists");

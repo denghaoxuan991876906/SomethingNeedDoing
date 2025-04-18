@@ -28,14 +28,19 @@ public interface IMacro
     string Content { get; }
 
     /// <summary>
-    /// Gets the current state of the macro.
+    /// Gets or sets the current state of the macro.
     /// </summary>
-    MacroState State { get; }
+    MacroState State { get; set; }
 
     /// <summary>
     /// Gets the commands that make up this macro.
     /// </summary>
     IReadOnlyList<IMacroCommand> Commands { get; }
+
+    /// <summary>
+    /// Event raised when the macro's state changes.
+    /// </summary>
+    event EventHandler<MacroStateChangedEventArgs>? StateChanged;
 }
 
 public interface IMacroInstance : IDisposable
@@ -44,9 +49,8 @@ public interface IMacroInstance : IDisposable
     public CancellationTokenSource CancellationSource { get; }
     public ManualResetEventSlim PauseEvent { get; }
     public Task? ExecutionTask { get; set; }
-    public MacroState CurrentState { get; set; }
-    public abstract bool PauseAtLoop { get; set; }
-    public abstract bool StopAtLoop { get; set; }
+    public bool PauseAtLoop { get; set; }
+    public bool StopAtLoop { get; set; }
 
     public new void Dispose()
     {

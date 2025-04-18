@@ -25,7 +25,6 @@ public class NativeMacroEngine : IMacroEngine, IMacroScheduler
         public IMacro Macro { get; } = macro;
         public CancellationTokenSource CancellationSource { get; } = new CancellationTokenSource();
         public Task? ExecutionTask { get; set; }
-        public MacroState State { get; set; } = MacroState.Ready;
         public ManualResetEventSlim PauseEvent { get; } = new ManualResetEventSlim(true);
         public bool PauseAtLoop { get; set; } = false;
         public bool StopAtLoop { get; set; } = false;
@@ -72,7 +71,7 @@ public class NativeMacroEngine : IMacroEngine, IMacroScheduler
         var token = linkedCts.Token;
 
         var context = new MacroContext(state.Macro, this);
-        UpdateState(state, MacroState.Running);
+        state.Macro.State = MacroState.Running;
 
         try
         {
@@ -98,7 +97,7 @@ public class NativeMacroEngine : IMacroEngine, IMacroScheduler
                 context.NextStep();
             }
 
-            UpdateState(state, MacroState.Completed);
+            state.Macro.State = MacroState.Completed;
         }
         catch (OperationCanceledException)
         {
@@ -107,7 +106,7 @@ public class NativeMacroEngine : IMacroEngine, IMacroScheduler
         }
         catch (Exception ex)
         {
-            UpdateState(state, MacroState.Error);
+            state.Macro.State = MacroState.Error;
             OnMacroError(state.Macro.Id, "Error executing macro command", ex);
             throw;
         }
@@ -122,7 +121,7 @@ public class NativeMacroEngine : IMacroEngine, IMacroScheduler
         if (_runningMacros.TryGetValue(macroId, out var state))
         {
             state.PauseEvent.Reset();
-            UpdateState(state, MacroState.Paused);
+            state.Macro.State = MacroState.Paused;
         }
         return Task.CompletedTask;
     }
@@ -133,7 +132,7 @@ public class NativeMacroEngine : IMacroEngine, IMacroScheduler
         if (_runningMacros.TryGetValue(macroId, out var state))
         {
             state.PauseEvent.Set();
-            UpdateState(state, MacroState.Running);
+            state.Macro.State = MacroState.Running;
         }
         return Task.CompletedTask;
     }
@@ -155,7 +154,7 @@ public class NativeMacroEngine : IMacroEngine, IMacroScheduler
         {
             state.PauseAtLoop = false;
             state.PauseEvent.Reset();
-            UpdateState(state, MacroState.Paused);
+            state.Macro.State = MacroState.Paused;
         }
     }
 
@@ -167,13 +166,6 @@ public class NativeMacroEngine : IMacroEngine, IMacroScheduler
             state.StopAtLoop = false;
             state.CancellationSource.Cancel();
         }
-    }
-
-    private void UpdateState(MacroExecutionState state, MacroState newState)
-    {
-        var oldState = state.State;
-        state.State = newState;
-        OnMacroStateChanged(state.Macro.Id, newState, oldState);
     }
 
     protected virtual void OnMacroStateChanged(string macroId, MacroState newState, MacroState oldState)

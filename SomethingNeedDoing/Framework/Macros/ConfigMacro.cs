@@ -35,9 +35,28 @@ public class ConfigMacro : IMacro
     public MacroMetadata Metadata { get; set; } = new();
 
     /// <summary>
-    /// Gets the current state of the macro.
+    /// Gets or sets the current state of the macro.
     /// </summary>
-    public MacroState State { get; } = MacroState.Ready;
+    public MacroState State
+    {
+        get => _state;
+        set
+        {
+            if (_state != value)
+            {
+                var oldState = _state;
+                _state = value;
+                StateChanged?.Invoke(this, new MacroStateChangedEventArgs(Id, value, oldState));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Event raised when the macro's state changes.
+    /// </summary>
+    public event EventHandler<MacroStateChangedEventArgs>? StateChanged;
+
+    private MacroState _state = MacroState.Ready;
 
     /// <summary>
     /// Gets the commands that make up this macro.
