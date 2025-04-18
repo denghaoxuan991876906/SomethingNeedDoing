@@ -36,12 +36,6 @@ public interface IMacro
     /// Gets the commands that make up this macro.
     /// </summary>
     IReadOnlyList<IMacroCommand> Commands { get; }
-
-    /// <summary>
-    /// Starts the macro with optional trigger event arguments.
-    /// </summary>
-    /// <param name="args">Optional trigger event arguments.</param>
-    void Start(TriggerEventArgs? args = null);
 }
 
 public interface IMacroInstance : IDisposable

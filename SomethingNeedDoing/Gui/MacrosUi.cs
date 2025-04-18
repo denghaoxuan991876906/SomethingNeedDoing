@@ -8,14 +8,10 @@ public class MacroUI : Window
     private string selectedMacroId = string.Empty;
     private string selectedFolderPath = "/";
     private string searchText = string.Empty;
-    private bool isDragging = false;
-    private string? draggedMacroId;
-    private Vector2 folderTreeScroll = Vector2.Zero;
-    private Vector2 macroContentScroll = Vector2.Zero;
     private bool isEditing = false;
     private string editingContent = string.Empty;
     private MigrationPreviewWindow? _wnd;
-    private HashSet<string> collapsedFolders = new();
+    private readonly HashSet<string> collapsedFolders = [];
 
     public MacroUI() : base("Macro Manager", ImGuiWindowFlags.NoScrollbar)
     {

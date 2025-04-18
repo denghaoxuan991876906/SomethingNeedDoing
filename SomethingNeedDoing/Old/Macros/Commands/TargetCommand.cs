@@ -53,7 +53,7 @@ internal class TargetCommand : MacroCommand
             Svc.Log.Info($"looking for non party member target");
         target = Svc.Objects
             .OrderBy(o => Vector3.Distance(o.Position, Svc.ClientState.LocalPlayer!.Position))
-            .Where(obj => obj.Name.TextValue.Equals(targetName, System.StringComparison.InvariantCultureIgnoreCase) && obj.IsTargetable && (targetIndex <= 0 || obj.ObjectIndex == targetIndex))
+            .Where(obj => obj.Name.TextValue.Equals(targetName, StringComparison.InvariantCultureIgnoreCase) && obj.IsTargetable && (targetIndex <= 0 || obj.ObjectIndex == targetIndex))
             .Skip(listIndex)
             .FirstOrDefault();
 

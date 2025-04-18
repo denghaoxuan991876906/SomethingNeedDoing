@@ -89,7 +89,7 @@ internal class ActionCommand : MacroCommand
 
             DataWaiter.Reset();
 
-            Old.Service.ChatManager.SendMessage(Text);
+            Service.ChatManager.SendMessage(Text);
 
             if (C.SmartWait)
             {
@@ -120,7 +120,7 @@ internal class ActionCommand : MacroCommand
         }
         else
         {
-            Old.Service.ChatManager.SendMessage(Text);
+            Service.ChatManager.SendMessage(Text);
             await PerformWait(token);
         }
     }

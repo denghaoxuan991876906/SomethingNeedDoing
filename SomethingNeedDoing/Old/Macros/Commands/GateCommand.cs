@@ -68,11 +68,11 @@ internal class GateCommand : MacroCommand
             if (echoMod.PerformEcho || C.LoopEcho)
             {
                 if (craftsRemaining == 0)
-                    Old.Service.ChatManager.PrintMessage("No crafts remaining");
+                    Service.ChatManager.PrintMessage("No crafts remaining");
                 else
                 {
                     var noun = craftsRemaining == 1 ? "craft" : "crafts";
-                    Old.Service.ChatManager.PrintMessage($"{craftsRemaining} {noun} remaining");
+                    Service.ChatManager.PrintMessage($"{craftsRemaining} {noun} remaining");
                 }
             }
         }

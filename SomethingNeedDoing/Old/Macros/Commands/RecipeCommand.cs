@@ -62,7 +62,7 @@ internal class RecipeCommand : MacroCommand
     private uint SearchRecipeId(string recipeName)
     {
         var sheet = Svc.Data.GetExcelSheet<Sheets.Recipe>()!;
-        var recipes = sheet.Where(r => r.ItemResult.Value.Name.ToString().Equals(recipeName, System.StringComparison.InvariantCultureIgnoreCase)).ToList();
+        var recipes = sheet.Where(r => r.ItemResult.Value.Name.ToString().Equals(recipeName, StringComparison.InvariantCultureIgnoreCase)).ToList();
 
         switch (recipes.Count)
         {

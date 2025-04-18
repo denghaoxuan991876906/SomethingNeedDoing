@@ -50,7 +50,7 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
     }
 
     /// <inheritdoc/>
-    public async Task StartMacro(IMacro macro, CancellationToken token)
+    public async Task StartMacro(IMacro macro, CancellationToken token, TriggerEventArgs? triggerArgs = null)
     {
         if (macro.Type != MacroType.Lua)
             throw new ArgumentException("This engine only supports Lua macros", nameof(macro));

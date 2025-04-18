@@ -56,7 +56,7 @@ public class RunningMacrosPanel
         // Macro name and status
         ImGui.Text(macro.Name);
         ImGui.SameLine(ImGui.GetWindowWidth() - 200);
-
+        if (macro is not ConfigMacro m) return;
         // Control buttons
         if (isRunning)
         {
@@ -64,19 +64,19 @@ public class RunningMacrosPanel
             if (ImGui.Button(state == MacroState.Paused ? "Resume" : "Pause"))
             {
                 if (state == MacroState.Paused)
-                    macro.Resume();
+                    m.Resume();
                 else
-                    macro.Pause();
+                    m.Pause();
             }
             ImGui.SameLine();
             if (ImGui.Button("Stop"))
-                macro.Stop();
+                m.Stop();
         }
         else
         {
             if (ImGui.Button("Disable"))
             {
-                macro.Metadata.TriggerEvents.Clear();
+                m.Metadata.TriggerEvents.Clear();
                 C.Save();
             }
         }

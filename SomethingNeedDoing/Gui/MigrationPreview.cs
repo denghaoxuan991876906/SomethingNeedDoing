@@ -6,9 +6,9 @@ namespace SomethingNeedDoing.Gui;
 public class MigrationPreviewWindow : Window
 {
     private readonly string oldConfigJson;
-    private readonly Dictionary<string, (string OldValue, string NewValue, bool Selected)> changes = new();
-    private readonly Dictionary<string, (ConfigMacro Macro, bool Selected)> newMacros = new();
-    private readonly Dictionary<string, (ConfigMacro Macro, bool Selected)> removedMacros = new();
+    private readonly Dictionary<string, (string OldValue, string NewValue, bool Selected)> changes = [];
+    private readonly Dictionary<string, (ConfigMacro Macro, bool Selected)> newMacros = [];
+    private readonly Dictionary<string, (ConfigMacro Macro, bool Selected)> removedMacros = [];
     private bool migrationValid = true;
     private string errorMessage = string.Empty;
     private bool selectAllNewMacros = true;

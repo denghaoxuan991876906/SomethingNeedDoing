@@ -134,11 +134,13 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// </summary>
     public MacroState GetMacroState(string macroId) => _macroStates.TryGetValue(macroId, out var state) ? state.State : MacroState.Ready;
 
+    public async Task StartMacro(IMacro macro) => await StartMacro(macro, null);
+
     /// <summary>
     /// Starts execution of a macro.
     /// </summary>
     /// <param name="macro">The macro to execute.</param>
-    public async Task StartMacro(IMacro macro)
+    public async Task StartMacro(IMacro macro, TriggerEventArgs? triggerArgs = null)
     {
         try
         {
@@ -164,7 +166,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 try
                 {
                     _macroStates.TryAdd(macro.Id, new MacroExecutionState(macro));
-                    await engine.StartMacro(macro, CancellationToken.None);
+                    await engine.StartMacro(macro, CancellationToken.None, triggerArgs);
                 }
                 catch
                 {

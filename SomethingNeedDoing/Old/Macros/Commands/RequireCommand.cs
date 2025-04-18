@@ -27,7 +27,7 @@ internal class RequireCommand : MacroCommand
         statusName = statusName.ToLowerInvariant();
         var sheet = Svc.Data.GetExcelSheet<Sheets.Status>()!;
         statusIDs = sheet
-            .Where(row => row.Name.ExtractText().Equals(statusName, System.StringComparison.InvariantCultureIgnoreCase))
+            .Where(row => row.Name.ExtractText().Equals(statusName, StringComparison.InvariantCultureIgnoreCase))
             .Select(row => row.RowId)
             .ToArray()!;
 

@@ -20,7 +20,7 @@ internal class NativeCommand : MacroCommand
     {
         Svc.Log.Debug($"Executing: {Text}");
 
-        Old.Service.ChatManager.SendMessage($"{(new[] { "/", "<" }.Any(Text.StartsWith) ? Text : $"/e {Text}")}");
+        Service.ChatManager.SendMessage($"{(new[] { "/", "<" }.Any(Text.StartsWith) ? Text : $"/e {Text}")}");
 
         await PerformWait(token);
     }

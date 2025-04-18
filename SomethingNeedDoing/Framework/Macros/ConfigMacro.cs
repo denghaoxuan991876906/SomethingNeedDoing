@@ -48,4 +48,5 @@ public class ConfigMacro : IMacro
     /// Updates the last modified timestamp.
     /// </summary>
     public void UpdateLastModified() => Metadata.LastModified = DateTime.Now;
+
 }

@@ -38,7 +38,7 @@ public class NativeMacroEngine : IMacroEngine, IMacroScheduler
     }
 
     /// <inheritdoc/>
-    public async Task StartMacro(IMacro macro, CancellationToken token)
+    public async Task StartMacro(IMacro macro, CancellationToken token, TriggerEventArgs? triggerArgs = null)
     {
         if (macro.Type != MacroType.Native)
             throw new ArgumentException("This engine only supports native macros", nameof(macro));

@@ -55,18 +55,18 @@ internal class LoopCommand : MacroCommand
         if (loopsRemaining == MaxLoops)
         {
             if (echoMod.PerformEcho || C.LoopEcho)
-                Old.Service.ChatManager.PrintMessage("Looping");
+                Service.ChatManager.PrintMessage("Looping");
         }
         else
         {
             if (echoMod.PerformEcho || C.LoopEcho)
             {
                 if (loopsRemaining == 0)
-                    Old.Service.ChatManager.PrintMessage("No loops remaining");
+                    Service.ChatManager.PrintMessage("No loops remaining");
                 else
                 {
                     var noun = loopsRemaining == 1 ? "loop" : "loops";
-                    Old.Service.ChatManager.PrintMessage($"{loopsRemaining} {noun} remaining");
+                    Service.ChatManager.PrintMessage($"{loopsRemaining} {noun} remaining");
                 }
             }
 
