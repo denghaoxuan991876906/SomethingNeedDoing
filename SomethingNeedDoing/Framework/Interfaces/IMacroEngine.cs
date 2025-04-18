@@ -13,7 +13,7 @@ public interface IMacroEngine : IDisposable
     /// </summary>
     /// <param name="macro">The macro to execute.</param>
     /// <param name="token">A token to cancel execution.</param>
-    Task StartMacro(IMacro macro, CancellationToken token);
+    Task StartMacro(IMacro macro, CancellationToken token, TriggerEventArgs? triggerEventArgs = null);
 
     /// <summary>
     /// Pauses execution of a macro.

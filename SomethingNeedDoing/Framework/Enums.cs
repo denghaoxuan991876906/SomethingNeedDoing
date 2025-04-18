@@ -54,6 +54,7 @@ public enum TriggerEvent
     None,
     OnAutoRetainerCharacterPostProcess,
     OnUpdate,
+    OnConditionChange,
     OnCombatStart,
     OnCombatEnd,
     OnLogin,

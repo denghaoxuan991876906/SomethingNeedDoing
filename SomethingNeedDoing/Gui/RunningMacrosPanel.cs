@@ -49,7 +49,7 @@ public class RunningMacrosPanel
         }
     }
 
-    private static void DrawMacroControl(ConfigMacro macro, bool isRunning)
+    private static void DrawMacroControl(IMacro macro, bool isRunning)
     {
         using var _ = ImRaii.PushId(macro.Id);
 

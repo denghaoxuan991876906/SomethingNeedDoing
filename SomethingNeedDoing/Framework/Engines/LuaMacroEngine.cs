@@ -76,7 +76,7 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
         }
     }
 
-    private async Task ExecuteMacro(MacroInstance macro, CancellationToken externalToken)
+    private async Task ExecuteMacro(MacroInstance macro, CancellationToken externalToken, TriggerEventArgs? triggerArgs = null)
     {
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken, macro.CancellationSource.Token);
         var token = linkedCts.Token;
@@ -95,6 +95,9 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
             // Register modules and services
             LuaServiceProxy.RegisterServices(lua);
             _moduleManager.RegisterAll(lua);
+
+            if (_moduleManager.GetModule<TriggerModule>() is { } triggerModule)
+                triggerModule.SetTriggerArgs(triggerArgs);
 
             await Svc.Framework.RunOnTick(async () =>
             {

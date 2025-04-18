@@ -90,32 +90,44 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 macro.Start();
     }
 
-    private void OnFrameworkUpdate(IFramework framework) => C.Macros.ForEach(m => { if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnUpdate)) m.Start(); });
+    private void OnFrameworkUpdate(IFramework framework) => C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnUpdate)).Each(m => m.Start());
 
     private void OnConditionChange(ConditionFlag flag, bool value)
     {
-        if (flag == ConditionFlag.InCombat && value)
-            C.Macros.ForEach(m => { if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnCombatStart)) m.Start(); });
-        if (flag == ConditionFlag.InCombat && !value)
-            C.Macros.ForEach(m => { if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnCombatEnd)) m.Start(); });
+        var args = new TriggerEventArgs(TriggerEvent.OnConditionChange) { EventData = { ["flag"] = flag, ["value"] = value } };
+        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnConditionChange)).Each(m => m.Start(args));
     }
 
-    private void OnTerritoryChanged(ushort territoryId)
-        => C.Macros.ForEach(m => { if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnTerritoryChange)) m.Start(); });
+    private void OnTerritoryChanged(ushort territoryType)
+    {
+        var args = new TriggerEventArgs(TriggerEvent.OnTerritoryChange) { EventData = { ["territoryType"] = territoryType } };
+        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnTerritoryChange)).Each(m => m.Start(args));
+    }
 
     private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
-        => C.Macros.ForEach(m => { if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnChatMessage)) m.Start(); });
+    {
+        var args = new TriggerEventArgs(TriggerEvent.OnChatMessage);
+        args.EventData["type"] = type;
+        args.EventData["timestamp"] = timestamp;
+        args.EventData["sender"] = sender.TextValue;
+        args.EventData["message"] = message.TextValue;
+
+        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnChatMessage)).Each(m => m.Start(args));
+    }
 
     private void OnLogin()
-        => C.Macros.ForEach(m => { if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogin)) m.Start(); });
+        => C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogin)).Each(m => m.Start());
 
     private void OnLogout(int type, int code)
-        => C.Macros.ForEach(m => { if (m.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogout)) m.Start(); });
+    {
+        var args = new TriggerEventArgs(TriggerEvent.OnLogout) { EventData = { ["type"] = type, ["code"] = code } };
+        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogout)).Each(m => m.Start(args));
+    }
 
     /// <summary>
     /// Gets all currently running macros.
     /// </summary>
-    public IEnumerable<ConfigMacro> GetRunningMacros() => _macroStates.Values.Where(s => s.State is MacroState.Running or MacroState.Paused).Select(s => (ConfigMacro)s.Macro);
+    public IEnumerable<IMacro> GetRunningMacros() => _macroStates.Values.Where(s => s.State is MacroState.Running or MacroState.Paused).Select(s => s.Macro);
 
     /// <summary>
     /// Gets the current state of a macro.
