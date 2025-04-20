@@ -22,6 +22,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private readonly NativeMacroEngine _nativeEngine = new();
     private readonly LuaMacroEngine _luaEngine = new();
     private readonly Dictionary<string, AddonEventConfig> _addonEvents = [];
+    private readonly TriggerEventManager _triggerEventManager;
     private bool _isDisposed;
 
     /// <summary>
@@ -40,6 +41,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _nativeEngine.MacroError += OnEngineError;
         _luaEngine.MacroStateChanged += OnEngineStateChanged;
         _luaEngine.MacroError += OnEngineError;
+        _triggerEventManager = new TriggerEventManager();
         SubscribeToTriggerEvents();
     }
 
@@ -163,8 +165,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     {
         if (_macroStates.TryRemove(macroId, out var state))
         {
-            // Unsubscribe from the macro's state change event
-            state.Macro.StateChanged -= OnMacroStateChanged;
+            if (state.Macro is ConfigMacro configMacro)
+            {
+                _triggerEventManager.UnregisterMacroTriggers(configMacro);
+            }
+            state.CancellationTokenSource.Cancel();
+            state.CancellationTokenSource.Dispose();
         }
 
         _enginesByMacroId.TryRemove(macroId, out _);
@@ -176,51 +182,32 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// <param name="macro">The macro to execute.</param>
     public async Task StartMacro(IMacro macro, TriggerEventArgs? triggerArgs = null)
     {
-        try
+        if (_macroStates.ContainsKey(macro.Id))
         {
-            // Check if the macro is already running
-            if (IsMacroActuallyRunning(macro.Id))
-                throw new InvalidOperationException($"Macro {macro.Id} is already running");
+            Svc.Log.Warning($"Macro {macro.Name} is already running.");
+            return;
+        }
 
-            // Force cleanup of any existing state for this macro
-            ForceCleanupMacro(macro.Id);
+        var state = new MacroExecutionState(macro);
+        _macroStates[macro.Id] = state;
 
-            // Give a small delay to ensure cleanup is complete
-            await Task.Delay(100);
+        if (macro is ConfigMacro configMacro)
+        {
+            _triggerEventManager.RegisterMacroTriggers(configMacro);
+        }
 
-            IMacroEngine engine = macro.Type switch
+        _ = Task.Run(async () =>
+        {
+            try
             {
-                MacroType.Native => _nativeEngine,
-                MacroType.Lua => _luaEngine,
-                _ => throw new ArgumentException($"Unsupported macro type: {macro.Type}")
-            };
-
-            if (_enginesByMacroId.TryAdd(macro.Id, engine))
-            {
-                try
-                {
-                    var state = new MacroExecutionState(macro);
-                    _macroStates.TryAdd(macro.Id, state);
-
-                    // Subscribe to the macro's state change event
-                    macro.StateChanged += OnMacroStateChanged;
-
-                    state.ExecutionTask = engine.StartMacro(macro, state.CancellationSource.Token, triggerArgs);
-                }
-                catch
-                {
-                    ForceCleanupMacro(macro.Id);
-                    throw;
-                }
+                await ExecuteMacroAsync(state, triggerArgs);
             }
-            else
-                throw new InvalidOperationException($"Macro {macro.Id} is already running");
-        }
-        catch (Exception ex)
-        {
-            PluginLog.Error($"Failed to start macro {macro.Id}: {ex.Message}");
-            throw;
-        }
+            catch (Exception ex)
+            {
+                Svc.Log.Error(ex, $"Error executing macro {macro.Name}");
+                macro.State = MacroState.Error;
+            }
+        });
     }
 
     /// <summary>
@@ -412,6 +399,14 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _arApis.Values.ForEach(a => a.Dispose());
         _arApis.Clear();
         _addonEvents.Clear();
+
+        foreach (var state in _macroStates.Values)
+        {
+            state.CancellationTokenSource.Cancel();
+            state.CancellationTokenSource.Dispose();
+        }
+        _macroStates.Clear();
+        _triggerEventManager.Dispose();
 
         _isDisposed = true;
     }

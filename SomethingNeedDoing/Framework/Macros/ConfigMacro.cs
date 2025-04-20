@@ -1,71 +1,99 @@
-﻿namespace SomethingNeedDoing.Framework;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace SomethingNeedDoing.Framework;
 /// <summary>
-/// Represents a macro stored in the configuration.
+/// Represents a macro that is stored in the configuration.
 /// </summary>
-public class ConfigMacro : IMacro
+public class ConfigMacro : MacroBase
 {
-    /// <summary>
-    /// Gets or sets the unique identifier of the macro.
-    /// </summary>
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    /// <inheritdoc/>
+    public override string Id { get; } = Guid.NewGuid().ToString();
 
-    /// <summary>
-    /// Gets or sets the display name of the macro.
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
+    /// <inheritdoc/>
+    public override string Name { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Gets or sets the type of the macro.
-    /// </summary>
-    public MacroType Type { get; set; }
+    /// <inheritdoc/>
+    public override MacroType Type { get; set; }
 
-    /// <summary>
-    /// Gets or sets the content of the macro.
-    /// </summary>
-    public string Content { get; set; } = string.Empty;
+    /// <inheritdoc/>
+    public override string Content { get; set; } = string.Empty;
+
+    /// <inheritdoc/>
+    public override MacroMetadata Metadata { get; set; } = new();
+
+    /// <inheritdoc/>
+    public override IReadOnlyList<IMacroCommand> Commands { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the folder path of the macro.
     /// </summary>
-    public string FolderPath { get; set; } = "/";
-
-    /// <summary>
-    /// Gets or sets the metadata for this macro.
-    /// </summary>
-    public MacroMetadata Metadata { get; set; } = new();
-
-    /// <summary>
-    /// Gets or sets the current state of the macro.
-    /// </summary>
-    public MacroState State
-    {
-        get => _state;
-        set
-        {
-            if (_state != value)
-            {
-                var oldState = _state;
-                _state = value;
-                StateChanged?.Invoke(this, new MacroStateChangedEventArgs(Id, value, oldState));
-            }
-        }
-    }
-
-    /// <summary>
-    /// Event raised when the macro's state changes.
-    /// </summary>
-    public event EventHandler<MacroStateChangedEventArgs>? StateChanged;
-
-    private MacroState _state = MacroState.Ready;
-
-    /// <summary>
-    /// Gets the commands that make up this macro.
-    /// </summary>
-    public IReadOnlyList<IMacroCommand> Commands { get; } = [];
+    public string FolderPath { get; set; } = string.Empty;
 
     /// <summary>
     /// Updates the last modified timestamp.
     /// </summary>
     public void UpdateLastModified() => Metadata.LastModified = DateTime.Now;
 
+    /// <inheritdoc/>
+    protected override async Task ExecuteMacro(TriggerEventArgs? args)
+    {
+        if (State is not MacroState.Ready and not MacroState.Paused)
+            throw new InvalidOperationException($"Cannot start macro in state {State}");
+
+        State = MacroState.Running;
+        try
+        {
+            await ExecuteMacro(args);
+        }
+        catch (Exception ex)
+        {
+            State = MacroState.Error;
+            throw new MacroException($"Failed to execute macro: {ex.Message}", ex);
+        }
+    }
+
+    /// <inheritdoc/>
+    protected override async Task StopMacro()
+    {
+        if (State is not MacroState.Running and not MacroState.Paused)
+            throw new InvalidOperationException($"Cannot stop macro in state {State}");
+
+        State = MacroState.Ready;
+        await StopMacro();
+    }
+
+    /// <inheritdoc/>
+    protected override async Task PauseMacro()
+    {
+        if (State != MacroState.Running)
+            throw new InvalidOperationException($"Cannot pause macro in state {State}");
+
+        State = MacroState.Paused;
+        await PauseMacro();
+    }
+
+    /// <inheritdoc/>
+    protected override async Task ResumeMacro()
+    {
+        if (State != MacroState.Paused)
+            throw new InvalidOperationException($"Cannot resume macro in state {State}");
+
+        State = MacroState.Running;
+        await ResumeMacro();
+    }
+
+    /// <summary>
+    /// Handles a trigger event for the macro.
+    /// </summary>
+    /// <param name="args">The trigger event arguments.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task HandleTriggerEvent(TriggerEventArgs args)
+    {
+        if (State != MacroState.Ready)
+            throw new InvalidOperationException($"Cannot handle trigger event in state {State}");
+
+        await ExecuteMacro(args);
+    }
 }

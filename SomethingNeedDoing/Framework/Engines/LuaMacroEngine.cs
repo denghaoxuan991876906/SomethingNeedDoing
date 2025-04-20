@@ -1,10 +1,10 @@
 ﻿using NLua;
-using System.Collections.Concurrent;
+using SomethingNeedDoing.MacroFeatures.LuaModules;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.Framework.Engines;
+namespace SomethingNeedDoing.Framework;
 
 /// <summary>
 /// Executes Lua script macros using NLua.
@@ -23,7 +23,7 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
     /// <summary>
     /// Represents the current state of a macro execution.
     /// </summary>
-    private class MacroInstance(LuaMacroEngine engine, IMacro macro) : IDisposable
+    private class MacroInstance(IMacro macro) : IDisposable
     {
         public IMacro Macro { get; } = macro;
         public LuaFunction? LuaGenerator { get; set; }
@@ -46,7 +46,7 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
         if (macro.Type != MacroType.Lua)
             throw new ArgumentException("This engine only supports Lua macros", nameof(macro));
 
-        var state = new MacroInstance(this, macro);
+        var state = new MacroInstance(macro);
 
         try
         {
@@ -79,9 +79,7 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
             // Register modules and services
             LuaServiceProxy.RegisterServices(lua);
             _moduleManager.RegisterAll(lua);
-
-            if (_moduleManager.GetModule<TriggerModule>() is { } triggerModule)
-                triggerModule.SetTriggerArgs(triggerArgs);
+            lua.SetTriggerEventData(triggerArgs);
 
             await Svc.Framework.RunOnTick(async () =>
             {

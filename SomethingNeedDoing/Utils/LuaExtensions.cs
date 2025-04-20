@@ -1,4 +1,5 @@
-﻿using NLua;
+﻿using FFXIVClientStructs;
+using NLua;
 
 namespace SomethingNeedDoing.Utils;
 public static class LuaExtensions
@@ -51,5 +52,15 @@ public static class LuaExtensions
         {
             return "Failed to get Lua error details";
         }
+    }
+
+    public static void SetTriggerEventData(this Lua lua, TriggerEventArgs? args)
+    {
+        if (args is null) return;
+        lua.NewTable("TriggerData");
+        var table = lua.GetTable("TriggerData");
+        if (args.Data is Dictionary<string, object> data)
+            foreach (var kvp in data)
+                table[kvp.Key] = kvp.Value;
     }
 }

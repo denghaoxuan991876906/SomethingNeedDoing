@@ -213,7 +213,6 @@ public class Config : IEzConfig
                             // This is a macro node
                             var macro = new ConfigMacro
                             {
-                                Id = Guid.NewGuid().ToString(),
                                 Name = node.Name ?? "Unknown",
                                 Type = node.Language?.ToString() == "1" ? MacroType.Lua : MacroType.Native,
                                 Content = node.Contents.ToString(),

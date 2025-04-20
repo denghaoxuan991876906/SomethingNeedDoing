@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace SomethingNeedDoing.Framework;
 
 /// <summary>
@@ -9,36 +6,29 @@ namespace SomethingNeedDoing.Framework;
 /// <remarks>
 /// Initializes a new instance of the <see cref="TriggerEventArgs"/> class.
 /// </remarks>
-/// <param name="eventType">The type of trigger event.</param>
-public class TriggerEventArgs(TriggerEvent eventType) : EventArgs
+/// <param name="eventType">The type of event that triggered the macro.</param>
+/// <param name="data">The data associated with the event.</param>
+public class TriggerEventArgs(TriggerEvent eventType, object? data = null)
 {
     /// <summary>
-    /// Gets the type of trigger event.
+    /// Gets the type of event that triggered the macro.
     /// </summary>
-    public TriggerEvent EventType { get; set; } = eventType;
+    public TriggerEvent EventType { get; } = eventType;
 
     /// <summary>
-    /// Gets the event-specific data.
+    /// Gets the data associated with the event.
     /// </summary>
-    public Dictionary<string, object> EventData { get; } = [];
+    public object? Data { get; } = data;
 
     /// <summary>
-    /// Gets or sets the value associated with the event.
+    /// Gets the timestamp when the event occurred.
     /// </summary>
-    public bool? Value { get; set; }
+    public DateTime Timestamp { get; } = DateTime.Now;
 
     /// <summary>
-    /// Gets or sets the territory type associated with the event.
+    /// Gets the data associated with the event as the specified type.
     /// </summary>
-    public ushort? TerritoryType { get; set; }
-
-    /// <summary>
-    /// Gets or sets the message associated with the event.
-    /// </summary>
-    public string? Message { get; set; }
-
-    /// <summary>
-    /// Gets or sets the timestamp when the event occurred.
-    /// </summary>
-    public DateTime Timestamp { get; set; } = DateTime.Now;
+    /// <typeparam name="T">The type to cast the data to.</typeparam>
+    /// <returns>The data cast to the specified type, or null if the cast fails.</returns>
+    public T? GetData<T>() => Data is T value ? value : default;
 }

@@ -108,7 +108,6 @@ public class MigrationPreviewWindow : Window
                 oldMacros.Add(name);
                 var macro = new ConfigMacro
                 {
-                    Id = Guid.NewGuid().ToString(),
                     Name = name,
                     Type = language == "1" ? MacroType.Lua : MacroType.Native,
                     Content = content,

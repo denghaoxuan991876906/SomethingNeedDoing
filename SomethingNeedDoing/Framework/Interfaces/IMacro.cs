@@ -41,6 +41,43 @@ public interface IMacro
     /// Event raised when the macro's state changes.
     /// </summary>
     event EventHandler<MacroStateChangedEventArgs>? StateChanged;
+
+    /// <summary>
+    /// Gets the metadata for the macro.
+    /// </summary>
+    MacroMetadata Metadata { get; }
+
+    /// <summary>
+    /// Starts the macro execution.
+    /// </summary>
+    /// <param name="args">Optional trigger event arguments.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task Start(TriggerEventArgs? args = null);
+
+    /// <summary>
+    /// Stops the macro execution.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task Stop();
+
+    /// <summary>
+    /// Pauses the macro execution.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task Pause();
+
+    /// <summary>
+    /// Resumes the macro execution.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task Resume();
+
+    /// <summary>
+    /// Handles a trigger event for the macro.
+    /// </summary>
+    /// <param name="args">The trigger event arguments.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task HandleTriggerEvent(TriggerEventArgs args);
 }
 
 public interface IMacroInstance : IDisposable

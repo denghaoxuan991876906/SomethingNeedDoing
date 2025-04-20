@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.Framework.Engines;
+namespace SomethingNeedDoing.Framework;
 /// <summary>
 /// Executes native-style macros with command syntax similar to game macros.
 /// </summary>
