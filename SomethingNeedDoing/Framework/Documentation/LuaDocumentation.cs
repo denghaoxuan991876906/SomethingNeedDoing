@@ -15,10 +15,8 @@ public class LuaDocumentation
 
         foreach (var method in module.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance))
         {
-            var attr = method.GetCustomAttribute<LuaFunctionAttribute>();
-            if (attr == null) continue;
+            if (method.GetCustomAttribute<LuaFunctionAttribute>() is not { } attr) continue;
 
-            // Get parameter information
             var methodParams = method.GetParameters();
             var parameters = new List<(string Name, LuaTypeInfo Type, string? Description)>();
 
@@ -31,12 +29,9 @@ public class LuaDocumentation
                 parameters.Add((param.Name ?? $"param{i}", paramType, paramDesc));
             }
 
-            // Get return type information
             var returnType = LuaTypeConverter.GetLuaType(method.ReturnType);
 
-            // Get description from either LuaFunction attribute or Description attribute
-            var description = attr.Description ??
-                method.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>()?.Description;
+            var description = attr.Description ?? method.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>()?.Description;
 
             var doc = new LuaFunctionDoc(
                 module.ModuleName,

@@ -6,10 +6,9 @@ namespace SomethingNeedDoing.Framework;
 /// <summary>
 /// Executes native-style macros with command syntax similar to game macros.
 /// </summary>
-public class NativeMacroEngine : IMacroEngine, IMacroScheduler
+public class NativeMacroEngine : IMacroEngine
 {
     private readonly ConcurrentDictionary<string, MacroExecutionState> _runningMacros = [];
-    private bool _isDisposed;
 
     /// <inheritdoc/>
     public event EventHandler<MacroStateChangedEventArgs>? MacroStateChanged;
@@ -65,34 +64,25 @@ public class NativeMacroEngine : IMacroEngine, IMacroScheduler
 
     private async Task ExecuteMacroAsync(MacroExecutionState state, CancellationToken externalToken)
     {
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
-            externalToken,
-            state.CancellationSource.Token);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken, state.CancellationSource.Token);
         var token = linkedCts.Token;
 
-        var context = new MacroContext(state.Macro, this);
+        var context = new MacroContext(state.Macro, Service.MacroScheduler);
         state.Macro.State = MacroState.Running;
 
         try
         {
             foreach (var command in state.Macro.Commands)
             {
-                // Check for cancellation
                 token.ThrowIfCancellationRequested();
 
                 // Wait if paused
                 state.PauseEvent.Wait(token);
 
-                // Execute the command
                 if (command.RequiresFrameworkThread)
-                {
-                    await Svc.Framework.RunOnTick(() =>
-                        command.Execute(context, token));
-                }
+                    await Svc.Framework.RunOnTick(() => command.Execute(context, token), cancellationToken: token);
                 else
-                {
                     await command.Execute(context, token);
-                }
 
                 context.NextStep();
             }
@@ -115,81 +105,17 @@ public class NativeMacroEngine : IMacroEngine, IMacroScheduler
     /// <inheritdoc/>
     public Task StartMacro(IMacro macro) => StartMacro(macro, CancellationToken.None);
 
-    /// <inheritdoc/>
-    public Task PauseMacro(string macroId)
-    {
-        if (_runningMacros.TryGetValue(macroId, out var state))
-        {
-            state.PauseEvent.Reset();
-            state.Macro.State = MacroState.Paused;
-        }
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc/>
-    public Task ResumeMacro(string macroId)
-    {
-        if (_runningMacros.TryGetValue(macroId, out var state))
-        {
-            state.PauseEvent.Set();
-            state.Macro.State = MacroState.Running;
-        }
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc/>
-    public Task StopMacro(string macroId)
-    {
-        if (_runningMacros.TryGetValue(macroId, out var state))
-        {
-            state.CancellationSource.Cancel();
-        }
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc/>
-    public void CheckLoopPause(string macroId)
-    {
-        if (_runningMacros.TryGetValue(macroId, out var state) && state.PauseAtLoop)
-        {
-            state.PauseAtLoop = false;
-            state.PauseEvent.Reset();
-            state.Macro.State = MacroState.Paused;
-        }
-    }
-
-    /// <inheritdoc/>
-    public void CheckLoopStop(string macroId)
-    {
-        if (_runningMacros.TryGetValue(macroId, out var state) && state.StopAtLoop)
-        {
-            state.StopAtLoop = false;
-            state.CancellationSource.Cancel();
-        }
-    }
-
-    protected virtual void OnMacroStateChanged(string macroId, MacroState newState, MacroState oldState)
-    {
-        MacroStateChanged?.Invoke(this, new MacroStateChangedEventArgs(macroId, newState, oldState));
-    }
-
     protected virtual void OnMacroError(string macroId, string message, Exception? ex = null)
-    {
-        MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
-    }
+        => MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (_isDisposed) return;
-
         foreach (var state in _runningMacros.Values)
         {
             state.CancellationSource.Cancel();
             state.Dispose();
         }
         _runningMacros.Clear();
-
-        _isDisposed = true;
     }
 }

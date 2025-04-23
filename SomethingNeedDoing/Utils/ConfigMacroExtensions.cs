@@ -15,8 +15,9 @@ public static class ConfigMacroExtensions
     }
     public static void Delete(this ConfigMacro macro) => C.Macros.RemoveAll(m => m.Id == macro.Id);
     public static void Move(this ConfigMacro macro, string folderPath) => macro.FolderPath = folderPath;
-    public static void Start(this ConfigMacro macro, TriggerEventArgs? args = null) => _ = Service.MacroScheduler.StartMacro(macro, args);
-    public static void Stop(this ConfigMacro macro) => _ = Service.MacroScheduler.StopMacro(macro.Id);
-    public static void Pause(this ConfigMacro macro) => _ = Service.MacroScheduler.PauseMacro(macro.Id);
-    public static void Resume(this ConfigMacro macro) => _ = Service.MacroScheduler.ResumeMacro(macro.Id);
+    public static void Start(this IMacro macro, TriggerEventArgs? args = null) => _ = Service.MacroScheduler.StartMacro(macro, args);
+    public static void Stop(this IMacro macro) => _ = Service.MacroScheduler.StopMacro(macro.Id);
+    public static void Pause(this IMacro macro) => _ = Service.MacroScheduler.PauseMacro(macro.Id);
+    public static void Resume(this IMacro macro) => _ = Service.MacroScheduler.ResumeMacro(macro.Id);
+    public static void UpdateLastModified(this IMacro macro) => macro.Metadata.LastModified = DateTime.Now;
 }

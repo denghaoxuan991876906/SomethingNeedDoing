@@ -16,24 +16,6 @@ public interface IMacroEngine : IDisposable
     Task StartMacro(IMacro macro, CancellationToken token, TriggerEventArgs? triggerEventArgs = null);
 
     /// <summary>
-    /// Pauses execution of a macro.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro to pause.</param>
-    Task PauseMacro(string macroId);
-
-    /// <summary>
-    /// Resumes execution of a paused macro.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro to resume.</param>
-    Task ResumeMacro(string macroId);
-
-    /// <summary>
-    /// Stops execution of a macro.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro to stop.</param>
-    Task StopMacro(string macroId);
-
-    /// <summary>
     /// Event raised when a macro's state changes.
     /// </summary>
     event EventHandler<MacroStateChangedEventArgs> MacroStateChanged;

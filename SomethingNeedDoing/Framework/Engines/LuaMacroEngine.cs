@@ -1,5 +1,4 @@
 ﻿using NLua;
-using SomethingNeedDoing.MacroFeatures.LuaModules;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,10 +8,9 @@ namespace SomethingNeedDoing.Framework;
 /// <summary>
 /// Executes Lua script macros using NLua.
 /// </summary>
-public class LuaMacroEngine : IMacroEngine, IMacroScheduler
+public class LuaMacroEngine : IMacroEngine
 {
     private readonly LuaModuleManager _moduleManager = new();
-    private bool _isDisposed;
 
     /// <inheritdoc/>
     public event EventHandler<MacroStateChangedEventArgs>? MacroStateChanged;
@@ -187,55 +185,11 @@ public class LuaMacroEngine : IMacroEngine, IMacroScheduler
         }
     }
 
-    /// <inheritdoc/>
-    public Task StartMacro(IMacro macro) => StartMacro(macro, CancellationToken.None);
-
-    /// <inheritdoc/>
-    public Task PauseMacro(string macroId)
-    {
-        // This method is now handled by the MacroScheduler
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc/>
-    public Task ResumeMacro(string macroId)
-    {
-        // This method is now handled by the MacroScheduler
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc/>
-    public Task StopMacro(string macroId)
-    {
-        // This method is now handled by the MacroScheduler
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc/>
-    public void CheckLoopPause(string macroId)
-    {
-        // This method is now handled by the MacroScheduler
-    }
-
-    /// <inheritdoc/>
-    public void CheckLoopStop(string macroId)
-    {
-        // This method is now handled by the MacroScheduler
-    }
-
-    protected virtual void OnMacroStateChanged(string macroId, MacroState newState, MacroState oldState)
-        => MacroStateChanged?.Invoke(this, new MacroStateChangedEventArgs(macroId, newState, oldState));
-
     protected virtual void OnMacroError(string macroId, string message, Exception? ex = null)
         => MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
 
     /// <inheritdoc/>
-    public void Dispose()
-    {
-        if (_isDisposed) return;
-
-        _isDisposed = true;
-    }
+    public void Dispose() { }
 }
 
 /// <summary>

@@ -3,7 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoRetainerAPI;
 using ECommons.Logging;
-using SomethingNeedDoing.Framework.Engines;
 using Dalamud.Game.Text;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Addon.Lifecycle;
@@ -23,7 +22,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private readonly LuaMacroEngine _luaEngine = new();
     private readonly Dictionary<string, AddonEventConfig> _addonEvents = [];
     private readonly TriggerEventManager _triggerEventManager;
-    private bool _isDisposed;
 
     /// <summary>
     /// Event raised when any macro's state changes.
@@ -96,24 +94,34 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnConditionChange(ConditionFlag flag, bool value)
     {
-        var args = new TriggerEventArgs(TriggerEvent.OnConditionChange) { EventData = { ["flag"] = flag, ["value"] = value } };
+        var eventData = new Dictionary<string, object>
+        {
+            ["flag"] = flag,
+            ["value"] = value
+        };
+
+        var args = new TriggerEventArgs(TriggerEvent.OnConditionChange, eventData);
         C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnConditionChange)).Each(m => m.Start(args));
     }
 
     private void OnTerritoryChanged(ushort territoryType)
     {
-        var args = new TriggerEventArgs(TriggerEvent.OnTerritoryChange) { EventData = { ["territoryType"] = territoryType } };
+        var args = new TriggerEventArgs(TriggerEvent.OnTerritoryChange, territoryType);
         C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnTerritoryChange)).Each(m => m.Start(args));
     }
 
     private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
-        var args = new TriggerEventArgs(TriggerEvent.OnChatMessage);
-        args.EventData["type"] = type;
-        args.EventData["timestamp"] = timestamp;
-        args.EventData["sender"] = sender.TextValue;
-        args.EventData["message"] = message.TextValue;
+        var eventData = new Dictionary<string, object>
+        {
+            ["type"] = type,
+            ["timestamp"] = timestamp,
+            ["sender"] = sender,
+            ["message"] = message,
+            ["isHandled"] = isHandled
+        };
 
+        var args = new TriggerEventArgs(TriggerEvent.OnChatMessage, eventData);
         C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnChatMessage)).Each(m => m.Start(args));
     }
 
@@ -122,7 +130,13 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnLogout(int type, int code)
     {
-        var args = new TriggerEventArgs(TriggerEvent.OnLogout) { EventData = { ["type"] = type, ["code"] = code } };
+        var eventData = new Dictionary<string, object>
+        {
+            ["type"] = type,
+            ["code"] = code
+        };
+
+        var args = new TriggerEventArgs(TriggerEvent.OnLogout, eventData);
         C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogout)).Each(m => m.Start(args));
     }
 
@@ -136,25 +150,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// </summary>
     public MacroState GetMacroState(string macroId) => _macroStates.TryGetValue(macroId, out var state) ? state.Macro.State : MacroState.Ready;
 
-    /// <summary>
-    /// Checks if a macro is actually running.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro to check.</param>
-    /// <returns>True if the macro is running, false otherwise.</returns>
-    private bool IsMacroActuallyRunning(string macroId)
-    {
-        if (_macroStates.TryGetValue(macroId, out var state))
-        {
-            // Check if the execution task is still running
-            if (state.ExecutionTask != null && !state.ExecutionTask.IsCompleted)
-                return true;
-
-            // If the task is completed but the macro is still in the dictionary, remove it
-            ForceCleanupMacro(macroId);
-        }
-        return false;
-    }
-
     public async Task StartMacro(IMacro macro) => await StartMacro(macro, null);
 
     /// <summary>
@@ -167,10 +162,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         {
             if (state.Macro is ConfigMacro configMacro)
             {
-                _triggerEventManager.UnregisterMacroTriggers(configMacro);
+                _triggerEventManager.UnregisterAllTriggers(configMacro);
             }
-            state.CancellationTokenSource.Cancel();
-            state.CancellationTokenSource.Dispose();
+            state.CancellationSource.Cancel();
+            state.CancellationSource.Dispose();
         }
 
         _enginesByMacroId.TryRemove(macroId, out _);
@@ -189,23 +184,39 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         }
 
         var state = new MacroExecutionState(macro);
-        _macroStates[macro.Id] = state;
 
-        if (macro is ConfigMacro configMacro)
-        {
-            _triggerEventManager.RegisterMacroTriggers(configMacro);
-        }
-
-        _ = Task.Run(async () =>
+        state.ExecutionTask = Task.Run(async () =>
         {
             try
             {
-                await ExecuteMacroAsync(state, triggerArgs);
+                IMacroEngine engine = state.Macro.Type switch
+                {
+                    MacroType.Native => _nativeEngine,
+                    MacroType.Lua => _luaEngine,
+                    _ => throw new NotSupportedException($"Macro type {state.Macro.Type} is not supported.")
+                };
+
+                _enginesByMacroId[macro.Id] = engine;
+                _macroStates[macro.Id] = state;
+
+                await Svc.Framework.RunOnTick(async () =>
+                {
+                    try
+                    {
+                        await engine.StartMacro(macro, state.CancellationSource.Token, triggerArgs);
+                    }
+                    catch (Exception ex)
+                    {
+                        Svc.Log.Error(ex, $"Error executing macro {macro.Name}");
+                        macro.State = MacroState.Error;
+                    }
+                });
             }
-            catch (Exception ex)
+            finally
             {
-                Svc.Log.Error(ex, $"Error executing macro {macro.Name}");
-                macro.State = MacroState.Error;
+                if (_macroStates.TryRemove(macro.Id, out var removedState))
+                    removedState.Dispose();
+                _enginesByMacroId.TryRemove(macro.Id, out _);
             }
         });
     }
@@ -335,8 +346,8 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
         if (_macroStates.TryGetValue(e.MacroId, out var state))
         {
-            // No need to set the state here as it's already set by the macro
-            // and the event has been raised
+            // Ensure the state is updated in the macro
+            state.Macro.State = e.NewState;
         }
         else if (e.NewState is MacroState.Running)
             // If we don't have a state but the macro is running, something went wrong
@@ -383,8 +394,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (_isDisposed) return;
-
         Svc.Framework.Update -= OnFrameworkUpdate;
         Svc.Condition.ConditionChange -= OnConditionChange;
         Svc.ClientState.TerritoryChanged -= OnTerritoryChanged;
@@ -402,12 +411,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
         foreach (var state in _macroStates.Values)
         {
-            state.CancellationTokenSource.Cancel();
-            state.CancellationTokenSource.Dispose();
+            state.CancellationSource.Cancel();
+            state.CancellationSource.Dispose();
         }
         _macroStates.Clear();
         _triggerEventManager.Dispose();
-
-        _isDisposed = true;
     }
 }

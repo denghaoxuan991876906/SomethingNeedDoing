@@ -23,7 +23,6 @@ public abstract class LuaModuleBase : ILuaModule
         }
     }
 
-    // Create a delegate for methods that don't need framework thread
     private Delegate CreateDelegate(MethodInfo method)
     {
         var delegateType = GetDelegateType(method);

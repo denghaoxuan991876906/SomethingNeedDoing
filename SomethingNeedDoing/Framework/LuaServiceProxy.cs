@@ -14,15 +14,13 @@ public class LuaServiceProxy
 
         public override bool TryGetMember(GetMemberBinder binder, out object? result)
         {
-            var service = typeof(Svc).GetProperty(serviceName)?.GetValue(null);
-            if (service == null)
+            if (typeof(Svc).GetProperty(serviceName)?.GetValue(null) is not { } service)
             {
                 result = null;
                 return false;
             }
 
-            var property = service.GetType().GetProperty(binder.Name);
-            if (property == null)
+            if (service.GetType().GetProperty(binder.Name) is not { } property)
             {
                 result = null;
                 return false;
@@ -34,15 +32,13 @@ public class LuaServiceProxy
 
         public override bool TryInvokeMember(InvokeMemberBinder binder, object?[]? args, out object? result)
         {
-            var service = typeof(Svc).GetProperty(serviceName)?.GetValue(null);
-            if (service == null)
+            if (typeof(Svc).GetProperty(serviceName)?.GetValue(null) is not { } service)
             {
                 result = null;
                 return false;
             }
 
-            var method = service.GetType().GetMethod(binder.Name);
-            if (method == null)
+            if (service.GetType().GetMethod(binder.Name) is not { } method)
             {
                 result = null;
                 return false;
@@ -53,6 +49,10 @@ public class LuaServiceProxy
         }
     }
 
+    /// <summary>
+    /// Registers all Dalamud services as dynamically accessible objects in a lua table.
+    /// </summary>
+    /// <param name="lua"></param>
     public static void RegisterServices(Lua lua)
     {
         // Create a table to hold all services

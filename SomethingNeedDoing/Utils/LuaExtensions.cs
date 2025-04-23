@@ -1,5 +1,4 @@
-﻿using FFXIVClientStructs;
-using NLua;
+﻿using NLua;
 
 namespace SomethingNeedDoing.Utils;
 public static class LuaExtensions
@@ -59,8 +58,24 @@ public static class LuaExtensions
         if (args is null) return;
         lua.NewTable("TriggerData");
         var table = lua.GetTable("TriggerData");
+
+        // Set the event type
+        table["eventType"] = args.EventType;
+
+        // Set the timestamp
+        table["timestamp"] = args.Timestamp;
+
+        // Handle the data based on its type
         if (args.Data is Dictionary<string, object> data)
+        {
+            // If it's a dictionary, add each key-value pair to the table
             foreach (var kvp in data)
                 table[kvp.Key] = kvp.Value;
+        }
+        else if (args.Data != null)
+        {
+            // If it's not a dictionary but not null, add it as a single value
+            table["data"] = args.Data;
+        }
     }
 }

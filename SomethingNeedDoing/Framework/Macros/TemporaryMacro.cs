@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
-namespace SomethingNeedDoing.Framework;
+﻿namespace SomethingNeedDoing.Framework;
 
 /// <summary>
 /// Represents a temporary macro that is not persisted in configuration.
+/// This class is used for one-off macros that don't need to be saved to the config file.
+/// It shares the same execution logic as ConfigMacro but differs in persistence.
 /// </summary>
 /// <remarks>
 /// Initializes a new instance of the <see cref="TemporaryMacro"/> class.
@@ -30,32 +28,4 @@ public class TemporaryMacro(string content) : MacroBase
 
     /// <inheritdoc/>
     public override IReadOnlyList<IMacroCommand> Commands { get; set; } = [];
-
-    /// <inheritdoc/>
-    protected override async Task ExecuteMacro(TriggerEventArgs? args)
-    {
-        // TODO: Implement macro execution logic
-        await Task.CompletedTask;
-    }
-
-    /// <inheritdoc/>
-    protected override async Task StopMacro()
-    {
-        // TODO: Implement macro stop logic
-        await Task.CompletedTask;
-    }
-
-    /// <inheritdoc/>
-    protected override async Task PauseMacro()
-    {
-        // TODO: Implement macro pause logic
-        await Task.CompletedTask;
-    }
-
-    /// <inheritdoc/>
-    protected override async Task ResumeMacro()
-    {
-        // TODO: Implement macro resume logic
-        await Task.CompletedTask;
-    }
 }
