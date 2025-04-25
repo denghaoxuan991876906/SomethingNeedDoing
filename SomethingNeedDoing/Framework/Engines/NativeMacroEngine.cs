@@ -11,9 +11,6 @@ public class NativeMacroEngine : IMacroEngine
     private readonly ConcurrentDictionary<string, MacroExecutionState> _runningMacros = [];
 
     /// <inheritdoc/>
-    public event EventHandler<MacroStateChangedEventArgs>? MacroStateChanged;
-
-    /// <inheritdoc/>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
 
     /// <summary>
@@ -68,7 +65,6 @@ public class NativeMacroEngine : IMacroEngine
         var token = linkedCts.Token;
 
         var context = new MacroContext(state.Macro, Service.MacroScheduler);
-        state.Macro.State = MacroState.Running;
 
         try
         {
@@ -86,8 +82,6 @@ public class NativeMacroEngine : IMacroEngine
 
                 context.NextStep();
             }
-
-            state.Macro.State = MacroState.Completed;
         }
         catch (OperationCanceledException)
         {
@@ -96,7 +90,6 @@ public class NativeMacroEngine : IMacroEngine
         }
         catch (Exception ex)
         {
-            state.Macro.State = MacroState.Error;
             OnMacroError(state.Macro.Id, "Error executing macro command", ex);
             throw;
         }

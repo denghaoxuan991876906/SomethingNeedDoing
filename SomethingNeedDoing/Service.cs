@@ -1,5 +1,5 @@
 ﻿using AutoRetainerAPI;
-using SomethingNeedDoing.MacroFeatures.IPC;
+using SomethingNeedDoing.External;
 
 namespace SomethingNeedDoing;
 public class Service

@@ -13,9 +13,6 @@ public class LuaMacroEngine : IMacroEngine
     private readonly LuaModuleManager _moduleManager = new();
 
     /// <inheritdoc/>
-    public event EventHandler<MacroStateChangedEventArgs>? MacroStateChanged;
-
-    /// <inheritdoc/>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
 
     /// <summary>
@@ -62,8 +59,6 @@ public class LuaMacroEngine : IMacroEngine
     {
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken, macro.CancellationSource.Token);
         var token = linkedCts.Token;
-
-        macro.Macro.State = MacroState.Running;
 
         try
         {
@@ -166,16 +161,14 @@ public class LuaMacroEngine : IMacroEngine
                     Svc.Log.Error($"{ex}");
                 }
             }, cancellationToken: token).ConfigureAwait(false);
-
-            macro.Macro.State = MacroState.Completed;
         }
         catch (OperationCanceledException)
         {
-            macro.Macro.State = MacroState.Completed;
+            // Normal cancellation, don't treat as error
+            throw;
         }
         catch (Exception ex)
         {
-            macro.Macro.State = MacroState.Error;
             OnMacroError(macro.Macro.Id, "Error executing macro", ex);
             throw;
         }

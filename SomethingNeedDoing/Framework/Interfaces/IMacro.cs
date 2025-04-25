@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using ECommons.Logging;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.Framework;
@@ -116,10 +117,19 @@ public abstract class MacroBase : IMacro
     /// <inheritdoc/>
     public MacroState State
     {
-        get; set
+        get;
+        set
         {
             if (field != value)
+            {
+                //PluginLog.Debug($"Macro state changed for {Id}: {field} -> {value}"); // why doesn't this work
+                PluginLog.Debug(string.Format("Macro state changed for {0}: {1} -> {2}", Id, field, value));
+
+                if (value is MacroState.Completed or MacroState.Error)
+                    Service.MacroScheduler.CleanupMacro(Id);
                 StateChanged?.Invoke(this, new MacroStateChangedEventArgs(Id, value, field));
+                field = value;
+            }
         }
     } = MacroState.Ready;
 
@@ -209,7 +219,7 @@ public abstract class MacroBase : IMacro
     {
         // Default implementation for StopMacro
         // This will be overridden by specific macro implementations
-        await Service.MacroScheduler.StopMacro(Id);
+        Service.MacroScheduler.StopMacro(Id);
     }
 
     /// <summary>
@@ -220,7 +230,7 @@ public abstract class MacroBase : IMacro
     {
         // Default implementation for PauseMacro
         // This will be overridden by specific macro implementations
-        await Service.MacroScheduler.PauseMacro(Id);
+        Service.MacroScheduler.PauseMacro(Id);
     }
 
     /// <summary>
@@ -231,6 +241,6 @@ public abstract class MacroBase : IMacro
     {
         // Default implementation for ResumeMacro
         // This will be overridden by specific macro implementations
-        await Service.MacroScheduler.ResumeMacro(Id);
+        Service.MacroScheduler.ResumeMacro(Id);
     }
 }

@@ -13,6 +13,7 @@ public class LuaModuleManager
     public LuaModuleManager()
     {
         RegisterModule(new GameStateModule());
+        RegisterModule(new IPCModule());
         RegisterModule(new TargetingModule());
     }
 

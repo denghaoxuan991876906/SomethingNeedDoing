@@ -1,11 +1,12 @@
 ﻿using ECommons.EzIpcManager;
+using SomethingNeedDoing.Attributes;
 
-namespace SomethingNeedDoing.MacroFeatures.IPC;
+namespace SomethingNeedDoing.External;
 
-#nullable disable
-public class Tippy
+public class Tippy : IPC
 {
-    public Tippy() => EzIPC.Init(this, "Tippy", SafeWrapper.IPCException);
+    public override string Name => "Tippy";
+    public override string Repo => Repos.FirstParty;
 
     /// <summary>
     /// Register Tip.
@@ -14,7 +15,11 @@ public class Tippy
     /// </summary>
     /// <param name="text">the text of the tip.</param>
     /// <returns>indicator if tip was successfully registered.</returns>
-    [EzIPC] public readonly Func<string, bool> RegisterTip;
+    [EzIPC]
+    [LuaFunction(
+        description: "Registers a tip to be displayed at random",
+        parameterDescriptions: ["text"])]
+    public readonly Func<string, bool> RegisterTip = null!;
 
     /// <summary>
     /// Register Message.
@@ -23,5 +28,9 @@ public class Tippy
     /// </summary>
     /// <param name="text">the text of the message.</param>
     /// <returns>indicator if message was successfully registered.</returns>
-    [EzIPC] public readonly Func<string, bool> RegisterMessage;
+    [EzIPC]
+    [LuaFunction(
+        description: "Registers a message to be displayed immediately",
+        parameterDescriptions: ["text"])]
+    public readonly Func<string, bool> RegisterMessage = null!;
 }

@@ -35,9 +35,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     public MacroScheduler()
     {
-        _nativeEngine.MacroStateChanged += OnEngineStateChanged;
         _nativeEngine.MacroError += OnEngineError;
-        _luaEngine.MacroStateChanged += OnEngineStateChanged;
         _luaEngine.MacroError += OnEngineError;
         _triggerEventManager = new TriggerEventManager();
         SubscribeToTriggerEvents();
@@ -156,7 +154,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// Forces cleanup of a macro's state.
     /// </summary>
     /// <param name="macroId">The ID of the macro to clean up.</param>
-    private void ForceCleanupMacro(string macroId)
+    public void CleanupMacro(string macroId)
     {
         if (_macroStates.TryRemove(macroId, out var state))
         {
@@ -199,6 +197,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 _enginesByMacroId[macro.Id] = engine;
                 _macroStates[macro.Id] = state;
 
+                // Set initial state to Running
+                state.Macro.State = MacroState.Running;
+
                 await Svc.Framework.RunOnTick(async () =>
                 {
                     try
@@ -208,7 +209,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     catch (Exception ex)
                     {
                         Svc.Log.Error(ex, $"Error executing macro {macro.Name}");
-                        macro.State = MacroState.Error;
+                        state.Macro.State = MacroState.Error;
                     }
                 });
             }
@@ -225,13 +226,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// Pauses execution of a macro.
     /// </summary>
     /// <param name="macroId">The ID of the macro to pause.</param>
-    public async Task PauseMacro(string macroId)
+    public void PauseMacro(string macroId)
     {
-        if (_enginesByMacroId.TryGetValue(macroId, out var engine) && _macroStates.TryGetValue(macroId, out var state))
+        if (_macroStates.TryGetValue(macroId, out var state))
         {
             state.PauseEvent.Reset();
             state.Macro.State = MacroState.Paused;
-            await engine.PauseMacro(macroId);
         }
     }
 
@@ -239,13 +239,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// Resumes execution of a paused macro.
     /// </summary>
     /// <param name="macroId">The ID of the macro to resume.</param>
-    public async Task ResumeMacro(string macroId)
+    public void ResumeMacro(string macroId)
     {
-        if (_enginesByMacroId.TryGetValue(macroId, out var engine) && _macroStates.TryGetValue(macroId, out var state))
+        if (_macroStates.TryGetValue(macroId, out var state))
         {
             state.PauseEvent.Set();
             state.Macro.State = MacroState.Running;
-            await engine.ResumeMacro(macroId);
         }
     }
 
@@ -253,24 +252,21 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// Stops execution of a macro.
     /// </summary>
     /// <param name="macroId">The ID of the macro to stop.</param>
-    public async Task StopMacro(string macroId)
+    public void StopMacro(string macroId)
     {
-        if (_enginesByMacroId.TryGetValue(macroId, out var engine) && _macroStates.TryGetValue(macroId, out var state))
+        if (_macroStates.TryGetValue(macroId, out var state))
         {
             state.CancellationSource.Cancel();
             state.Macro.State = MacroState.Completed;
-            await engine.StopMacro(macroId);
-            ForceCleanupMacro(macroId);
         }
     }
 
     /// <summary>
     /// Stops all running macros.
     /// </summary>
-    public async Task StopAllMacros()
+    public void StopAllMacros()
     {
-        var tasks = _enginesByMacroId.Keys.Select(StopMacro);
-        await Task.WhenAll(tasks);
+        _enginesByMacroId.Keys.Each(StopMacro);
     }
 
     /// <summary>
@@ -295,6 +291,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         {
             state.StopAtLoop = false;
             state.CancellationSource.Cancel();
+            state.Macro.State = MacroState.Completed;
         }
     }
 
@@ -338,27 +335,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             CancellationSource.Dispose();
             PauseEvent.Dispose();
         }
-    }
-
-    private void OnEngineStateChanged(object? sender, MacroStateChangedEventArgs e)
-    {
-        PluginLog.Debug($"Macro state changed for {e.MacroId}: {e.NewState}");
-
-        if (_macroStates.TryGetValue(e.MacroId, out var state))
-        {
-            // Ensure the state is updated in the macro
-            state.Macro.State = e.NewState;
-        }
-        else if (e.NewState is MacroState.Running)
-            // If we don't have a state but the macro is running, something went wrong
-            PluginLog.Warning($"Received running state for macro {e.MacroId} but no state exists");
-
-        if (e.NewState is MacroState.Completed or MacroState.Error)
-        {
-            ForceCleanupMacro(e.MacroId);
-        }
-
-        MacroStateChanged?.Invoke(this, e);
     }
 
     private void OnEngineError(object? sender, MacroErrorEventArgs e) => MacroError?.Invoke(this, e);
@@ -405,7 +381,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _nativeEngine.Dispose();
         _luaEngine.Dispose();
         _enginesByMacroId.Clear();
-        _arApis.Values.ForEach(a => a.Dispose());
+        _arApis.Values.Each(a => a.Dispose());
         _arApis.Clear();
         _addonEvents.Clear();
 

@@ -18,19 +18,19 @@ public interface IMacroScheduler
     /// Pauses execution of a macro.
     /// </summary>
     /// <param name="macroId">The ID of the macro to pause.</param>
-    Task PauseMacro(string macroId);
+    void PauseMacro(string macroId);
 
     /// <summary>
     /// Resumes execution of a paused macro.
     /// </summary>
     /// <param name="macroId">The ID of the macro to resume.</param>
-    Task ResumeMacro(string macroId);
+    void ResumeMacro(string macroId);
 
     /// <summary>
     /// Stops execution of a macro.
     /// </summary>
     /// <param name="macroId">The ID of the macro to stop.</param>
-    Task StopMacro(string macroId);
+    void StopMacro(string macroId);
 
     /// <summary>
     /// Checks if the macro should pause at the current loop point.

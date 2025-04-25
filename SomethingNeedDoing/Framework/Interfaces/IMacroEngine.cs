@@ -16,11 +16,6 @@ public interface IMacroEngine : IDisposable
     Task StartMacro(IMacro macro, CancellationToken token, TriggerEventArgs? triggerEventArgs = null);
 
     /// <summary>
-    /// Event raised when a macro's state changes.
-    /// </summary>
-    event EventHandler<MacroStateChangedEventArgs> MacroStateChanged;
-
-    /// <summary>
     /// Event raised when a macro encounters an error.
     /// </summary>
     event EventHandler<MacroErrorEventArgs> MacroError;
