@@ -20,6 +20,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private readonly Dictionary<string, AutoRetainerApi> _arApis = [];
     private readonly NativeMacroEngine _nativeEngine = new();
     private readonly LuaMacroEngine _luaEngine = new();
+    private readonly GitMacroManager _gitMacroManager = new();
     private readonly Dictionary<string, AddonEventConfig> _addonEvents = [];
     private readonly TriggerEventManager _triggerEventManager;
 
@@ -39,6 +40,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _luaEngine.MacroError += OnEngineError;
         _triggerEventManager = new TriggerEventManager();
         SubscribeToTriggerEvents();
+        _ = _gitMacroManager.Initialize(); // Fire and forget, let it run async
     }
 
     private void SubscribeToTriggerEvents()
@@ -197,9 +199,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 _enginesByMacroId[macro.Id] = engine;
                 _macroStates[macro.Id] = state;
 
-                // Set initial state to Running
                 state.Macro.State = MacroState.Running;
-
                 await Svc.Framework.RunOnTick(async () =>
                 {
                     try
@@ -213,11 +213,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     }
                 });
             }
-            finally
+            catch (Exception ex)
             {
-                if (_macroStates.TryRemove(macro.Id, out var removedState))
-                    removedState.Dispose();
-                _enginesByMacroId.TryRemove(macro.Id, out _);
+                Svc.Log.Error(ex, $"Error setting up macro {macro.Name}");
+                state.Macro.State = MacroState.Error;
             }
         });
     }
@@ -258,6 +257,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         {
             state.CancellationSource.Cancel();
             state.Macro.State = MacroState.Completed;
+
+            if (_macroStates.TryRemove(macroId, out var removedState))
+                removedState.Dispose();
+            _enginesByMacroId.TryRemove(macroId, out _);
         }
     }
 
@@ -339,7 +342,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnEngineError(object? sender, MacroErrorEventArgs e) => MacroError?.Invoke(this, e);
 
-    private void CheckCharacterPostProcess(ConfigMacro macro)
+    private void CheckCharacterPostProcess(IMacro macro)
     {
         if (C.ARCharacterPostProcessExcludedCharacters.Any(x => x == Svc.ClientState.LocalContentId))
             Svc.Log.Info($"Skipping post process macro {macro.Name} for current character.");
@@ -347,13 +350,13 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             _arApis[macro.Id].RequestCharacterPostprocess();
     }
 
-    private void DoCharacterPostProcess(ConfigMacro macro)
+    private void DoCharacterPostProcess(IMacro macro)
     {
         MacroStateChanged += (sender, e) => OnPostProcessMacroCompleted(sender, e, macro);
         _ = StartMacro(macro);
     }
 
-    private void OnPostProcessMacroCompleted(object? sender, MacroStateChangedEventArgs e, ConfigMacro macro)
+    private void OnPostProcessMacroCompleted(object? sender, MacroStateChangedEventArgs e, IMacro macro)
     {
         if (e.NewState is MacroState.Completed)
         {
@@ -364,6 +367,72 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     arApi.FinishCharacterPostProcess();
             });
             MacroStateChanged -= (sender, e) => OnPostProcessMacroCompleted(sender, e, macro);
+        }
+    }
+
+    /// <summary>
+    /// Subscribes a macro to a trigger event.
+    /// </summary>
+    /// <param name="macro">The macro to subscribe.</param>
+    /// <param name="triggerEvent">The trigger event to subscribe to.</param>
+    public void SubscribeToTriggerEvent(IMacro macro, TriggerEvent triggerEvent)
+    {
+        ArgumentNullException.ThrowIfNull(macro);
+
+        switch (triggerEvent)
+        {
+            case TriggerEvent.OnAutoRetainerCharacterPostProcess:
+                if (!_arApis.ContainsKey(macro.Id))
+                {
+                    _arApis.TryAdd(macro.Id, new AutoRetainerApi());
+                    _arApis[macro.Id].OnCharacterPostprocessStep += () => CheckCharacterPostProcess(macro);
+                    _arApis[macro.Id].OnCharacterReadyToPostProcess += () => DoCharacterPostProcess(macro);
+                }
+                break;
+            case TriggerEvent.OnAddonEvent:
+                if (macro.Metadata.AddonEventConfig is { } cfg)
+                {
+                    if (!_addonEvents.ContainsKey(macro.Id))
+                    {
+                        _addonEvents.TryAdd(macro.Id, cfg);
+                        Svc.AddonLifecycle.RegisterListener(cfg.EventType, cfg.AddonName, OnAddonEvent);
+                    }
+                }
+                break;
+            default:
+                throw new ArgumentException($"Unsupported trigger event: {triggerEvent}", nameof(triggerEvent));
+        }
+    }
+
+    /// <summary>
+    /// Unsubscribes a macro from a trigger event.
+    /// </summary>
+    /// <param name="macro">The macro to unsubscribe.</param>
+    /// <param name="triggerEvent">The trigger event to unsubscribe from.</param>
+    public void UnsubscribeFromTriggerEvent(IMacro macro, TriggerEvent triggerEvent)
+    {
+        ArgumentNullException.ThrowIfNull(macro);
+
+        switch (triggerEvent)
+        {
+            case TriggerEvent.OnAutoRetainerCharacterPostProcess:
+                if (_arApis.TryGetValue(macro.Id, out var arApi))
+                {
+                    arApi.OnCharacterPostprocessStep -= () => CheckCharacterPostProcess(macro);
+                    arApi.OnCharacterReadyToPostProcess -= () => DoCharacterPostProcess(macro);
+                    arApi.Dispose();
+                    _arApis.Remove(macro.Id);
+                }
+                break;
+            case TriggerEvent.OnAddonEvent:
+                if (_addonEvents.TryGetValue(macro.Id, out var cfg))
+                {
+                    Svc.AddonLifecycle.UnregisterListener(cfg.EventType, cfg.AddonName, OnAddonEvent);
+                    _addonEvents.Remove(macro.Id);
+                }
+                break;
+            default:
+                throw new ArgumentException($"Unsupported trigger event: {triggerEvent}", nameof(triggerEvent));
         }
     }
 

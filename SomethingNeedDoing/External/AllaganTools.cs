@@ -1,6 +1,5 @@
 ﻿using ECommons.EzIpcManager;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using SomethingNeedDoing.Attributes;
 
 namespace SomethingNeedDoing.External;
 public class AllaganTools : IPC

@@ -50,6 +50,17 @@ public class MacroMetadata
     /// Gets or sets the addon event configuration for this macro.
     /// </summary>
     public AddonEventConfig? AddonEventConfig { get; set; }
+
+    /// <summary>
+    /// Gets or sets the plugin dependencies for this macro.
+    /// </summary>
+    /// <remarks>string is the InternalName of a plugin</remarks>
+    public string[] PluginDependecies { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the macro dependencies.
+    /// </summary>
+    public List<IMacroDependency> Dependencies { get; set; } = [];
 }
 
 /// <summary>

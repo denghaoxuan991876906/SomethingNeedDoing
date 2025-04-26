@@ -1,6 +1,5 @@
 ﻿using ECommons.EzIpcManager;
 using GCInfo = (uint ShopDataID, uint ExchangeDataID, System.Numerics.Vector3 Position);
-using SomethingNeedDoing.Attributes;
 
 namespace SomethingNeedDoing.External;
 

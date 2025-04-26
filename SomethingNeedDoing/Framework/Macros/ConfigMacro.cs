@@ -1,6 +1,6 @@
 ﻿namespace SomethingNeedDoing.Framework;
 /// <summary>
-/// Represents a macro that is stored in the configuration.
+/// Represents a macro that is stored in the config.
 /// </summary>
 public class ConfigMacro : MacroBase
 {

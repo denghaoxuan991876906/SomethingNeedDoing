@@ -76,6 +76,10 @@ public class Config : IEzConfig
     public bool UseMacroFileSystem { get; set; }
     #endregion
 
+    #region Git Macro Settings
+    public List<GitMacro> GitMacros { get; set; } = [];
+    #endregion
+
     /// <summary>
     /// Migrates configuration from an older version.
     /// </summary>

@@ -126,9 +126,11 @@ public abstract class MacroBase : IMacro
                 PluginLog.Debug(string.Format("Macro state changed for {0}: {1} -> {2}", Id, field, value));
 
                 if (value is MacroState.Completed or MacroState.Error)
+                {
+                    Service.MacroScheduler.StopMacro(Id);
                     Service.MacroScheduler.CleanupMacro(Id);
+                }
                 StateChanged?.Invoke(this, new MacroStateChangedEventArgs(Id, value, field));
-                field = value;
             }
         }
     } = MacroState.Ready;
@@ -145,8 +147,8 @@ public abstract class MacroBase : IMacro
     /// <inheritdoc/>
     public virtual async Task Start(TriggerEventArgs? args = null)
     {
-        if (State is not MacroState.Ready and not MacroState.Paused)
-            throw new InvalidOperationException($"Cannot start macro in state {State}");
+        if (State is MacroState.Running or MacroState.Paused)
+            throw new InvalidOperationException($"Cannot start macro while it is {State}");
 
         State = MacroState.Running;
         try
@@ -166,7 +168,7 @@ public abstract class MacroBase : IMacro
         if (State is not MacroState.Running and not MacroState.Paused)
             throw new InvalidOperationException($"Cannot stop macro in state {State}");
 
-        State = MacroState.Ready;
+        State = MacroState.Completed;
         await StopMacro();
     }
 

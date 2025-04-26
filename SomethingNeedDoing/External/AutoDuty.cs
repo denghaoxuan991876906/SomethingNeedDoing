@@ -1,6 +1,4 @@
-using ECommons;
 using ECommons.EzIpcManager;
-using SomethingNeedDoing.Attributes;
 
 namespace SomethingNeedDoing.External;
 public class AutoDuty : IPC

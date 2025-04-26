@@ -1,5 +1,4 @@
 ﻿using ECommons.EzIpcManager;
-using SomethingNeedDoing.Attributes;
 
 namespace SomethingNeedDoing.External;
 public class Visland : IPC

@@ -1,6 +1,4 @@
-﻿using Dalamud.Plugin.Ipc;
-using ECommons.EzIpcManager;
-using SomethingNeedDoing.Attributes;
+﻿using ECommons.EzIpcManager;
 
 namespace SomethingNeedDoing.External;
 
