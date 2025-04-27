@@ -355,51 +355,6 @@ public class Config : IEzConfig
     }
 
     /// <summary>
-    /// Creates a new instance of the macro with default metadata.
-    /// </summary>
-    public ConfigMacro Create(string name, MacroType type, string content, string folderPath = "/")
-    {
-        return new ConfigMacro
-        {
-            Name = name,
-            Type = type,
-            Content = content,
-            FolderPath = folderPath,
-            Metadata = new MacroMetadata { LastModified = DateTime.Now }
-        };
-    }
-
-    /// <summary>
-    /// Renames a macro.
-    /// </summary>
-    public bool RenameMacro(string macroId, string newName)
-    {
-        var macro = GetMacro(macroId);
-        if (macro == null) return false;
-        macro.Name = newName;
-        return true;
-    }
-
-    /// <summary>
-    /// Duplicates a macro.
-    /// </summary>
-    public ConfigMacro? DuplicateMacro(string macroId, string? newName = null)
-    {
-        var macro = GetMacro(macroId);
-        if (macro == null) return null;
-
-        var duplicate = new ConfigMacro
-        {
-            Name = newName ?? $"{macro.Name} (Copy)",
-            Type = macro.Type,
-            Content = macro.Content,
-            FolderPath = macro.FolderPath
-        };
-        Macros.Add(duplicate);
-        return duplicate;
-    }
-
-    /// <summary>
     /// Gets the full path of a macro.
     /// </summary>
     public string GetMacroPath(string macroId)

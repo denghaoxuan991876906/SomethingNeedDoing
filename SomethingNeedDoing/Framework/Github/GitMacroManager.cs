@@ -12,6 +12,7 @@ namespace SomethingNeedDoing.Framework;
 /// </summary>
 public class GitMacroManager : IDisposable
 {
+    private readonly IMacroScheduler _scheduler;
     private readonly HttpClient _httpClient = new();
     private readonly string _cacheDirectory;
     private readonly ConcurrentDictionary<string, GitMacro> _gitMacros = [];
@@ -31,17 +32,19 @@ public class GitMacroManager : IDisposable
     /// Initializes a new instance of the <see cref="GitMacroManager"/> class.
     /// </summary>
     /// <param name="dependencyFactory">The dependency factory.</param>
-    public GitMacroManager(DependencyFactory dependencyFactory)
+    public GitMacroManager(DependencyFactory dependencyFactory, IMacroScheduler scheduler)
     {
+        _dependencyFactory = dependencyFactory;
+        _scheduler = scheduler;
         _cacheDirectory = Path.Combine(Svc.PluginInterface.ConfigDirectory.FullName, "GitMacros");
         Directory.CreateDirectory(_cacheDirectory);
-        _dependencyFactory = dependencyFactory;
+        UpdateAllMacros();
     }
 
     /// <summary>
     /// Initializes all Git macros by loading them from config and checking for updates.
     /// </summary>
-    public async Task Initialize()
+    public void UpdateAllMacros()
     {
         foreach (var macro in C.GitMacros)
         {
@@ -87,16 +90,16 @@ public class GitMacroManager : IDisposable
             var triggerEvents = macro.Metadata.TriggerEvents.ToList();
 
             // Stop the macro and unsubscribe from events
-            Service.MacroScheduler.StopMacro(macro.Id);
+            _scheduler.StopMacro(macro.Id);
             foreach (var triggerEvent in triggerEvents)
-                Service.MacroScheduler.UnsubscribeFromTriggerEvent(macro, triggerEvent);
+                _scheduler.UnsubscribeFromTriggerEvent(macro, triggerEvent);
 
             // Update the macro
             await UpdateMacro(macro);
 
             // Resubscribe to events
             foreach (var triggerEvent in triggerEvents)
-                Service.MacroScheduler.SubscribeToTriggerEvent(macro, triggerEvent);
+                _scheduler.SubscribeToTriggerEvent(macro, triggerEvent);
 
             MacroUpdated?.Invoke(this, new GitMacroUpdateEventArgs(macro));
         }

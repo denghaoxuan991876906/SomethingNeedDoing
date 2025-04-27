@@ -18,10 +18,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private readonly ConcurrentDictionary<string, IMacroEngine> _enginesByMacroId = [];
     private readonly ConcurrentDictionary<string, MacroExecutionState> _macroStates = [];
     private readonly Dictionary<string, AutoRetainerApi> _arApis = [];
-    private readonly NativeMacroEngine _nativeEngine = new();
-    private readonly LuaMacroEngine _luaEngine = new();
-    private readonly GitMacroManager _gitMacroManager = new();
     private readonly Dictionary<string, AddonEventConfig> _addonEvents = [];
+
+    private readonly NativeMacroEngine _nativeEngine;
+    private readonly LuaMacroEngine _luaEngine;
     private readonly TriggerEventManager _triggerEventManager;
 
     /// <summary>
@@ -34,13 +34,15 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// </summary>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
 
-    public MacroScheduler()
+    public MacroScheduler(NativeMacroEngine nativeEngine, LuaMacroEngine luaEngine, TriggerEventManager triggerEventManager)
     {
+        _nativeEngine = nativeEngine;
+        _luaEngine = luaEngine;
+        _triggerEventManager = triggerEventManager;
+
         _nativeEngine.MacroError += OnEngineError;
         _luaEngine.MacroError += OnEngineError;
-        _triggerEventManager = new TriggerEventManager();
         SubscribeToTriggerEvents();
-        _ = _gitMacroManager.Initialize(); // Fire and forget, let it run async
     }
 
     private void SubscribeToTriggerEvents()
@@ -87,10 +89,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     {
         foreach (var kvp in _addonEvents)
             if (kvp.Value is { } cfg && cfg.EventType == type && cfg.AddonName == args.AddonName && C.GetMacro(kvp.Key) is { } macro)
-                macro.Start();
+                StartMacro(macro);
     }
 
-    private void OnFrameworkUpdate(IFramework framework) => C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnUpdate)).Each(m => m.Start());
+    private void OnFrameworkUpdate(IFramework framework) => C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnUpdate)).Each(m => StartMacro(m));
 
     private void OnConditionChange(ConditionFlag flag, bool value)
     {
@@ -101,13 +103,13 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         };
 
         var args = new TriggerEventArgs(TriggerEvent.OnConditionChange, eventData);
-        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnConditionChange)).Each(m => m.Start(args));
+        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnConditionChange)).Each(m => StartMacro(m, args));
     }
 
     private void OnTerritoryChanged(ushort territoryType)
     {
         var args = new TriggerEventArgs(TriggerEvent.OnTerritoryChange, territoryType);
-        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnTerritoryChange)).Each(m => m.Start(args));
+        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnTerritoryChange)).Each(m => StartMacro(m, args));
     }
 
     private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
@@ -122,11 +124,11 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         };
 
         var args = new TriggerEventArgs(TriggerEvent.OnChatMessage, eventData);
-        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnChatMessage)).Each(m => m.Start(args));
+        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnChatMessage)).Each(m => StartMacro(m, args));
     }
 
     private void OnLogin()
-        => C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogin)).Each(m => m.Start());
+        => C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogin)).Each(m => StartMacro(m));
 
     private void OnLogout(int type, int code)
     {
@@ -137,7 +139,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         };
 
         var args = new TriggerEventArgs(TriggerEvent.OnLogout, eventData);
-        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogout)).Each(m => m.Start(args));
+        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogout)).Each(m => StartMacro(m, args));
     }
 
     /// <summary>
@@ -161,11 +163,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         if (_macroStates.TryRemove(macroId, out var state))
         {
             if (state.Macro is ConfigMacro configMacro)
-            {
                 _triggerEventManager.UnregisterAllTriggers(configMacro);
-            }
             state.CancellationSource.Cancel();
             state.CancellationSource.Dispose();
+            state.Macro.StateChanged -= OnMacroStateChanged;
         }
 
         _enginesByMacroId.TryRemove(macroId, out _);
@@ -182,7 +183,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             Svc.Log.Warning($"Macro {macro.Name} is already running.");
             return;
         }
-
+        macro.StateChanged += OnMacroStateChanged;
         var state = new MacroExecutionState(macro);
 
         state.ExecutionTask = Task.Run(async () =>
@@ -257,6 +258,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         {
             state.CancellationSource.Cancel();
             state.Macro.State = MacroState.Completed;
+            state.Macro.StateChanged -= OnMacroStateChanged;
 
             if (_macroStates.TryRemove(macroId, out var removedState))
                 removedState.Dispose();
@@ -341,6 +343,15 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     }
 
     private void OnEngineError(object? sender, MacroErrorEventArgs e) => MacroError?.Invoke(this, e);
+
+    private void OnMacroStateChanged(object? sender, MacroStateChangedEventArgs e)
+    {
+        if (e.NewState is MacroState.Completed or MacroState.Error)
+        {
+            StopMacro(e.MacroId);
+            CleanupMacro(e.MacroId);
+        }
+    }
 
     private void CheckCharacterPostProcess(IMacro macro)
     {

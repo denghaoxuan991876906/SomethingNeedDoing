@@ -8,9 +8,10 @@ namespace SomethingNeedDoing.Framework;
 /// <summary>
 /// Executes Lua script macros using NLua.
 /// </summary>
-public class LuaMacroEngine : IMacroEngine
+public class LuaMacroEngine(IMacroScheduler scheduler, LuaModuleManager moduleManager) : IMacroEngine
 {
-    private readonly LuaModuleManager _moduleManager = new();
+    private readonly LuaModuleManager _moduleManager = moduleManager;
+    private readonly IMacroScheduler _scheduler = scheduler;
 
     /// <inheritdoc/>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
@@ -113,15 +114,15 @@ public class LuaMacroEngine : IMacroEngine
                             {
                                 if (e.MacroId == nativeMacroId && e.NewState is MacroState.Completed or MacroState.Error)
                                 {
-                                    Service.MacroScheduler.MacroStateChanged -= OnMacroStateChanged;
+                                    _scheduler.MacroStateChanged -= OnMacroStateChanged;
                                     tcs.SetResult(e.NewState == MacroState.Completed);
                                 }
                             }
 
-                            Service.MacroScheduler.MacroStateChanged += OnMacroStateChanged;
+                            _scheduler.MacroStateChanged += OnMacroStateChanged;
 
                             // Start the native macro and wait for it to complete
-                            _ = Service.MacroScheduler.StartMacro(tempMacro);
+                            _ = _scheduler.StartMacro(tempMacro);
                             await tcs.Task;
                         }
                         catch (OperationCanceledException)

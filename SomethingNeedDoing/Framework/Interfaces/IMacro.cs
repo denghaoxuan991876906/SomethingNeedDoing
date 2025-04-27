@@ -47,38 +47,6 @@ public interface IMacro
     /// Gets the metadata for the macro.
     /// </summary>
     MacroMetadata Metadata { get; }
-
-    /// <summary>
-    /// Starts the macro execution.
-    /// </summary>
-    /// <param name="args">Optional trigger event arguments.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    Task Start(TriggerEventArgs? args = null);
-
-    /// <summary>
-    /// Stops the macro execution.
-    /// </summary>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    Task Stop();
-
-    /// <summary>
-    /// Pauses the macro execution.
-    /// </summary>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    Task Pause();
-
-    /// <summary>
-    /// Resumes the macro execution.
-    /// </summary>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    Task Resume();
-
-    /// <summary>
-    /// Handles a trigger event for the macro.
-    /// </summary>
-    /// <param name="args">The trigger event arguments.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    Task HandleTriggerEvent(TriggerEventArgs args);
 }
 
 public interface IMacroInstance : IDisposable
@@ -124,12 +92,6 @@ public abstract class MacroBase : IMacro
             {
                 //PluginLog.Debug($"Macro state changed for {Id}: {field} -> {value}"); // why doesn't this work
                 PluginLog.Debug(string.Format("Macro state changed for {0}: {1} -> {2}", Id, field, value));
-
-                if (value is MacroState.Completed or MacroState.Error)
-                {
-                    Service.MacroScheduler.StopMacro(Id);
-                    Service.MacroScheduler.CleanupMacro(Id);
-                }
                 StateChanged?.Invoke(this, new MacroStateChangedEventArgs(Id, value, field));
             }
         }
@@ -143,106 +105,4 @@ public abstract class MacroBase : IMacro
 
     /// <inheritdoc/>
     public abstract IReadOnlyList<IMacroCommand> Commands { get; set; }
-
-    /// <inheritdoc/>
-    public virtual async Task Start(TriggerEventArgs? args = null)
-    {
-        if (State is MacroState.Running or MacroState.Paused)
-            throw new InvalidOperationException($"Cannot start macro while it is {State}");
-
-        State = MacroState.Running;
-        try
-        {
-            await ExecuteMacro(args);
-        }
-        catch (Exception ex)
-        {
-            State = MacroState.Error;
-            throw new MacroException($"Failed to execute macro: {ex.Message}", ex);
-        }
-    }
-
-    /// <inheritdoc/>
-    public virtual async Task Stop()
-    {
-        if (State is not MacroState.Running and not MacroState.Paused)
-            throw new InvalidOperationException($"Cannot stop macro in state {State}");
-
-        State = MacroState.Completed;
-        await StopMacro();
-    }
-
-    /// <inheritdoc/>
-    public virtual async Task Pause()
-    {
-        if (State != MacroState.Running)
-            throw new InvalidOperationException($"Cannot pause macro in state {State}");
-
-        State = MacroState.Paused;
-        await PauseMacro();
-    }
-
-    /// <inheritdoc/>
-    public virtual async Task Resume()
-    {
-        if (State != MacroState.Paused)
-            throw new InvalidOperationException($"Cannot resume macro in state {State}");
-
-        State = MacroState.Running;
-        await ResumeMacro();
-    }
-
-    /// <inheritdoc/>
-    public virtual async Task HandleTriggerEvent(TriggerEventArgs args)
-    {
-        if (State != MacroState.Ready)
-            throw new InvalidOperationException($"Cannot handle trigger event in state {State}");
-
-        await Start(args);
-    }
-
-    /// <summary>
-    /// Executes the macro with the given trigger event arguments.
-    /// </summary>
-    /// <param name="args">Optional trigger event arguments.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    protected virtual async Task ExecuteMacro(TriggerEventArgs? args)
-    {
-        // Default implementation for ExecuteMacro
-        // This will be overridden by specific macro implementations
-        await Service.MacroScheduler.StartMacro(this, args);
-    }
-
-    /// <summary>
-    /// Stops the macro execution.
-    /// </summary>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    protected virtual async Task StopMacro()
-    {
-        // Default implementation for StopMacro
-        // This will be overridden by specific macro implementations
-        Service.MacroScheduler.StopMacro(Id);
-    }
-
-    /// <summary>
-    /// Pauses the macro execution.
-    /// </summary>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    protected virtual async Task PauseMacro()
-    {
-        // Default implementation for PauseMacro
-        // This will be overridden by specific macro implementations
-        Service.MacroScheduler.PauseMacro(Id);
-    }
-
-    /// <summary>
-    /// Resumes the macro execution.
-    /// </summary>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    protected virtual async Task ResumeMacro()
-    {
-        // Default implementation for ResumeMacro
-        // This will be overridden by specific macro implementations
-        Service.MacroScheduler.ResumeMacro(Id);
-    }
 }

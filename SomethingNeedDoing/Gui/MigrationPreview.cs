@@ -5,7 +5,8 @@ using System.IO;
 namespace SomethingNeedDoing.Gui;
 public class MigrationPreviewWindow : Window
 {
-    private readonly string oldConfigJson;
+    private readonly WindowSystem _ws;
+    private readonly string _oldConfigJson;
     private readonly Dictionary<string, (string OldValue, string NewValue, bool Selected)> changes = [];
     private readonly Dictionary<string, (ConfigMacro Macro, bool Selected)> newMacros = [];
     private readonly Dictionary<string, (ConfigMacro Macro, bool Selected)> removedMacros = [];
@@ -15,18 +16,19 @@ public class MigrationPreviewWindow : Window
     private bool selectAllRemovedMacros = true;
     private bool selectAllChanges = true;
 
-    public MigrationPreviewWindow(string oldConfigJson) : base("Migration Preview", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings)
+    public MigrationPreviewWindow(WindowSystem ws, string oldConfigJson) : base("Migration Preview", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings)
     {
-        this.oldConfigJson = oldConfigJson;
+        _ws = ws;
+        _oldConfigJson = oldConfigJson;
         PreviewMigration();
     }
-    public override void OnClose() => P._ws.RemoveWindow(this);
+    public override void OnClose() => _ws.RemoveWindow(this);
 
     private void PreviewMigration()
     {
         try
         {
-            var oldConfig = JsonConvert.DeserializeObject<dynamic>(oldConfigJson);
+            var oldConfig = JsonConvert.DeserializeObject<dynamic>(_oldConfigJson);
             if (oldConfig == null)
             {
                 migrationValid = false;

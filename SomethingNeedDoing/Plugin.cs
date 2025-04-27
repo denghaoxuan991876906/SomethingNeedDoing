@@ -3,7 +3,8 @@ using Dalamud.Plugin;
 using ECommons;
 using ECommons.Configuration;
 using ECommons.SimpleGui;
-using ECommons.Singletons;
+using Microsoft.Extensions.DependencyInjection;
+using SomethingNeedDoing.Gui;
 
 namespace SomethingNeedDoing;
 
@@ -14,37 +15,45 @@ public sealed class Plugin : IDalamudPlugin
     internal string[] Aliases => ["/snd", "/pcraft"];
 
     internal static Plugin P { get; private set; } = null!;
-    internal static Config C => P.Config;
+    internal static Config C => P._config;
 
-    private readonly Config Config = null!;
+    private readonly Config _config = null!;
     private const string Command = "/somethingneeddoing";
-    internal WindowSystem _ws = new("SomethingNeedDoing");
-    private Gui.MacroUI _macroui = null!;
+    private readonly ServiceProvider _serviceProvider;
+    private readonly WindowSystem _windowSystem;
+    private readonly MacroUI _macroUI;
+    private readonly IMacroScheduler _macroScheduler;
 
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
         P = this;
-        pluginInterface.Create<Service>();
         ECommonsMain.Init(pluginInterface, this, Module.ObjectFunctions, Module.DalamudReflector);
 
         EzConfig.DefaultSerializationFactory = new ConfigFactory();
         EzConfig.Migrate<Config>();
-        Config = EzConfig.Init<Config>();
-        Config.Migrate(Config);
-        Config.ValidateMigration();
+        _config = EzConfig.Init<Config>();
+        _config.Migrate(_config);
+        _config.ValidateMigration();
         EzConfig.Save();
 
-        SingletonServiceManager.Initialize(typeof(Service));
+        // Set up dependency injection
+        var services = new ServiceCollection();
+        services.AddSomethingNeedDoingServices();
+        _serviceProvider = services.BuildServiceProvider();
+
+        // Get required services
+        _windowSystem = _serviceProvider.GetRequiredService<WindowSystem>();
+        _macroUI = _serviceProvider.GetRequiredService<MacroUI>();
+        _macroScheduler = _serviceProvider.GetRequiredService<IMacroScheduler>();
+
+        // Initialize UI
+        _windowSystem.AddWindow(_macroUI);
+
+        // Set up commands and UI
         Svc.Framework.RunOnFrameworkThread(() =>
         {
-            _macroui = new();
-            _ws.AddWindow(_macroui);
-            //EzConfigGui.Init(new Gui.MacroUI().Draw);
-            // EzConfigGui.Init(new Windows.MacrosUI().Draw);
-            // EzConfigGui.WindowSystem.AddWindow(new HelpUI());
-            // EzConfigGui.WindowSystem.AddWindow(new ExcelWindow());
             Svc.PluginInterface.UiBuilder.Draw += DrawDevBarEntry;
-            Svc.PluginInterface.UiBuilder.Draw += _ws.Draw;
+            Svc.PluginInterface.UiBuilder.Draw += _windowSystem.Draw;
             EzCmd.Add(Command, OnChatCommand, "Open a window to edit various settings.", displayOrder: int.MaxValue);
             Aliases.ToList().ForEach(a => EzCmd.Add(a, OnChatCommand, $"{Command} Alias"));
         });
@@ -58,8 +67,6 @@ public sealed class Plugin : IDalamudPlugin
             {
                 if (ImGui.GetIO().KeyShift)
                     EzConfigGui.Toggle();
-                // else
-                //     EzConfigGui.GetWindow<ExcelWindow>()!.Toggle();
             }
             ImGui.EndMainMenuBar();
         }
@@ -67,10 +74,10 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
-        Svc.PluginInterface.UiBuilder.Draw -= _ws.Draw;
-        _ws.RemoveAllWindows();
+        Svc.PluginInterface.UiBuilder.Draw -= _windowSystem.Draw;
+        _windowSystem.RemoveAllWindows();
         Svc.PluginInterface.UiBuilder.Draw -= DrawDevBarEntry;
-
+        _serviceProvider.Dispose();
         ECommonsMain.Dispose();
     }
 
@@ -80,7 +87,7 @@ public sealed class Plugin : IDalamudPlugin
 
         if (arguments == string.Empty)
         {
-            _macroui.Toggle();
+            _macroUI.Toggle();
             //EzConfigGui.Window.IsOpen ^= true;
             return;
         }
@@ -110,8 +117,7 @@ public sealed class Plugin : IDalamudPlugin
 
             var macroName = arguments.Trim('"');
             if (C.GetMacroByName(macroName) is { } macro)
-                _ = Service.MacroScheduler.StartMacro(macro);
-            // TODO: start a macro with a given loopcount
+                _ = _macroScheduler.StartMacro(macro);
             return;
         }
         else if (arguments.StartsWith("cfg"))

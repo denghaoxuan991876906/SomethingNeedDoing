@@ -12,11 +12,17 @@ public class MacroUI : Window
     private string editingContent = string.Empty;
     private MigrationPreviewWindow? _wnd;
     private readonly HashSet<string> collapsedFolders = [];
+    private readonly RunningMacrosPanel _panel;
+    private readonly WindowSystem _ws;
+    private readonly IMacroScheduler _scheduler;
 
-    public MacroUI() : base("Macro Manager", ImGuiWindowFlags.NoScrollbar)
+    public MacroUI(WindowSystem ws, RunningMacrosPanel panel, IMacroScheduler scheduler) : base("Macro Manager", ImGuiWindowFlags.NoScrollbar)
     {
+        _ws = ws;
         Size = new Vector2(800, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
+        _panel = panel;
+        _scheduler = scheduler;
     }
 
     public override void Draw()
@@ -26,11 +32,11 @@ public class MacroUI : Window
             var clipboard = ImGui.GetClipboardText();
             if (!string.IsNullOrEmpty(clipboard))
             {
-                _wnd = new MigrationPreviewWindow(clipboard)
+                _wnd = new MigrationPreviewWindow(_ws, clipboard)
                 {
                     IsOpen = true
                 };
-                P._ws.AddWindow(_wnd);
+                _ws.AddWindow(_wnd);
             }
             else
             {
@@ -39,7 +45,7 @@ public class MacroUI : Window
         }
 
         // Draw the running macros panel at the top
-        RunningMacrosPanel.Draw();
+        _panel.Draw();
 
         // Split window into sidebar and main content
         var sidebarWidth = 250f;
@@ -279,11 +285,11 @@ public class MacroUI : Window
             ImGui.SetClipboardText(macro.Content);
         ImGui.SameLine();
         if (ImGui.Button("Run"))
-            macro.Start();
+            _scheduler.StartMacro(macro);
         ImGui.SameLine();
 
         if (ImGui.Button("Stop"))
-            macro.Stop();
+            _scheduler.StopMacro(macro.Id);
     }
 
     private void DrawMacroContent(ConfigMacro macro)

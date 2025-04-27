@@ -3,10 +3,12 @@ using ECommons.ImGuiMethods;
 
 namespace SomethingNeedDoing.Gui;
 
-public class RunningMacrosPanel
+public class RunningMacrosPanel(IMacroScheduler scheduler)
 {
+    private readonly IMacroScheduler _scheduler = scheduler;
     private static bool isCollapsed = false;
-    public static void Draw()
+
+    public void Draw()
     {
         using var panel = ImRaii.Child("RunningMacrosPanel", new Vector2(-1, isCollapsed ? 30 : 150));
         if (!panel) return;
@@ -20,7 +22,7 @@ public class RunningMacrosPanel
         ImGui.Separator();
 
         // Get all running and enabled macros
-        var runningMacros = Service.MacroScheduler.GetRunningMacros();
+        var runningMacros = _scheduler.GetRunningMacros();
         var enabledMacros = C.Macros.Where(m => m.Metadata.TriggerEvents.HasAny());
         // Draw running macros section
         if (runningMacros.Any())
@@ -49,7 +51,7 @@ public class RunningMacrosPanel
         }
     }
 
-    private static void DrawMacroControl(IMacro macro, bool isRunning)
+    private void DrawMacroControl(IMacro macro, bool isRunning)
     {
         using var _ = ImRaii.PushId(macro.Id);
 
@@ -60,17 +62,17 @@ public class RunningMacrosPanel
         // Control buttons
         if (isRunning)
         {
-            var state = Service.MacroScheduler.GetMacroState(macro.Id);
+            var state = _scheduler.GetMacroState(macro.Id);
             if (ImGui.Button(state == MacroState.Paused ? "Resume" : "Pause"))
             {
                 if (state == MacroState.Paused)
-                    m.Resume();
+                    _scheduler.ResumeMacro(m.Id);
                 else
-                    m.Pause();
+                    _scheduler.PauseMacro(m.Id);
             }
             ImGui.SameLine();
             if (ImGui.Button("Stop"))
-                m.Stop();
+                _scheduler.StopMacro(m.Id);
         }
         else
         {

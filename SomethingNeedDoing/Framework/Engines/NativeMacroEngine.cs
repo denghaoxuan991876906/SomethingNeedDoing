@@ -6,9 +6,10 @@ namespace SomethingNeedDoing.Framework;
 /// <summary>
 /// Executes native-style macros with command syntax similar to game macros.
 /// </summary>
-public class NativeMacroEngine : IMacroEngine
+public class NativeMacroEngine(IMacroScheduler scheduler) : IMacroEngine
 {
     private readonly ConcurrentDictionary<string, MacroExecutionState> _runningMacros = [];
+    private readonly IMacroScheduler _scheduler = scheduler;
 
     /// <inheritdoc/>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
@@ -64,7 +65,7 @@ public class NativeMacroEngine : IMacroEngine
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken, state.CancellationSource.Token);
         var token = linkedCts.Token;
 
-        var context = new MacroContext(state.Macro, Service.MacroScheduler);
+        var context = new MacroContext(state.Macro, _scheduler);
 
         try
         {
@@ -101,14 +102,8 @@ public class NativeMacroEngine : IMacroEngine
     protected virtual void OnMacroError(string macroId, string message, Exception? ex = null)
         => MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
 
-    /// <inheritdoc/>
     public void Dispose()
     {
-        foreach (var state in _runningMacros.Values)
-        {
-            state.CancellationSource.Cancel();
-            state.Dispose();
-        }
-        _runningMacros.Clear();
+        // Nothing to dispose in this implementation
     }
 }
