@@ -7,10 +7,8 @@ namespace SomethingNeedDoing.Framework;
 /// <remarks>
 /// Initializes a new instance of the <see cref="MacroContext"/> class.
 /// </remarks>
-public class MacroContext(IMacro macro, IMacroScheduler scheduler)
+public class MacroContext(IMacro macro)
 {
-    private readonly IMacroScheduler scheduler = scheduler;
-
     /// <summary>
     /// Gets the macro being executed.
     /// </summary>
@@ -58,14 +56,4 @@ public class MacroContext(IMacro macro, IMacroScheduler scheduler)
     /// Loops back to the beginning of the macro.
     /// </summary>
     public void Loop() => CurrentStep = -1;
-
-    /// <summary>
-    /// Checks if the macro should pause at the current loop point.
-    /// </summary>
-    public void CheckLoopPause() => scheduler.CheckLoopPause(Macro.Id);
-
-    /// <summary>
-    /// Checks if the macro should stop at the current loop point.
-    /// </summary>
-    public void CheckLoopStop() => scheduler.CheckLoopStop(Macro.Id);
 }

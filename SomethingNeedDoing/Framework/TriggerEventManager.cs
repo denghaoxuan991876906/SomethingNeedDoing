@@ -5,10 +5,14 @@ namespace SomethingNeedDoing.Framework;
 /// <summary>
 /// Manages trigger events for macros.
 /// </summary>
-public class TriggerEventManager(IMacroScheduler scheduler) : IDisposable
+public class TriggerEventManager : IDisposable
 {
-    private readonly IMacroScheduler _scheduler = scheduler;
     private readonly Dictionary<TriggerEvent, List<IMacro>> _eventHandlers = [];
+
+    /// <summary>
+    /// Event raised when a trigger event occurs.
+    /// </summary>
+    public event EventHandler<TriggerEventArgs>? TriggerEventOccurred;
 
     /// <summary>
     /// Registers a macro to handle a specific trigger event.
@@ -61,12 +65,11 @@ public class TriggerEventManager(IMacroScheduler scheduler) : IDisposable
         {
             try
             {
-                await _scheduler.StartMacro(macro, args);
+                TriggerEventOccurred?.Invoke(this, args);
             }
             catch (Exception ex)
             {
                 // Log the error but continue processing other macros
-                // TODO: Add proper logging
                 Svc.Log.Error($"Error handling trigger event {eventType} for macro {macro.Name}: {ex}");
             }
         }

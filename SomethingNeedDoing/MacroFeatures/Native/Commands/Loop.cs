@@ -8,8 +8,9 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
 /// Loops the current macro a specified number of times.
 /// </summary>
-public class LoopCommand(string text, int loopCount, WaitModifier? waitMod = null, EchoModifier? echoMod = null) : MacroCommandBase(text, waitMod?.WaitDuration ?? 0)
+public class LoopCommand(string text, int loopCount, IMacroScheduler scheduler, WaitModifier? waitMod = null, EchoModifier? echoMod = null) : MacroCommandBase(text, waitMod?.WaitDuration ?? 0)
 {
+    private readonly IMacroScheduler _scheduler = scheduler;
     private const int MaxLoops = int.MaxValue;
     private readonly int startingLoops = loopCount;
     private int loopsRemaining = loopCount >= 0 ? loopCount : MaxLoops;
@@ -51,8 +52,8 @@ public class LoopCommand(string text, int loopCount, WaitModifier? waitMod = nul
         }
 
         context.Loop();
-        context.CheckLoopPause();
-        context.CheckLoopStop();
+        _scheduler.CheckLoopPause(context.Macro.Id);
+        _scheduler.CheckLoopStop(context.Macro.Id);
 
         await Task.Delay(10, token);
         await PerformWait(token);
@@ -61,7 +62,7 @@ public class LoopCommand(string text, int loopCount, WaitModifier? waitMod = nul
     /// <summary>
     /// Parses a loop command from text.
     /// </summary>
-    public static LoopCommand Parse(string text)
+    public LoopCommand Parse(string text)
     {
         _ = WaitModifier.TryParse(ref text, out var waitMod);
         _ = EchoModifier.TryParse(ref text, out var echoMod);
@@ -73,6 +74,6 @@ public class LoopCommand(string text, int loopCount, WaitModifier? waitMod = nul
         var countGroup = match.Groups["count"];
         var count = countGroup.Success ? int.Parse(countGroup.Value, CultureInfo.InvariantCulture) : int.MaxValue;
 
-        return new(text, count, waitMod as WaitModifier, echoMod as EchoModifier);
+        return new(text, count, _scheduler, waitMod as WaitModifier, echoMod as EchoModifier);
     }
 }

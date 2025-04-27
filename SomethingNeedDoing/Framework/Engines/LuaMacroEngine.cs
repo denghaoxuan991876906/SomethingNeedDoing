@@ -8,13 +8,18 @@ namespace SomethingNeedDoing.Framework;
 /// <summary>
 /// Executes Lua script macros using NLua.
 /// </summary>
-public class LuaMacroEngine(IMacroScheduler scheduler, LuaModuleManager moduleManager) : IMacroEngine
+public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
 {
     private readonly LuaModuleManager _moduleManager = moduleManager;
-    private readonly IMacroScheduler _scheduler = scheduler;
 
     /// <inheritdoc/>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
+
+    /// <inheritdoc/>
+    public event EventHandler<MacroControlEventArgs>? MacroControlRequested;
+
+    /// <inheritdoc/>
+    public event EventHandler<MacroStepCompletedEventArgs>? MacroStepCompleted;
 
     /// <summary>
     /// Represents the current state of a macro execution.
@@ -26,8 +31,6 @@ public class LuaMacroEngine(IMacroScheduler scheduler, LuaModuleManager moduleMa
         public CancellationTokenSource CancellationSource { get; } = new();
         public ManualResetEventSlim PauseEvent { get; } = new(true);
         public Task? ExecutionTask { get; set; }
-        public bool PauseAtLoop { get; set; } = false;
-        public bool StopAtLoop { get; set; } = false;
 
         public void Dispose()
         {
@@ -114,16 +117,16 @@ public class LuaMacroEngine(IMacroScheduler scheduler, LuaModuleManager moduleMa
                             {
                                 if (e.MacroId == nativeMacroId && e.NewState is MacroState.Completed or MacroState.Error)
                                 {
-                                    _scheduler.MacroStateChanged -= OnMacroStateChanged;
                                     tcs.SetResult(e.NewState == MacroState.Completed);
                                 }
                             }
 
-                            _scheduler.MacroStateChanged += OnMacroStateChanged;
-
-                            // Start the native macro and wait for it to complete
-                            _ = _scheduler.StartMacro(tempMacro);
+                            // Raise control event to start the macro
+                            MacroControlRequested?.Invoke(this, new MacroControlEventArgs(nativeMacroId, MacroControlType.Start));
                             await tcs.Task;
+
+                            // Raise step completed event
+                            MacroStepCompleted?.Invoke(this, new MacroStepCompletedEventArgs(macro.Macro.Id, 1, 1));
                         }
                         catch (OperationCanceledException)
                         {
