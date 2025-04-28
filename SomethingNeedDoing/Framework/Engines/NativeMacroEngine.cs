@@ -109,8 +109,7 @@ public class NativeMacroEngine : IMacroEngine
         }
         catch (OperationCanceledException)
         {
-            // Normal cancellation, don't treat as error
-            throw;
+            state.Macro.State = MacroState.Completed;
         }
         catch (Exception ex)
         {

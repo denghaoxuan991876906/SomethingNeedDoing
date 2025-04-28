@@ -266,8 +266,8 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         if (_macroStates.TryGetValue(macroId, out var state))
         {
             state.CancellationSource.Cancel();
-            state.Macro.State = MacroState.Completed;
             state.Macro.StateChanged -= OnMacroStateChanged;
+            state.Macro.State = MacroState.Completed;
 
             if (_macroStates.TryRemove(macroId, out var removedState))
                 removedState.Dispose();

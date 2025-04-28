@@ -55,6 +55,7 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
         catch (Exception ex)
         {
             OnMacroError(macro.Id, "Macro execution failed", ex);
+            macro.State = MacroState.Error;
             throw;
         }
     }
@@ -82,10 +83,16 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
             {
                 try
                 {
+                    // Set state to running before executing the script
+                    macro.Macro.State = MacroState.Running;
+
                     // Execute the script
                     var results = lua.LoadEntryPointWrappedScript(macro.Macro.Content);
                     if (results.Length == 0 || results[0] is not LuaFunction func)
+                    {
+                        macro.Macro.State = MacroState.Error;
                         throw new LuaException("Failed to load Lua script: No function returned");
+                    }
 
                     macro.LuaGenerator = func;
 
@@ -98,12 +105,16 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
 
                             var result = func.Call();
                             if (result.Length == 0)
+                            {
+                                macro.Macro.State = MacroState.Completed;
                                 break;
+                            }
 
                             if (result.First() is not string text)
                             {
                                 var valueType = result.First()?.GetType().Name ?? "null";
                                 var valueStr = result.First()?.ToString() ?? "null";
+                                macro.Macro.State = MacroState.Error;
                                 throw new MacroException($"Lua Macro yielded a non-string value [{valueType}: {valueStr}]");
                             }
 
@@ -134,6 +145,7 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                         }
                         catch (LuaException ex)
                         {
+                            macro.Macro.State = MacroState.Error;
                             Svc.Log.Error($"Lua execution error: {ex.Message}");
                             break;
                         }
@@ -149,6 +161,7 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                                 errorDetails = ex.Message;
                             }
 
+                            macro.Macro.State = MacroState.Error;
                             Svc.Log.Error($"Error executing Lua function: {errorDetails}", ex);
                             break;
                         }
@@ -158,21 +171,22 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                 }
                 catch (OperationCanceledException)
                 {
-                    throw;
+                    macro.Macro.State = MacroState.Completed;
                 }
                 catch (Exception ex)
                 {
+                    macro.Macro.State = MacroState.Error;
                     Svc.Log.Error($"{ex}");
                 }
             }, cancellationToken: token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            // Normal cancellation, don't treat as error
-            throw;
+            macro.Macro.State = MacroState.Completed;
         }
         catch (Exception ex)
         {
+            macro.Macro.State = MacroState.Error;
             OnMacroError(macro.Macro.Id, "Error executing macro", ex);
             throw;
         }
