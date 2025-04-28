@@ -21,6 +21,11 @@ public enum MacroType
 public enum MacroState
 {
     /// <summary>
+    /// The macro is either uninitialised or the state has not been properly tracked
+    /// </summary>
+    Unknown,
+
+    /// <summary>
     /// The macro is ready to run but not yet started.
     /// </summary>
     Ready,

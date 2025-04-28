@@ -87,14 +87,12 @@ public class NativeMacroEngine : IMacroEngine
                 {
                     state.PauseAtLoop = false;
                     state.PauseEvent.Reset();
-                    state.Macro.State = MacroState.Paused;
                 }
 
                 if (state.StopAtLoop)
                 {
                     state.StopAtLoop = false;
                     state.CancellationSource.Cancel();
-                    state.Macro.State = MacroState.Completed;
                     return;
                 }
 
@@ -109,7 +107,7 @@ public class NativeMacroEngine : IMacroEngine
         }
         catch (OperationCanceledException)
         {
-            state.Macro.State = MacroState.Completed;
+
         }
         catch (Exception ex)
         {

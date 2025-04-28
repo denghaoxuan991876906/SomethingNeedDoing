@@ -60,7 +60,7 @@ public interface IMacroScheduler
     /// Gets all currently running macros.
     /// </summary>
     /// <returns>An enumerable of currently running macros.</returns>
-    IEnumerable<IMacro> GetRunningMacros();
+    IEnumerable<IMacro> GetMacros();
 
     /// <summary>
     /// Gets the current state of a macro.
