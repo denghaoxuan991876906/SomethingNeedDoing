@@ -3,7 +3,7 @@ using SomethingNeedDoing.Gui;
 using SomethingNeedDoing.External;
 using Dalamud.Interface.Windowing;
 
-namespace SomethingNeedDoing;
+namespace SomethingNeedDoing.Utils;
 
 public static class ServiceCollectionExtensions
 {

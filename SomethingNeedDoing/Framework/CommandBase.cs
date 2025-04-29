@@ -1,4 +1,6 @@
-﻿using System.Threading;
+﻿using SomethingNeedDoing.MacroFeatures.Native.Modifiers;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.Framework;
@@ -10,7 +12,7 @@ namespace SomethingNeedDoing.Framework;
 /// </remarks>
 /// <param name="text">The original command text.</param>
 /// <param name="waitDuration">The wait duration in milliseconds.</param>
-public abstract class MacroCommandBase(string text, int waitDuration = 0) : IMacroCommand
+public abstract class MacroCommandBase(string text, WaitModifier? waitDuration) : IMacroCommand
 {
     /// <summary>
     /// Gets the original text of the command.
@@ -20,7 +22,7 @@ public abstract class MacroCommandBase(string text, int waitDuration = 0) : IMac
     /// <summary>
     /// Gets the wait duration in milliseconds.
     /// </summary>
-    protected int WaitDuration { get; } = waitDuration;
+    protected int WaitDuration { get; } = waitDuration?.WaitDuration ?? 0;
 
     /// <summary>
     /// Gets whether this command must run on the framework thread.
@@ -38,4 +40,23 @@ public abstract class MacroCommandBase(string text, int waitDuration = 0) : IMac
         if (WaitDuration > 0)
             await Task.Delay(WaitDuration, token);
     }
+
+    protected string ExtractAndUnquote(Match match, string groupName)
+    {
+        var group = match.Groups[groupName];
+        var groupValue = group.Value;
+
+        if (groupValue.StartsWith('"') && groupValue.EndsWith('"'))
+            groupValue = groupValue.Trim('"');
+
+        return groupValue;
+    }
+
+    /// <summary>
+    /// Parses a command from text.
+    /// </summary>
+    /// <param name="text">The text to parse.</param>
+    /// <returns>The parsed command.</returns>
+    /// <exception cref="MacroSyntaxError">Thrown when the text cannot be parsed as a valid command.</exception>
+    public abstract IMacroCommand Parse(string text);
 }

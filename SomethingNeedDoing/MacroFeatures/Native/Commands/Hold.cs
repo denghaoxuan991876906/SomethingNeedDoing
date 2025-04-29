@@ -9,7 +9,7 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
 /// Holds keyboard keys down until released.
 /// </summary>
-public class HoldCommand(string text, VirtualKey[] keys, VirtualKey[] modifiers, WaitModifier? waitMod = null) : MacroCommandBase(text, waitMod?.WaitDuration ?? 0)
+public class HoldCommand(string text, VirtualKey[] keys, VirtualKey[] modifiers, WaitModifier? waitMod = null) : MacroCommandBase(text, waitMod)
 {
     /// <inheritdoc/>
     public override bool RequiresFrameworkThread => false;
@@ -34,7 +34,10 @@ public class HoldCommand(string text, VirtualKey[] keys, VirtualKey[] modifiers,
     /// <summary>
     /// Parses a hold command from text.
     /// </summary>
-    public static HoldCommand Parse(string text)
+    /// <param name="text">The text to parse.</param>
+    /// <returns>The parsed command.</returns>
+    /// <exception cref="MacroSyntaxError">Thrown when the text cannot be parsed as a valid command.</exception>
+    public override IMacroCommand Parse(string text)
     {
         _ = WaitModifier.TryParse(ref text, out var waitMod);
 
@@ -46,7 +49,7 @@ public class HoldCommand(string text, VirtualKey[] keys, VirtualKey[] modifiers,
         var keys = new[] { ParseVirtualKey(keyStrings[^1]) };
         var modifiers = keyStrings.Length > 1 ? keyStrings[..^1].Select(ParseVirtualKey).ToArray() : [];
 
-        return new(text, keys, modifiers, waitMod as WaitModifier);
+        return new HoldCommand(text, keys, modifiers, waitMod as WaitModifier);
     }
 
     private static VirtualKey ParseVirtualKey(string key)

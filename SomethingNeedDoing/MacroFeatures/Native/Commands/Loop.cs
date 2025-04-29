@@ -8,7 +8,7 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
 /// Loops the current macro a specified number of times.
 /// </summary>
-public class LoopCommand(string text, int loopCount, IMacroScheduler scheduler, WaitModifier? waitMod = null, EchoModifier? echoMod = null) : MacroCommandBase(text, waitMod?.WaitDuration ?? 0)
+public class LoopCommand(string text, int loopCount, IMacroScheduler scheduler, WaitModifier? waitMod = null, EchoModifier? echoMod = null) : MacroCommandBase(text, waitMod)
 {
     private readonly IMacroScheduler _scheduler = scheduler;
     private const int MaxLoops = int.MaxValue;
@@ -62,7 +62,7 @@ public class LoopCommand(string text, int loopCount, IMacroScheduler scheduler, 
     /// <summary>
     /// Parses a loop command from text.
     /// </summary>
-    public LoopCommand Parse(string text)
+    public  override LoopCommand Parse(string text)
     {
         _ = WaitModifier.TryParse(ref text, out var waitMod);
         _ = EchoModifier.TryParse(ref text, out var echoMod);

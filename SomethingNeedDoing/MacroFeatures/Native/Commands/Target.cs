@@ -1,4 +1,7 @@
-﻿using System.Threading;
+﻿using Dalamud.Game.ClientState.Objects.Types;
+using SomethingNeedDoing.MacroFeatures.Native.Modifiers;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
@@ -8,12 +11,8 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <remarks>
 /// Initializes a new instance of the <see cref="TargetCommand"/> class.
 /// </remarks>
-public class TargetCommand(string text, string targetName, int targetIndex, float maxDistance, int waitDuration) : MacroCommandBase(text, waitDuration)
+public class TargetCommand(string text, string targetName, IndexModifier? targetIndex, ListIndexModifier? listIndex, PartyIndexModifier? partyIndex, WaitModifier? waitDuration) : MacroCommandBase(text, waitDuration)
 {
-    private readonly string targetName = targetName.ToLowerInvariant();
-    private readonly int targetIndex = targetIndex;
-    private readonly float maxDistance = maxDistance;
-
     /// <inheritdoc/>
     public override bool RequiresFrameworkThread => true;
 
@@ -22,11 +21,12 @@ public class TargetCommand(string text, string targetName, int targetIndex, floa
     {
         await context.RunOnFramework(() =>
         {
-            var target = Svc.Objects
-                .Where(o => o.IsTargetable)
-                .Where(o => o.Name.TextValue.Equals(targetName, StringComparison.InvariantCultureIgnoreCase))
-                .Where(o => maxDistance <= 0 || Vector3.Distance(o.Position, Svc.ClientState.LocalPlayer!.Position) <= maxDistance)
-                .FirstOrDefault(o => targetIndex <= 0 || o.ObjectIndex == targetIndex);
+            var target = partyIndex != default
+                ? (Svc.Party[partyIndex.Index - 1]?.GameObject)
+                : Svc.Objects.OrderBy(o => Player.DistanceTo(o))
+                    .Where(obj => obj.Name.TextValue.Equals(targetName, StringComparison.InvariantCultureIgnoreCase) && obj.IsTargetable && (targetIndex?.Index <= 0 || obj.ObjectIndex == targetIndex?.Index))
+                    .Skip(listIndex?.Index ?? 0)
+                    .FirstOrDefault();
 
             if (target == null && C.StopMacroIfTargetNotFound)
                 throw new MacroException("Could not find target");
@@ -36,5 +36,20 @@ public class TargetCommand(string text, string targetName, int targetIndex, floa
         });
 
         await PerformWait(token);
+    }
+
+    private static readonly Regex Regex = new($@"^/target\s+(?<name>.*?)\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    public override TargetCommand Parse(string text)
+    {
+        _ = WaitModifier.TryParse(ref text, out var waitModifier);
+        _ = IndexModifier.TryParse(ref text, out var indexModifier);
+        _ = ListIndexModifier.TryParse(ref text, out var listIndexModifier);
+        _ = PartyIndexModifier.TryParse(ref text, out var partyIndexModifier);
+        var match = Regex.Match(text);
+        if (!match.Success)
+            throw new MacroSyntaxError(text);
+
+        var nameValue = ExtractAndUnquote(match, "name");
+        return new TargetCommand(text, nameValue, indexModifier as IndexModifier, listIndexModifier as ListIndexModifier, partyIndexModifier as PartyIndexModifier, waitModifier as WaitModifier);
     }
 }

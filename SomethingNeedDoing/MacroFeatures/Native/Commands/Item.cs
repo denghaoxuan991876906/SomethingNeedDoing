@@ -9,7 +9,7 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
 /// Uses an item from the inventory.
 /// </summary>
-public class ItemCommand(string text, string itemName, WaitModifier? waitMod = null, ItemQualityModifier? qualityMod = null) : MacroCommandBase(text, waitMod?.WaitDuration ?? 0)
+public class ItemCommand(string text, string itemName, WaitModifier? waitMod = null, ItemQualityModifier? qualityMod = null) : MacroCommandBase(text, waitMod)
 {
     /// <inheritdoc/>
     public override bool RequiresFrameworkThread => true;
@@ -62,7 +62,7 @@ public class ItemCommand(string text, string itemName, WaitModifier? waitMod = n
     /// <summary>
     /// Parses an item command from text.
     /// </summary>
-    public static ItemCommand Parse(string text)
+    public override ItemCommand Parse(string text)
     {
         _ = WaitModifier.TryParse(ref text, out var waitMod);
         _ = ItemQualityModifier.TryParse(ref text, out var qualityMod);

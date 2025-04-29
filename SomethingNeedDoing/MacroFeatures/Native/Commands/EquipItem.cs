@@ -11,7 +11,7 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
 /// Equips an item from inventory or armory chest.
 /// </summary>
-public class EquipItemCommand(string text, uint itemId, WaitModifier? waitMod = null, EchoModifier? echoMod = null) : MacroCommandBase(text, waitMod?.WaitDuration ?? 0)
+public class EquipItemCommand(string text, uint itemId, WaitModifier? waitMod = null, EchoModifier? echoMod = null) : MacroCommandBase(text, waitMod)
 {
     private static int EquipAttemptLoops = 0;
 
@@ -116,7 +116,7 @@ public class EquipItemCommand(string text, uint itemId, WaitModifier? waitMod = 
     /// <summary>
     /// Parses an equip item command from text.
     /// </summary>
-    public static EquipItemCommand Parse(string text)
+    public override EquipItemCommand Parse(string text)
     {
         _ = WaitModifier.TryParse(ref text, out var waitMod);
         _ = EchoModifier.TryParse(ref text, out var echoMod);

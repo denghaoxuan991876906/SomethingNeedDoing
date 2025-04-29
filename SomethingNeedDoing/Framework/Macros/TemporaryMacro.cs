@@ -25,7 +25,4 @@ public class TemporaryMacro(string content) : MacroBase
 
     /// <inheritdoc/>
     public override MacroMetadata Metadata { get; set; } = new();
-
-    /// <inheritdoc/>
-    public override IReadOnlyList<IMacroCommand> Commands { get; set; } = [];
 }

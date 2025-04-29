@@ -49,4 +49,8 @@ public class WaitModifier(string text, int waitDuration, int maxWaitDuration = 0
         modifier = new WaitModifier(group.Value, wait, until);
         return true;
     }
+
+    public static implicit operator WaitModifier(int value) => new(string.Empty, value);
+
+    public static implicit operator int(WaitModifier modifier) => modifier.WaitDuration;
 }

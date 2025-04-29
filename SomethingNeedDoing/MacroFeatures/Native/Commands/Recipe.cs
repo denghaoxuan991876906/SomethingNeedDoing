@@ -10,7 +10,7 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
 /// Opens the recipe window to a specific recipe.
 /// </summary>
-public class RecipeCommand(string text, string recipeName, WaitModifier? waitMod = null) : MacroCommandBase(text, waitMod?.WaitDuration ?? 0)
+public class RecipeCommand(string text, string recipeName, WaitModifier? waitMod = null) : MacroCommandBase(text, waitMod)
 {
     /// <inheritdoc/>
     public override bool RequiresFrameworkThread => true;
@@ -71,7 +71,7 @@ public class RecipeCommand(string text, string recipeName, WaitModifier? waitMod
     /// <summary>
     /// Parses a recipe command from text.
     /// </summary>
-    public static RecipeCommand Parse(string text)
+    public override RecipeCommand Parse(string text)
     {
         _ = WaitModifier.TryParse(ref text, out var waitMod);
 

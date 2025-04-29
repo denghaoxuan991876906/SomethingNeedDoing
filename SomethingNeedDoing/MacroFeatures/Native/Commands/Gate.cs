@@ -7,7 +7,7 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
 /// Controls crafting loop execution with a gate count.
 /// </summary>
-public class GateCommand(string text, int gateCount, WaitModifier? waitMod = null, EchoModifier? echoMod = null) : MacroCommandBase(text, waitMod?.WaitDuration ?? 0)
+public class GateCommand(string text, int gateCount, WaitModifier? waitMod = null, EchoModifier? echoMod = null) : MacroCommandBase(text, waitMod)
 {
     private readonly int startingCrafts = gateCount;
     private int remainingCount = gateCount;
@@ -42,7 +42,7 @@ public class GateCommand(string text, int gateCount, WaitModifier? waitMod = nul
     /// <summary>
     /// Parses a gate command from text.
     /// </summary>
-    public static GateCommand Parse(string text)
+    public override GateCommand Parse(string text)
     {
         _ = WaitModifier.TryParse(ref text, out var waitMod);
         _ = EchoModifier.TryParse(ref text, out var echoMod);

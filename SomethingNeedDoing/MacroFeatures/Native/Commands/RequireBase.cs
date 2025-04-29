@@ -5,7 +5,7 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
 /// Base class for require commands that check conditions.
 /// </summary>
-public abstract class RequireCommandBase(string text, WaitModifier? waitMod = null) : MacroCommandBase(text, waitMod?.WaitDuration ?? 0)
+public abstract class RequireCommandBase(string text, WaitModifier? waitMod = null) : MacroCommandBase(text, waitMod)
 {
     protected const int DefaultCheckInterval = 250;
     protected const int DefaultTimeout = 5000;

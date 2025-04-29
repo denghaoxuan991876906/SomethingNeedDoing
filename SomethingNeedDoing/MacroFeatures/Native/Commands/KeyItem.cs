@@ -10,7 +10,7 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
 /// Uses a key item from the inventory.
 /// </summary>
-public class KeyItemCommand(string text, string itemName, WaitModifier? waitMod = null) : MacroCommandBase(text, waitMod?.WaitDuration ?? 0)
+public class KeyItemCommand(string text, string itemName, WaitModifier? waitMod = null) : MacroCommandBase(text, waitMod)
 {
     /// <inheritdoc/>
     public override bool RequiresFrameworkThread => true;
@@ -60,7 +60,7 @@ public class KeyItemCommand(string text, string itemName, WaitModifier? waitMod 
     /// <summary>
     /// Parses a key item command from text.
     /// </summary>
-    public static KeyItemCommand Parse(string text)
+    public override KeyItemCommand Parse(string text)
     {
         _ = WaitModifier.TryParse(ref text, out var waitMod);
 

@@ -9,7 +9,7 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
 /// Executes a callback on a game addon.
 /// </summary>
-public class CallbackCommand(string text, string addonName, bool updateState, object[] values, WaitModifier? waitMod = null) : MacroCommandBase(text, waitMod?.WaitDuration ?? 0)
+public class CallbackCommand(string text, string addonName, bool updateState, object[] values, WaitModifier? waitMod = null) : MacroCommandBase(text, waitMod)
 {
     /// <inheritdoc/>
     public override bool RequiresFrameworkThread => true;
@@ -42,7 +42,7 @@ public class CallbackCommand(string text, string addonName, bool updateState, ob
     /// <summary>
     /// Parses a callback command from text.
     /// </summary>
-    public static CallbackCommand Parse(string text)
+    public override CallbackCommand Parse(string text)
     {
         _ = WaitModifier.TryParse(ref text, out var waitMod);
 
@@ -100,14 +100,11 @@ public class CallbackCommand(string text, string addonName, bool updateState, ob
         return [.. values];
     }
 
-    private static object ParseValue(string value)
+    private static object ParseValue(string value) => value switch
     {
-        if (bool.TryParse(value, out var boolValue))
-            return boolValue;
-        if (int.TryParse(value, out var intValue))
-            return intValue;
-        if (uint.TryParse(value.TrimEnd('U', 'u'), out var uintValue))
-            return uintValue;
-        return value;
-    }
+        _ when bool.TryParse(value, out var boolValue) => boolValue,
+        _ when int.TryParse(value, out var intValue) => intValue,
+        _ when uint.TryParse(value.TrimEnd('U', 'u'), out var uintValue) => uintValue,
+        _ => value,
+    };
 }

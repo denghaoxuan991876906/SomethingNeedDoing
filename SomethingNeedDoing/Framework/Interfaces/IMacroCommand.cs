@@ -23,4 +23,12 @@ public interface IMacroCommand
     /// <param name="context">The context in which the command is executing.</param>
     /// <param name="token">A token to cancel execution.</param>
     public Task Execute(MacroContext context, CancellationToken token);
+
+    /// <summary>
+    /// Parses a command from text.
+    /// </summary>
+    /// <param name="text">The text to parse.</param>
+    /// <returns>The parsed command.</returns>
+    /// <exception cref="MacroSyntaxError">Thrown when the text cannot be parsed as a valid command.</exception>
+    public IMacroCommand Parse(string text);
 }

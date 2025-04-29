@@ -8,7 +8,7 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
 /// Targets the nearest enemy.
 /// </summary>
-public class TargetEnemyCommand(string text, WaitModifier? waitMod = null, IndexModifier? indexMod = null) : MacroCommandBase(text, waitMod?.WaitDuration ?? 0)
+public class TargetEnemyCommand(string text, WaitModifier? waitMod = null, IndexModifier? indexMod = null) : MacroCommandBase(text, waitMod)
 {
     /// <inheritdoc/>
     public override bool RequiresFrameworkThread => true;
@@ -35,7 +35,7 @@ public class TargetEnemyCommand(string text, WaitModifier? waitMod = null, Index
     /// <summary>
     /// Parses a target enemy command from text.
     /// </summary>
-    public static TargetEnemyCommand Parse(string text)
+    public override TargetEnemyCommand Parse(string text)
     {
         _ = WaitModifier.TryParse(ref text, out var waitMod);
         _ = IndexModifier.TryParse(ref text, out var indexMod);

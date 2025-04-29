@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,8 +8,6 @@ namespace SomethingNeedDoing.Framework;
 /// </summary>
 public class NativeMacroEngine : IMacroEngine
 {
-    private readonly ConcurrentDictionary<string, MacroExecutionState> _runningMacros = [];
-
     /// <inheritdoc/>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
 
@@ -18,6 +16,8 @@ public class NativeMacroEngine : IMacroEngine
 
     /// <inheritdoc/>
     public event EventHandler<MacroStepCompletedEventArgs>? MacroStepCompleted;
+
+    public NativeMacroEngine() => Initialise();
 
     /// <summary>
     /// Represents the current execution state of a macro.
@@ -30,6 +30,7 @@ public class NativeMacroEngine : IMacroEngine
         public ManualResetEventSlim PauseEvent { get; } = new ManualResetEventSlim(true);
         public bool PauseAtLoop { get; set; } = false;
         public bool StopAtLoop { get; set; } = false;
+        public List<IMacroCommand> Commands { get; set; } = [];
 
         public void Dispose()
         {
@@ -44,13 +45,11 @@ public class NativeMacroEngine : IMacroEngine
         if (macro.Type != MacroType.Native)
             throw new ArgumentException("This engine only supports native macros", nameof(macro));
 
-        var state = new MacroExecutionState(macro);
-        if (!_runningMacros.TryAdd(macro.Id, state))
-            throw new InvalidOperationException($"Macro {macro.Id} is already running");
+        var state = new MacroExecutionState(macro) { Commands = MacroParser.Parse(macro.Content) };
 
         try
         {
-            state.ExecutionTask = ExecuteMacroAsync(state, token);
+            state.ExecutionTask = ExecuteMacro(state, token);
             await state.ExecutionTask;
         }
         catch (Exception ex)
@@ -58,24 +57,19 @@ public class NativeMacroEngine : IMacroEngine
             OnMacroError(macro.Id, "Macro execution failed", ex);
             throw;
         }
-        finally
-        {
-            if (_runningMacros.TryRemove(macro.Id, out var removedState))
-                removedState.Dispose();
-        }
     }
 
-    private async Task ExecuteMacroAsync(MacroExecutionState state, CancellationToken externalToken)
+    private async Task ExecuteMacro(MacroExecutionState state, CancellationToken externalToken)
     {
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken, state.CancellationSource.Token);
         var token = linkedCts.Token;
 
         try
         {
-            var totalSteps = state.Macro.Commands.Count;
+            var totalSteps = state.Commands.Count;
             var currentStep = 0;
 
-            foreach (var command in state.Macro.Commands)
+            foreach (var command in state.Commands)
             {
                 token.ThrowIfCancellationRequested();
 
@@ -122,66 +116,22 @@ public class NativeMacroEngine : IMacroEngine
     protected virtual void OnMacroError(string macroId, string message, Exception? ex = null)
         => MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
 
-    /// <summary>
-    /// Handles a control request for a macro.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro to control.</param>
-    /// <param name="controlType">The type of control operation.</param>
-    public void HandleControlRequest(string macroId, MacroControlType controlType)
+    private void Initialise()
     {
-        if (!_runningMacros.TryGetValue(macroId, out var state))
-            return;
-
-        switch (controlType)
+        var commandTypes = Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsClass && !t.IsAbstract && typeof(IMacroCommand).IsAssignableFrom(t));
+        foreach (var commandType in commandTypes)
         {
-            case MacroControlType.Pause:
-                state.PauseEvent.Reset();
-                state.Macro.State = MacroState.Paused;
-                break;
-            case MacroControlType.Resume:
-                state.PauseEvent.Set();
-                state.Macro.State = MacroState.Running;
-                break;
-            case MacroControlType.Stop:
-                state.CancellationSource.Cancel();
-                state.Macro.State = MacroState.Completed;
-                break;
+            var prefix = commandType.Name.ToLowerInvariant().Replace("command", string.Empty);
+            MacroParser.RegisterCommand(commandType, prefix);
+        }
+
+        var modifierTypes = Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsClass && !t.IsAbstract && typeof(IMacroModifier).IsAssignableFrom(t));
+        foreach (var modifierType in modifierTypes)
+        {
+            var prefix = modifierType.Name.ToLowerInvariant().Replace("modifier", string.Empty);
+            MacroParser.RegisterModifier(modifierType, prefix);
         }
     }
 
-    /// <summary>
-    /// Sets a macro to pause at the next loop point.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro.</param>
-    public void PauseAtNextLoop(string macroId)
-    {
-        if (_runningMacros.TryGetValue(macroId, out var state))
-        {
-            state.PauseAtLoop = true;
-            state.StopAtLoop = false;
-        }
-    }
-
-    /// <summary>
-    /// Sets a macro to stop at the next loop point.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro.</param>
-    public void StopAtNextLoop(string macroId)
-    {
-        if (_runningMacros.TryGetValue(macroId, out var state))
-        {
-            state.PauseAtLoop = false;
-            state.StopAtLoop = true;
-        }
-    }
-
-    public void Dispose()
-    {
-        foreach (var state in _runningMacros.Values)
-        {
-            state.CancellationSource.Cancel();
-            state.Dispose();
-        }
-        _runningMacros.Clear();
-    }
+    public void Dispose() { }
 }

@@ -9,7 +9,7 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
 /// Interacts with the current target.
 /// </summary>
-public class InteractCommand(string text, WaitModifier? waitMod = null, IndexModifier? indexMod = null) : MacroCommandBase(text, waitMod?.WaitDuration ?? 0)
+public class InteractCommand(string text, WaitModifier? waitMod = null, IndexModifier? indexMod = null) : MacroCommandBase(text, waitMod)
 {
     /// <inheritdoc/>
     public override bool RequiresFrameworkThread => true;
@@ -34,7 +34,7 @@ public class InteractCommand(string text, WaitModifier? waitMod = null, IndexMod
     /// <summary>
     /// Parses an interact command from text.
     /// </summary>
-    public static InteractCommand Parse(string text)
+    public override InteractCommand Parse(string text)
     {
         _ = WaitModifier.TryParse(ref text, out var waitMod);
         _ = IndexModifier.TryParse(ref text, out var indexMod);

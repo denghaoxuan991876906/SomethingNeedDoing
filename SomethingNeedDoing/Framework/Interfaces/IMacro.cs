@@ -34,11 +34,6 @@ public interface IMacro
     MacroState State { get; set; }
 
     /// <summary>
-    /// Gets the commands that make up this macro.
-    /// </summary>
-    IReadOnlyList<IMacroCommand> Commands { get; }
-
-    /// <summary>
     /// Event raised when the macro's state changes.
     /// </summary>
     event EventHandler<MacroStateChangedEventArgs>? StateChanged;
@@ -102,7 +97,4 @@ public abstract class MacroBase : IMacro
 
     /// <inheritdoc/>
     public abstract MacroMetadata Metadata { get; set; }
-
-    /// <inheritdoc/>
-    public abstract IReadOnlyList<IMacroCommand> Commands { get; set; }
 }

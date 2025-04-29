@@ -12,7 +12,7 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <remarks>
 /// Initializes a new instance of the <see cref="ActionCommand"/> class.
 /// </remarks>
-public class ActionCommand(string text, string actionName, WaitModifier? waitMod, UnsafeModifier? unsafeMod, ConditionModifier? conditionMod) : MacroCommandBase(text, waitMod?.WaitDuration ?? 0)
+public class ActionCommand(string text, string actionName, WaitModifier? waitMod, UnsafeModifier? unsafeMod, ConditionModifier? conditionMod) : MacroCommandBase(text, waitMod)
 {
     private readonly string actionName = actionName.ToLowerInvariant();
     private readonly bool unsafeMode = unsafeMod != null;
@@ -117,7 +117,7 @@ public class ActionCommand(string text, string actionName, WaitModifier? waitMod
     /// <summary>
     /// Parses an action command from text.
     /// </summary>
-    public static ActionCommand Parse(string text)
+    public override ActionCommand Parse(string text)
     {
 
         _ = WaitModifier.TryParse(ref text, out var waitMod);

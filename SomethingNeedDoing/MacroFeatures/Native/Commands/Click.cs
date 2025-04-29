@@ -2,6 +2,7 @@
 using ECommons.UIHelpers.AddonMasterImplementations;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,7 +13,7 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <remarks>
 /// Initializes a new instance of the <see cref="ClickCommand"/> class.
 /// </remarks>
-public class ClickCommand(string text, string addonName, string method, string[] mParams) : MacroCommandBase(text)
+public class ClickCommand(string text, string addonName, string method, string[] mParams) : MacroCommandBase(text, 0)
 {
     private readonly string addonName = addonName;
     private string methodName = method;
@@ -76,5 +77,20 @@ public class ClickCommand(string text, string addonName, string method, string[]
         });
 
         await PerformWait(token);
+    }
+
+    private static readonly Regex Regex = new($@"^/click\s+(?<click>.*)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    public override ClickCommand Parse(string text)
+    {
+        var match = Regex.Match(text);
+        if (!match.Success)
+            throw new MacroSyntaxError(text);
+
+        var clickValue = ExtractAndUnquote(match, "click").Split(' ');
+        var addonName = clickValue[0];
+        var methodName = clickValue[1];
+        var values = clickValue.Skip(2).ToArray();
+
+        return new ClickCommand(text, addonName, methodName, values);
     }
 }

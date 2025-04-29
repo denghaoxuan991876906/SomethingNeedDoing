@@ -20,9 +20,6 @@ public class GitMacro : MacroBase
     /// <inheritdoc/>
     public override MacroMetadata Metadata { get; set; } = new();
 
-    /// <inheritdoc/>
-    public override IReadOnlyList<IMacroCommand> Commands { get; set; } = [];
-
     /// <summary>
     /// Gets or sets the Git repository URL.
     /// </summary>

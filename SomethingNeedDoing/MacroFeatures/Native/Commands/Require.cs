@@ -35,7 +35,7 @@ public class RequireCommand(string text, string[] conditions, WaitModifier? wait
     /// <summary>
     /// Parses a require command from text.
     /// </summary>
-    public static RequireCommand Parse(string text)
+    public override RequireCommand Parse(string text)
     {
         _ = WaitModifier.TryParse(ref text, out var waitMod);
         _ = MaxWaitModifier.TryParse(ref text, out var maxWaitMod);
