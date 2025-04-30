@@ -39,6 +39,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _luaEngine = luaEngine;
         _triggerEventManager = triggerEventManager;
 
+        // Set the scheduler on the engines
+        _nativeEngine.Scheduler = this;
+        _luaEngine.Scheduler = this;
+
         _nativeEngine.MacroError += OnEngineError;
         _luaEngine.MacroError += OnEngineError;
         _triggerEventManager.TriggerEventOccurred += OnTriggerEventOccurred;

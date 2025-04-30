@@ -1,12 +1,11 @@
-﻿using System.Reflection;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.Framework;
 /// <summary>
 /// Executes native-style macros with command syntax similar to game macros.
 /// </summary>
-public class NativeMacroEngine : IMacroEngine
+public class NativeMacroEngine(MacroParser parser) : IMacroEngine
 {
     /// <inheritdoc/>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
@@ -17,7 +16,8 @@ public class NativeMacroEngine : IMacroEngine
     /// <inheritdoc/>
     public event EventHandler<MacroStepCompletedEventArgs>? MacroStepCompleted;
 
-    public NativeMacroEngine() => Initialise();
+    /// <inheritdoc/>
+    public IMacroScheduler? Scheduler { get; set; }
 
     /// <summary>
     /// Represents the current execution state of a macro.
@@ -45,7 +45,10 @@ public class NativeMacroEngine : IMacroEngine
         if (macro.Type != MacroType.Native)
             throw new ArgumentException("This engine only supports native macros", nameof(macro));
 
-        var state = new MacroExecutionState(macro) { Commands = MacroParser.Parse(macro.Content) };
+        if (Scheduler == null)
+            throw new InvalidOperationException("Scheduler must be set before starting a macro");
+
+        var state = new MacroExecutionState(macro) { Commands = parser.Parse(macro.Content, Scheduler) };
 
         try
         {
@@ -115,23 +118,6 @@ public class NativeMacroEngine : IMacroEngine
 
     protected virtual void OnMacroError(string macroId, string message, Exception? ex = null)
         => MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
-
-    private void Initialise()
-    {
-        var commandTypes = Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsClass && !t.IsAbstract && typeof(IMacroCommand).IsAssignableFrom(t));
-        foreach (var commandType in commandTypes)
-        {
-            var prefix = commandType.Name.ToLowerInvariant().Replace("command", string.Empty);
-            MacroParser.RegisterCommand(commandType, prefix);
-        }
-
-        var modifierTypes = Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsClass && !t.IsAbstract && typeof(IMacroModifier).IsAssignableFrom(t));
-        foreach (var modifierType in modifierTypes)
-        {
-            var prefix = modifierType.Name.ToLowerInvariant().Replace("modifier", string.Empty);
-            MacroParser.RegisterModifier(modifierType, prefix);
-        }
-    }
 
     public void Dispose() { }
 }

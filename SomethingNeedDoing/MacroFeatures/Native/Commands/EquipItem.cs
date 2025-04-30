@@ -2,16 +2,14 @@
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using SomethingNeedDoing.MacroFeatures.Native.Modifiers;
 
 namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
 /// Equips an item from inventory or armory chest.
 /// </summary>
-public class EquipItemCommand(string text, uint itemId, WaitModifier? waitMod = null, EchoModifier? echoMod = null) : MacroCommandBase(text, waitMod)
+public class EquipItemCommand(string text, uint itemId) : MacroCommandBase(text)
 {
     private static int EquipAttemptLoops = 0;
 
@@ -112,20 +110,4 @@ public class EquipItemCommand(string text, uint itemId, WaitModifier? waitMod = 
         InventoryType.ArmorySoulCrystal => true,
         _ => false
     };
-
-    /// <summary>
-    /// Parses an equip item command from text.
-    /// </summary>
-    public override EquipItemCommand Parse(string text)
-    {
-        _ = WaitModifier.TryParse(ref text, out var waitMod);
-        _ = EchoModifier.TryParse(ref text, out var echoMod);
-
-        var match = Regex.Match(text, @"^/equipitem\s+(?<itemid>\d+)\s*$", RegexOptions.Compiled);
-        if (!match.Success)
-            throw new MacroSyntaxError(text);
-
-        var itemId = uint.Parse(match.Groups["itemid"].Value);
-        return new(text, itemId, waitMod as WaitModifier, echoMod as EchoModifier);
-    }
 }

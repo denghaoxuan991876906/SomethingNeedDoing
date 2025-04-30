@@ -19,4 +19,9 @@ public interface IMacroEngine : IDisposable
     /// Event raised when a macro encounters an error.
     /// </summary>
     event EventHandler<MacroErrorEventArgs> MacroError;
+
+    /// <summary>
+    /// Gets or sets the macro scheduler used by this engine.
+    /// </summary>
+    IMacroScheduler? Scheduler { get; set; } // TODO: only doing this because of macro command dependencies. Fix in the future
 }

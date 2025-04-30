@@ -1,6 +1,5 @@
 ﻿using FFXIVClientStructs.FFXIV.Component.GUI;
 using SomethingNeedDoing.MacroFeatures.Native.Modifiers;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,10 +10,8 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <remarks>
 /// Initializes a new instance of the <see cref="WaitAddonCommand"/> class.
 /// </remarks>
-public class WaitAddonCommand(string text, string addonName, WaitModifier? wait, MaxWaitModifier? maxWait) : MacroCommandBase(text, wait)
+public class WaitAddonCommand(string text, string addonName) : MacroCommandBase(text)
 {
-    private readonly string addonName = addonName;
-    private readonly int _maxWait = maxWait?.MaxWaitMilliseconds > 0 ? maxWait.MaxWaitMilliseconds : 5000;
     private const int CHECK_INTERVAL = 250;
 
     /// <inheritdoc/>
@@ -37,25 +34,10 @@ public class WaitAddonCommand(string text, string addonName, WaitModifier? wait,
                 }).Wait();
                 return result;
             },
-            _maxWait,
+            MaxWaitModifier?.MaxWaitMilliseconds > 0 ? MaxWaitModifier.MaxWaitMilliseconds : 5000,
             CHECK_INTERVAL
         );
 
         await PerformWait(token);
-    }
-
-    private static readonly Regex Regex = new($@"^/waitaddon\s+(?<name>.*?)\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    public override WaitAddonCommand Parse(string text)
-    {
-        _ = WaitModifier.TryParse(ref text, out var waitModifier);
-        _ = MaxWaitModifier.TryParse(ref text, out var maxWaitModifier);
-
-        var match = Regex.Match(text);
-        if (!match.Success)
-            throw new MacroSyntaxError(text);
-
-        var nameValue = ExtractAndUnquote(match, "name");
-
-        return new WaitAddonCommand(text, nameValue, waitModifier as WaitModifier, maxWaitModifier as MaxWaitModifier);
     }
 }

@@ -1,5 +1,6 @@
 ﻿global using Dalamud.Game.ClientState.Conditions;
 global using ECommons.DalamudServices;
+global using ECommons.GameFunctions;
 global using ECommons.GameHelpers;
 global using ImGuiNET;
 global using SomethingNeedDoing.Attributes;

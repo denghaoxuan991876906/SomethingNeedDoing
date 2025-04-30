@@ -1,9 +1,7 @@
 ﻿using ECommons.Automation;
 using ECommons.UIHelpers.AddonMasterImplementations;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using SomethingNeedDoing.MacroFeatures.Native.Modifiers;
 
 namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
@@ -12,12 +10,8 @@ namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <remarks>
 /// Initializes a new instance of the <see cref="ActionCommand"/> class.
 /// </remarks>
-public class ActionCommand(string text, string actionName, WaitModifier? waitMod, UnsafeModifier? unsafeMod, ConditionModifier? conditionMod) : MacroCommandBase(text, waitMod)
+public class ActionCommand(string text, string actionName) : MacroCommandBase(text)
 {
-    private readonly string actionName = actionName.ToLowerInvariant();
-    private readonly bool unsafeMode = unsafeMod != null;
-    private readonly string? condition = conditionMod?.Conditions.FirstOrDefault();
-
     /// <inheritdoc/>
     public override bool RequiresFrameworkThread => true;
 
@@ -35,9 +29,9 @@ public class ActionCommand(string text, string actionName, WaitModifier? waitMod
         // Must run on framework thread since it accesses game state
         await context.RunOnFramework(() =>
         {
-            if (Game.Crafting.GetCondition() is not AddonMaster.Synthesis.Condition.Normal && condition is { })
+            if (Game.Crafting.GetCondition() is not AddonMaster.Synthesis.Condition.Normal && ConditionModifier?.Conditions.FirstOrDefault() is { } cnd)
             {
-                if (Game.Crafting.GetCondition().ToString().EqualsIgnoreCase(condition))
+                if (Game.Crafting.GetCondition().ToString().EqualsIgnoreCase(cnd))
                 {
                     Svc.Log.Debug($"Condition skip: {CommandText}");
                     return;
@@ -65,13 +59,13 @@ public class ActionCommand(string text, string actionName, WaitModifier? waitMod
                 return;
             }
 
-            if (!unsafeMode)
+            if (UnsafeModifier is null)
                 Svc.Condition.ConditionChange += OnConditionChange;
 
             Chat.Instance.SendMessage(CommandText);
         });
 
-        if (!unsafeMode)
+        if (UnsafeModifier is null)
         {
             try
             {
@@ -94,7 +88,7 @@ public class ActionCommand(string text, string actionName, WaitModifier? waitMod
         await PerformWait(token);
     }
 
-    private bool IsSkippableCraftingQualityAction(string name) => CraftingQualityActionNames.Contains(name);
+    private bool IsSkippableCraftingQualityAction(string name) => CraftingQualityActionNames.ContainsIgnoreCase(name);
 
     private static readonly HashSet<string> CraftingQualityActionNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -113,23 +107,4 @@ public class ActionCommand(string text, string actionName, WaitModifier? waitMod
         // Finishers
         "Byregot's Blessing"
     };
-
-    /// <summary>
-    /// Parses an action command from text.
-    /// </summary>
-    public override ActionCommand Parse(string text)
-    {
-
-        _ = WaitModifier.TryParse(ref text, out var waitMod);
-        _ = UnsafeModifier.TryParse(ref text, out var unsafeMod);
-        _ = ConditionModifier.TryParse(ref text, out var conditionMod);
-
-        var match = Regex.Match(text, @"^/(?:ac|action)\s+(?<name>.*?)\s*$", RegexOptions.Compiled);
-        if (!match.Success)
-            throw new MacroSyntaxError(text);
-
-        var nameValue = match.Groups["name"].Value.Trim('"');
-
-        return new(text, nameValue, waitMod as WaitModifier, unsafeMod as UnsafeModifier, conditionMod as ConditionModifier);
-    }
 }

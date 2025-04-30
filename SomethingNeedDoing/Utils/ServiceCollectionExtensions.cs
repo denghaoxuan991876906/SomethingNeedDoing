@@ -10,6 +10,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddSomethingNeedDoingServices(this IServiceCollection services)
     {
         // Core Services
+        services.AddSingleton<MacroParser>();
         services.AddSingleton<NativeMacroEngine>();
         services.AddSingleton<LuaMacroEngine>();
         services.AddSingleton<TriggerEventManager>();

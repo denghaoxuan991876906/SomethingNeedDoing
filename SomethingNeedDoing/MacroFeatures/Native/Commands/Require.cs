@@ -1,16 +1,12 @@
-﻿using System.Text.RegularExpressions;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
-using SomethingNeedDoing.MacroFeatures.Native.Modifiers;
 
 namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
 /// Requires specific crafting conditions to be met.
 /// </summary>
-public class RequireCommand(string text, string[] conditions, WaitModifier? waitMod = null, MaxWaitModifier? maxWaitMod = null) : RequireCommandBase(text, waitMod)
+public class RequireCommand(string text, string[] conditions) : RequireCommandBase(text)
 {
-    private readonly int timeout = maxWaitMod?.MaxWaitMilliseconds ?? DefaultTimeout;
-
     /// <inheritdoc/>
     protected override async Task<bool> CheckCondition(MacroContext context)
     {
@@ -28,30 +24,8 @@ public class RequireCommand(string text, string[] conditions, WaitModifier? wait
     /// <inheritdoc/>
     public override async Task Execute(MacroContext context, CancellationToken token)
     {
-        await context.WaitForCondition(() => CheckCondition(context).Result, timeout, DefaultCheckInterval);
+        await context.WaitForCondition(() => CheckCondition(context).Result, MaxWaitModifier?.MaxWaitMilliseconds ?? DefaultTimeout, DefaultCheckInterval);
         await PerformWait(token);
-    }
-
-    /// <summary>
-    /// Parses a require command from text.
-    /// </summary>
-    public override RequireCommand Parse(string text)
-    {
-        _ = WaitModifier.TryParse(ref text, out var waitMod);
-        _ = MaxWaitModifier.TryParse(ref text, out var maxWaitMod);
-
-        var match = Regex.Match(text, @"^/require\s+(?<conditions>.*?)\s*$", RegexOptions.Compiled);
-        if (!match.Success)
-            throw new MacroSyntaxError(text);
-
-        var conditions = match.Groups["conditions"].Value
-            .Trim('"')
-            .Split(',')
-            .Select(c => c.Trim())
-            .Where(c => !string.IsNullOrEmpty(c))
-            .ToArray();
-
-        return new(text, conditions, waitMod as WaitModifier, maxWaitMod as MaxWaitModifier);
     }
 
     //protected override bool CheckCondition(MacroContext context)

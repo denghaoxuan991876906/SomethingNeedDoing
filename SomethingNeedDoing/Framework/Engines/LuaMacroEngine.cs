@@ -10,8 +10,6 @@ namespace SomethingNeedDoing.Framework;
 /// </summary>
 public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
 {
-    private readonly LuaModuleManager _moduleManager = moduleManager;
-
     /// <inheritdoc/>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
 
@@ -20,6 +18,9 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
 
     /// <inheritdoc/>
     public event EventHandler<MacroStepCompletedEventArgs>? MacroStepCompleted;
+
+    /// <inheritdoc/>
+    public IMacroScheduler? Scheduler { get; set; }
 
     /// <summary>
     /// Represents the current state of a macro execution.
@@ -75,7 +76,7 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
 
             // Register modules and services
             LuaServiceProxy.RegisterServices(lua);
-            _moduleManager.RegisterAll(lua);
+            moduleManager.RegisterAll(lua);
             lua.SetTriggerEventData(triggerArgs);
 
             await Svc.Framework.RunOnTick(async () =>

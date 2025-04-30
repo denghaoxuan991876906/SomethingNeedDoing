@@ -1,16 +1,65 @@
-﻿using ECommons.UIHelpers.AddonMasterImplementations;
+﻿using Dalamud.Game.ClientState.Objects.Types;
+using ECommons.UIHelpers.AddonMasterImplementations;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using Lumina.Excel.Sheets;
 
 namespace SomethingNeedDoing.Utils;
 public static unsafe class Game
 {
     public static bool CanUseAction(ActionType actionType, uint actionId) => ActionManager.Instance()->GetActionStatus(actionType, actionId) == 0;
     public static bool CanUseCraftAction(uint actionId) => CanUseAction(actionId >= 100000 ? ActionType.CraftAction : ActionType.Action, actionId);
+    public static bool Interact(IGameObject? obj) => obj != null && TargetSystem.Instance()->InteractWithObject(obj.Struct(), false) != 0;
+    public static int GetInventoryItemCount(uint itemId, bool isHQ)
+    {
+        var inventoryManager = InventoryManager.Instance();
+        return inventoryManager == null
+            ? throw new MacroException("InventoryManager not found")
+            : inventoryManager->GetInventoryItemCount(itemId, isHQ);
+    }
+
+    public static void UseItem(uint itemId, bool isHq)
+    {
+        var agent = AgentInventoryContext.Instance();
+        if (agent == null)
+            throw new MacroException("AgentInventoryContext not found");
+
+        if (isHq)
+            itemId += 1_000_000;
+
+        var result = agent->UseItem(itemId);
+        if (result != 0 && C.StopMacroIfCantUseItem)
+            throw new MacroException("Failed to use item");
+    }
 
     public static class Crafting
     {
         public static AddonMaster.Synthesis.Condition GetCondition()
             => TryGetAddonMaster<AddonMaster.Synthesis>(out var addon) ? addon.Reader.Condition : AddonMaster.Synthesis.Condition.Unknown;
+
+        public static void OpenRecipe(uint recipeId)
+        {
+            var agent = AgentRecipeNote.Instance();
+            if (agent == null)
+                throw new MacroException("AgentRecipeNote not found");
+
+            agent->OpenRecipeByRecipeId(recipeId);
+        }
+
+        public static uint GetRecipeIdByName(string recipeName)
+        {
+            var recipes = FindRows<Recipe>(r =>
+                r.ItemResult.Value!.Name.ToString().Equals(recipeName, StringComparison.InvariantCultureIgnoreCase))
+                .ToList();
+
+            return recipes.Count switch
+            {
+                0 => throw new MacroException("Recipe not found"),
+                1 => recipes.First().RowId,
+                _ => recipes.FirstOrDefault(r => r.CraftType.RowId + 8 == Player.JobId).RowId
+            };
+        }
 
         public static bool IsCrafting() => Svc.Condition[ConditionFlag.Crafting] && !Svc.Condition[ConditionFlag.PreparingToCraft];
         public static bool IsMaxProgress() => TryGetAddonMaster<AddonMaster.Synthesis>(out var am) && am.Reader.IsMaxProgress;
