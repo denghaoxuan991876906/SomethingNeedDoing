@@ -176,6 +176,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 state.Macro.State = MacroState.Error;
             }
         });
+
+        await state.ExecutionTask;
+        state.Macro.State = MacroState.Completed;
     }
 
     /// <summary>

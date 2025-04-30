@@ -1,5 +1,4 @@
-﻿using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using Lumina.Excel.Sheets;
+﻿using Lumina.Excel.Sheets;
 using System.Threading;
 using System.Threading.Tasks;
 

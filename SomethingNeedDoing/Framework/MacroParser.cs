@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Dalamud.Game.ClientState.Keys;
-using ECommons.Logging;
 using SomethingNeedDoing.MacroFeatures.Native.Commands;
 using SomethingNeedDoing.MacroFeatures.Native.Modifiers;
 
@@ -123,7 +122,7 @@ public class MacroParser
                 modifierName = "hq";
             else
             {
-                PluginLog.Warning($"Unknown modifier: {modifierText}");
+                Svc.Log.Warning($"Unknown modifier: {modifierText}");
                 continue;
             }
 

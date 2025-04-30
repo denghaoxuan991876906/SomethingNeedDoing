@@ -1,5 +1,4 @@
-﻿using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.MacroFeatures.Native.Commands;

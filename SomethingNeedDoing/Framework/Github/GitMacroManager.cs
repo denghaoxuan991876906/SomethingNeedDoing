@@ -3,7 +3,6 @@ using System.IO;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
-using ECommons.Logging;
 
 namespace SomethingNeedDoing.Framework;
 
@@ -105,7 +104,7 @@ public class GitMacroManager : IDisposable
         }
         catch (Exception ex)
         {
-            PluginLog.Error($"Failed to update macro {macro.Name}: {ex.Message}");
+            Svc.Log.Error(ex, $"Failed to update macro {macro.Name}");
             MacroUpdateFailed?.Invoke(this, new GitMacroUpdateEventArgs(macro, ex));
         }
     }
@@ -132,7 +131,7 @@ public class GitMacroManager : IDisposable
         }
         catch (Exception ex)
         {
-            PluginLog.Error($"Failed to get version history for {macro.Name}: {ex.Message}");
+            Svc.Log.Error(ex, $"Failed to get version history for {macro.Name}");
             return [];
         }
     }
@@ -153,7 +152,7 @@ public class GitMacroManager : IDisposable
         }
         catch (Exception ex)
         {
-            PluginLog.Error($"Failed to downgrade Git macro {macro.Name}: {ex.Message}");
+            Svc.Log.Error(ex, $"Failed to downgrade Git macro {macro.Name}");
             MacroUpdateFailed?.Invoke(this, new GitMacroUpdateEventArgs(macro, ex));
             return false;
         }
@@ -174,7 +173,7 @@ public class GitMacroManager : IDisposable
         }
         catch (Exception ex)
         {
-            PluginLog.Error($"Failed to update macro {macro.Name} to commit {commitHash}: {ex.Message}");
+            Svc.Log.Error(ex, $"Failed to update macro {macro.Name} to commit {commitHash}");
             MacroUpdateFailed?.Invoke(this, new GitMacroUpdateEventArgs(macro, ex));
         }
     }
@@ -262,7 +261,7 @@ public class GitMacroManager : IDisposable
         }
         catch (Exception ex)
         {
-            PluginLog.Error($"Failed to update macro {macro.Name}: {ex.Message}");
+            Svc.Log.Error(ex, $"Failed to update macro {macro.Name}");
             throw;
         }
     }

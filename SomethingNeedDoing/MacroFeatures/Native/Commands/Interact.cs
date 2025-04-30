@@ -1,6 +1,5 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using ECommons.Logging;
 
 namespace SomethingNeedDoing.MacroFeatures.Native.Commands;
 /// <summary>
@@ -17,9 +16,9 @@ public class InteractCommand(string text) : MacroCommandBase(text)
         await context.RunOnFramework(() =>
         {
             if (Game.Interact(Svc.Targets.Target))
-                PluginLog.Log($"Interacting with [{Svc.Targets.Target?.Address:X}] {Svc.Targets.Target?.Name}");
+                Svc.Log.Debug($"Interacting with [{Svc.Targets.Target?.Address:X}] {Svc.Targets.Target?.Name}");
             else
-                PluginLog.Log($"Failed to interact with target.");
+                Svc.Log.Warning($"Failed to interact with target.");
         });
 
         await PerformWait(token);

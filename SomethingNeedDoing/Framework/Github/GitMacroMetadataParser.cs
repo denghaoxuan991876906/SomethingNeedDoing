@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using ECommons.Logging;
 
 namespace SomethingNeedDoing.Framework;
 
@@ -81,7 +80,7 @@ public static class GitMacroMetadataParser
         }
         catch (Exception ex)
         {
-            PluginLog.Error($"Failed to parse dependencies: {ex.Message}");
+            Svc.Log.Error(ex, $"Failed to parse dependencies");
         }
     }
 
@@ -201,7 +200,7 @@ public static class GitMacroMetadataParser
         }
         catch (Exception ex)
         {
-            PluginLog.Error($"Failed to parse triggers: {ex.Message}");
+            Svc.Log.Error(ex, $"Failed to parse triggers");
         }
     }
 }
