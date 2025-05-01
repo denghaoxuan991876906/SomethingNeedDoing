@@ -146,6 +146,8 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             Svc.Log.Warning($"Macro {macro.Name} is already running.");
             return;
         }
+
+        // Subscribe to state changes before creating the state
         macro.StateChanged += OnMacroStateChanged;
         var state = new MacroExecutionState(macro);
 
@@ -167,6 +169,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 {
                     try
                     {
+                        Svc.Log.Info($"Setting macro {macro.Id} state to Running");
                         state.Macro.State = MacroState.Running;
                         await engine.StartMacro(macro, state.CancellationSource.Token, triggerArgs);
                     }
@@ -185,6 +188,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         });
 
         await state.ExecutionTask;
+        Svc.Log.Info($"Setting macro {macro.Id} state to Completed");
         state.Macro.State = MacroState.Completed;
     }
 
@@ -328,15 +332,37 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnMacroStateChanged(object? sender, MacroStateChangedEventArgs e)
     {
-        Svc.Log.Info($"Macro state changed for {e.MacroId}: {e.NewState}");
+        Svc.Log.Info($"[MacroScheduler] Macro state changed for {e.MacroId}: {e.NewState}");
+
+        // If this is a temporary macro, find its parent
+        var parts = e.MacroId.Split("_");
+        if (parts.Length > 1 && C.GetMacro(parts[0]) is { } parentMacro)
+        {
+            Svc.Log.Info($"[MacroScheduler] Found parent macro {parentMacro.Id} for temporary macro {e.MacroId}");
+
+            // Propagate error state to parent
+            if (e.NewState == MacroState.Error)
+            {
+                Svc.Log.Info($"[MacroScheduler] Propagating error state from temporary macro {e.MacroId} to parent {parentMacro.Id}");
+                parentMacro.State = MacroState.Error;
+            }
+        }
+
+        // Raise the event for all subscribers
+        MacroStateChanged?.Invoke(sender, e);
+
         if (e.NewState is MacroState.Completed or MacroState.Error)
         {
-            // Check if this is a temporary macro by looking for the parent ID
-            var parts = e.MacroId.Split("_");
-            if (parts.Length > 1 && C.GetMacro(parts[0]) is { } parentMacro)
+            // If this is a temporary macro, unregister it and clean up
+            if (parts.Length > 1 && C.GetMacro(parts[0]) is { } parentMacro2)
             {
-                // Unregister the temporary macro
+                Svc.Log.Info($"[MacroScheduler] Temporary macro {e.MacroId} completed, unregistering from parent {parentMacro2.Id}");
                 _macroHierarchy.UnregisterTemporaryMacro(e.MacroId);
+                if (sender is IMacro tempMacro)
+                {
+                    Svc.Log.Info($"[MacroScheduler] Unsubscribing from state changes for temporary macro {e.MacroId}");
+                    tempMacro.StateChanged -= OnMacroStateChanged;
+                }
             }
             StopMacro(e.MacroId);
             CleanupMacro(e.MacroId);
@@ -467,34 +493,45 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnMacroControlRequested(object? sender, MacroControlEventArgs e)
     {
-        Svc.Log.Info($"Received MacroControlRequested event for macro {e.MacroId} with control type {e.ControlType}");
+        Svc.Log.Info($"[MacroScheduler] Received MacroControlRequested event for macro {e.MacroId} with control type {e.ControlType}");
+
         if (e.ControlType == MacroControlType.Start)
         {
             if (C.GetMacro(e.MacroId) is { } macro)
             {
-                Svc.Log.Info($"Starting macro {e.MacroId}");
+                Svc.Log.Info($"[MacroScheduler] Starting macro {e.MacroId}");
                 _ = StartMacro(macro);
             }
             else if (sender is IMacroEngine engine && engine.GetTemporaryMacro(e.MacroId) is { } tempMacro)
             {
-                Svc.Log.Info($"Starting temporary macro {e.MacroId}");
+                Svc.Log.Info($"[MacroScheduler] Starting temporary macro {e.MacroId}");
                 // Find the parent macro by looking at the ID prefix
                 var parentId = e.MacroId.Split("_")[0];
                 if (C.GetMacro(parentId) is { } parentMacro)
                 {
                     // Register the temporary macro with its parent
                     _macroHierarchy.RegisterTemporaryMacro(parentMacro, tempMacro);
+
+                    // Subscribe to state changes for the temporary macro
+                    Svc.Log.Info($"[MacroScheduler] Subscribing to state changes for temporary macro {e.MacroId}");
+                    tempMacro.StateChanged += OnMacroStateChanged;
+
+                    // Start the temporary macro
                     _ = StartMacro(tempMacro);
                 }
                 else
                 {
-                    Svc.Log.Warning($"Could not find parent macro {parentId} for temporary macro {e.MacroId}");
+                    Svc.Log.Warning($"[MacroScheduler] Could not find parent macro {parentId} for temporary macro {e.MacroId}");
                 }
             }
             else
             {
-                Svc.Log.Warning($"Could not find macro {e.MacroId} to start");
+                Svc.Log.Warning($"[MacroScheduler] Could not find macro {e.MacroId} to start");
             }
+        }
+        else if (e.ControlType == MacroControlType.Stop)
+        {
+            StopMacro(e.MacroId);
         }
     }
 

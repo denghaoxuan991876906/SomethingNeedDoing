@@ -40,6 +40,7 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
         public CancellationTokenSource CancellationSource { get; } = new();
         public ManualResetEventSlim PauseEvent { get; } = new(true);
         public Task? ExecutionTask { get; set; }
+        public EventHandler<MacroStateChangedEventArgs>? StateChangedHandler { get; set; }
 
         public void Dispose()
         {
@@ -108,8 +109,17 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                             // Wait if paused
                             macro.PauseEvent.Wait(token);
 
+                            Svc.Log.Info($"Starting Lua function call for macro {macro.Macro.Id}");
+                            if (macro.LuaGenerator == null)
+                            {
+                                Svc.Log.Error($"Lua generator is null for macro {macro.Macro.Id}");
+                                break;
+                            }
+
                             Svc.Log.Info($"Calling Lua function for macro {macro.Macro.Id}");
-                            var result = func.Call();
+                            var result = macro.LuaGenerator.Call();
+                            Svc.Log.Info($"Lua function call completed for macro {macro.Macro.Id}, result length: {result.Length}");
+
                             if (result.Length == 0)
                             {
                                 Svc.Log.Info($"Lua function completed for macro {macro.Macro.Id}");
@@ -120,6 +130,7 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                             {
                                 var valueType = result.First()?.GetType().Name ?? "null";
                                 var valueStr = result.First()?.ToString() ?? "null";
+                                Svc.Log.Warning($"Lua Macro yielded a non-string value [{valueType}: {valueStr}]");
                                 throw new MacroException($"Lua Macro yielded a non-string value [{valueType}: {valueStr}]");
                             }
 
@@ -135,28 +146,75 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
 
                             // Create a task completion source to wait for the native macro to complete
                             var tcs = new TaskCompletionSource<bool>();
-                            void OnMacroStateChanged(object? sender, MacroStateChangedEventArgs e)
+                            var actualMacroId = string.Empty;
+                            var firstStateChange = true;
+                            macro.StateChangedHandler = (sender, e) =>
                             {
-                                Svc.Log.Info($"Received MacroStateChanged event for {e.MacroId} with state {e.NewState}");
-                                if (e.MacroId == nativeMacroId && e.NewState is MacroState.Completed or MacroState.Error)
+                                Svc.Log.Info($"[LuaMacroEngine] Received MacroStateChanged event for {e.MacroId} with state {e.NewState}, expecting {nativeMacroId}");
+
+                                // On the first Running state, capture the actual macro ID
+                                if (firstStateChange && e.NewState == MacroState.Running)
                                 {
-                                    Svc.Log.Info($"Setting task completion for {nativeMacroId} to {e.NewState == MacroState.Completed}");
-                                    tcs.SetResult(e.NewState == MacroState.Completed);
+                                    firstStateChange = false;
+                                    actualMacroId = e.MacroId;
+                                    Svc.Log.Info($"[LuaMacroEngine] Found actual macro ID: {actualMacroId} for temporary macro {nativeMacroId}");
                                 }
+
+                                // If we have an actual macro ID, use it for matching
+                                if (!string.IsNullOrEmpty(actualMacroId) && e.MacroId == actualMacroId && e.NewState is MacroState.Completed or MacroState.Error)
+                                {
+                                    Svc.Log.Info($"[LuaMacroEngine] Setting task completion for {nativeMacroId} (actual ID: {actualMacroId}) to {e.NewState == MacroState.Completed}");
+                                    var success = tcs.TrySetResult(e.NewState == MacroState.Completed);
+                                    Svc.Log.Info($"[LuaMacroEngine] Task completion set result: {success}");
+                                }
+                                // If we don't have an actual macro ID yet, try to match by prefix
+                                else if (string.IsNullOrEmpty(actualMacroId) && e.MacroId.StartsWith($"{nativeMacroId}_") && e.NewState is MacroState.Completed or MacroState.Error)
+                                {
+                                    Svc.Log.Info($"[LuaMacroEngine] Setting task completion for {nativeMacroId} (matched by prefix) to {e.NewState == MacroState.Completed}");
+                                    var success = tcs.TrySetResult(e.NewState == MacroState.Completed);
+                                    Svc.Log.Info($"[LuaMacroEngine] Task completion set result: {success}");
+                                }
+                            };
+
+                            // Subscribe to the event
+                            if (Scheduler is { } scheduler)
+                            {
+                                Svc.Log.Info($"[LuaMacroEngine] Subscribing to MacroStateChanged for {nativeMacroId}");
+                                scheduler.MacroStateChanged += macro.StateChangedHandler;
                             }
 
-                            Svc.Log.Info($"Raising MacroControlRequested event for {nativeMacroId}");
+                            Svc.Log.Info($"[LuaMacroEngine] Raising MacroControlRequested event for {nativeMacroId}");
                             MacroControlRequested?.Invoke(this, new MacroControlEventArgs(nativeMacroId, MacroControlType.Start));
 
-                            Svc.Log.Info($"Waiting for temporary macro {nativeMacroId} to complete");
-                            await tcs.Task;
-                            Svc.Log.Info($"Temporary macro {nativeMacroId} completed");
+                            Svc.Log.Info($"[LuaMacroEngine] Waiting for temporary macro {nativeMacroId} to complete");
+                            var completedSuccessfully = await tcs.Task;
+                            Svc.Log.Info($"[LuaMacroEngine] Temporary macro {nativeMacroId} (actual ID: {actualMacroId}) completed with success: {completedSuccessfully}");
+
+                            // Unsubscribe from the event
+                            if (Scheduler is { } scheduler2 && macro.StateChangedHandler != null)
+                            {
+                                Svc.Log.Info($"[LuaMacroEngine] Unsubscribing from MacroStateChanged for {nativeMacroId} (actual ID: {actualMacroId})");
+                                scheduler2.MacroStateChanged -= macro.StateChangedHandler;
+                                macro.StateChangedHandler = null;
+                            }
 
                             // Clean up the temporary macro
                             _temporaryMacros.Remove(nativeMacroId);
 
+                            // If the temporary macro failed, propagate the error
+                            if (!completedSuccessfully)
+                            {
+                                Svc.Log.Error($"[LuaMacroEngine] Temporary macro {nativeMacroId} (actual ID: {actualMacroId}) failed");
+                                throw new MacroException($"Temporary macro {nativeMacroId} failed");
+                            }
+
                             // Raise step completed event
                             MacroStepCompleted?.Invoke(this, new MacroStepCompletedEventArgs(macro.Macro.Id, 1, 1));
+
+                            Svc.Log.Info($"[LuaMacroEngine] Continuing Lua macro execution for {macro.Macro.Id}");
+                            await Svc.Framework.DelayTicks(1);
+
+                            Svc.Log.Info($"[LuaMacroEngine] Starting next iteration of Lua macro {macro.Macro.Id}");
                         }
                         catch (OperationCanceledException)
                         {
@@ -166,6 +224,7 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                         catch (LuaException ex)
                         {
                             Svc.Log.Error($"Lua execution error for macro {macro.Macro.Id}: {ex.Message}");
+                            Svc.Log.Error($"Lua stack trace: {ex.StackTrace}");
                             break;
                         }
                         catch (Exception ex)
@@ -174,6 +233,7 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                             try
                             {
                                 errorDetails = lua.GetLuaErrorDetails();
+                                Svc.Log.Error($"Lua error details: {errorDetails}");
                             }
                             catch
                             {
@@ -183,8 +243,6 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                             Svc.Log.Error($"Error executing Lua function for macro {macro.Macro.Id}: {errorDetails}", ex);
                             break;
                         }
-
-                        await Svc.Framework.DelayTicks(1);
                     }
                 }
                 catch (OperationCanceledException)
@@ -194,6 +252,15 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                 catch (Exception ex)
                 {
                     Svc.Log.Error($"Error in Lua macro execution for {macro.Macro.Id}: {ex}");
+                }
+                finally
+                {
+                    // Ensure we unsubscribe from the event
+                    if (Scheduler is { } scheduler && macro.StateChangedHandler != null)
+                    {
+                        scheduler.MacroStateChanged -= macro.StateChangedHandler;
+                        macro.StateChangedHandler = null;
+                    }
                 }
             }, cancellationToken: token).ConfigureAwait(false);
         }
