@@ -18,6 +18,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private readonly ConcurrentDictionary<string, MacroExecutionState> _macroStates = [];
     private readonly Dictionary<string, AutoRetainerApi> _arApis = [];
     private readonly Dictionary<string, AddonEventConfig> _addonEvents = [];
+    private readonly MacroHierarchyManager _macroHierarchy = new();
 
     private readonly NativeMacroEngine _nativeEngine;
     private readonly LuaMacroEngine _luaEngine;
@@ -46,6 +47,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _nativeEngine.MacroError += OnEngineError;
         _luaEngine.MacroError += OnEngineError;
         _triggerEventManager.TriggerEventOccurred += OnTriggerEventOccurred;
+
+        _nativeEngine.MacroControlRequested += OnMacroControlRequested;
+        _luaEngine.MacroControlRequested += OnMacroControlRequested;
+        _nativeEngine.MacroStepCompleted += OnMacroStepCompleted;
+        _luaEngine.MacroStepCompleted += OnMacroStepCompleted;
+
         SubscribeToTriggerEvents();
     }
 
@@ -321,8 +328,16 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnMacroStateChanged(object? sender, MacroStateChangedEventArgs e)
     {
+        Svc.Log.Info($"Macro state changed for {e.MacroId}: {e.NewState}");
         if (e.NewState is MacroState.Completed or MacroState.Error)
         {
+            // Check if this is a temporary macro by looking for the parent ID
+            var parts = e.MacroId.Split("_");
+            if (parts.Length > 1 && C.GetMacro(parts[0]) is { } parentMacro)
+            {
+                // Unregister the temporary macro
+                _macroHierarchy.UnregisterTemporaryMacro(e.MacroId);
+            }
             StopMacro(e.MacroId);
             CleanupMacro(e.MacroId);
         }
@@ -449,11 +464,62 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         else
             _arApis[macro.Id].RequestCharacterPostprocess();
     }
+
+    private void OnMacroControlRequested(object? sender, MacroControlEventArgs e)
+    {
+        Svc.Log.Info($"Received MacroControlRequested event for macro {e.MacroId} with control type {e.ControlType}");
+        if (e.ControlType == MacroControlType.Start)
+        {
+            if (C.GetMacro(e.MacroId) is { } macro)
+            {
+                Svc.Log.Info($"Starting macro {e.MacroId}");
+                _ = StartMacro(macro);
+            }
+            else if (sender is IMacroEngine engine && engine.GetTemporaryMacro(e.MacroId) is { } tempMacro)
+            {
+                Svc.Log.Info($"Starting temporary macro {e.MacroId}");
+                // Find the parent macro by looking at the ID prefix
+                var parentId = e.MacroId.Split("_")[0];
+                if (C.GetMacro(parentId) is { } parentMacro)
+                {
+                    // Register the temporary macro with its parent
+                    _macroHierarchy.RegisterTemporaryMacro(parentMacro, tempMacro);
+                    _ = StartMacro(tempMacro);
+                }
+                else
+                {
+                    Svc.Log.Warning($"Could not find parent macro {parentId} for temporary macro {e.MacroId}");
+                }
+            }
+            else
+            {
+                Svc.Log.Warning($"Could not find macro {e.MacroId} to start");
+            }
+        }
+    }
+
+    private void OnMacroStepCompleted(object? sender, MacroStepCompletedEventArgs e)
+    {
+        Svc.Log.Info($"Macro step completed for {e.MacroId}: {e.StepIndex}/{e.TotalSteps}");
+    }
     #endregion
 
     /// <inheritdoc/>
     public void Dispose()
     {
+        _nativeEngine.MacroError -= OnEngineError;
+        _luaEngine.MacroError -= OnEngineError;
+        _triggerEventManager.TriggerEventOccurred -= OnTriggerEventOccurred;
+
+        _nativeEngine.MacroControlRequested -= OnMacroControlRequested;
+        _luaEngine.MacroControlRequested -= OnMacroControlRequested;
+        _nativeEngine.MacroStepCompleted -= OnMacroStepCompleted;
+        _luaEngine.MacroStepCompleted -= OnMacroStepCompleted;
+
+        _macroStates.Values.Each(s => s.Dispose());
+        _macroStates.Clear();
+        _enginesByMacroId.Clear();
+
         Svc.Framework.Update -= OnFrameworkUpdate;
         Svc.Condition.ConditionChange -= OnConditionChange;
         Svc.ClientState.TerritoryChanged -= OnTerritoryChanged;
@@ -464,17 +530,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
         _nativeEngine.Dispose();
         _luaEngine.Dispose();
-        _enginesByMacroId.Clear();
         _arApis.Values.Each(a => a.Dispose());
         _arApis.Clear();
         _addonEvents.Clear();
 
-        foreach (var state in _macroStates.Values)
-        {
-            state.CancellationSource.Cancel();
-            state.CancellationSource.Dispose();
-        }
-        _macroStates.Clear();
         _triggerEventManager.Dispose();
     }
 }

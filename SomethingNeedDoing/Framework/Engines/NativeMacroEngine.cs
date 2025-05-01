@@ -19,6 +19,8 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
     /// <inheritdoc/>
     public IMacroScheduler? Scheduler { get; set; }
 
+    private readonly MacroParser _parser;
+
     /// <summary>
     /// Represents the current execution state of a macro.
     /// </summary>
@@ -118,6 +120,12 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
 
     protected virtual void OnMacroError(string macroId, string message, Exception? ex = null)
         => MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
+
+    /// <inheritdoc/>
+    public IMacro? GetTemporaryMacro(string macroId)
+    {
+        return null; // Native engine doesn't create temporary macros
+    }
 
     public void Dispose() { }
 }

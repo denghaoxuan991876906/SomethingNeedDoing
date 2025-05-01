@@ -22,6 +22,14 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
     /// <inheritdoc/>
     public IMacroScheduler? Scheduler { get; set; }
 
+    private readonly Dictionary<string, TemporaryMacro> _temporaryMacros = new();
+
+    /// <inheritdoc/>
+    public IMacro? GetTemporaryMacro(string macroId)
+    {
+        return _temporaryMacros.TryGetValue(macroId, out var macro) ? macro : null;
+    }
+
     /// <summary>
     /// Represents the current state of a macro execution.
     /// </summary>
@@ -67,6 +75,7 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
 
         try
         {
+            Svc.Log.Info($"Starting Lua macro execution for macro {macro.Macro.Id}");
             using var lua = new Lua();
             lua.State.Encoding = Encoding.UTF8;
 
@@ -83,12 +92,14 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
             {
                 try
                 {
+                    Svc.Log.Info($"Loading Lua script for macro {macro.Macro.Id}");
                     // Execute the script
                     var results = lua.LoadEntryPointWrappedScript(macro.Macro.Content);
                     if (results.Length == 0 || results[0] is not LuaFunction func)
                         throw new LuaException("Failed to load Lua script: No function returned");
 
                     macro.LuaGenerator = func;
+                    Svc.Log.Info($"Lua script loaded successfully for macro {macro.Macro.Id}");
 
                     while (!token.IsCancellationRequested)
                     {
@@ -97,9 +108,13 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                             // Wait if paused
                             macro.PauseEvent.Wait(token);
 
+                            Svc.Log.Info($"Calling Lua function for macro {macro.Macro.Id}");
                             var result = func.Call();
                             if (result.Length == 0)
+                            {
+                                Svc.Log.Info($"Lua function completed for macro {macro.Macro.Id}");
                                 break;
+                            }
 
                             if (result.First() is not string text)
                             {
@@ -108,34 +123,49 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                                 throw new MacroException($"Lua Macro yielded a non-string value [{valueType}: {valueStr}]");
                             }
 
+                            Svc.Log.Info($"Lua macro {macro.Macro.Id} yielded command: {text}");
+
                             // Create a temporary macro with the text as content
                             var tempMacro = new TemporaryMacro(text);
                             var nativeMacroId = $"{macro.Macro.Id}_native_{Guid.NewGuid()}";
+                            Svc.Log.Info($"Created temporary macro {nativeMacroId} with content: {text}");
+
+                            // Store the temporary macro
+                            _temporaryMacros[nativeMacroId] = tempMacro;
 
                             // Create a task completion source to wait for the native macro to complete
                             var tcs = new TaskCompletionSource<bool>();
                             void OnMacroStateChanged(object? sender, MacroStateChangedEventArgs e)
                             {
+                                Svc.Log.Info($"Received MacroStateChanged event for {e.MacroId} with state {e.NewState}");
                                 if (e.MacroId == nativeMacroId && e.NewState is MacroState.Completed or MacroState.Error)
                                 {
+                                    Svc.Log.Info($"Setting task completion for {nativeMacroId} to {e.NewState == MacroState.Completed}");
                                     tcs.SetResult(e.NewState == MacroState.Completed);
                                 }
                             }
 
-                            // Raise control event to start the macro
+                            Svc.Log.Info($"Raising MacroControlRequested event for {nativeMacroId}");
                             MacroControlRequested?.Invoke(this, new MacroControlEventArgs(nativeMacroId, MacroControlType.Start));
+
+                            Svc.Log.Info($"Waiting for temporary macro {nativeMacroId} to complete");
                             await tcs.Task;
+                            Svc.Log.Info($"Temporary macro {nativeMacroId} completed");
+
+                            // Clean up the temporary macro
+                            _temporaryMacros.Remove(nativeMacroId);
 
                             // Raise step completed event
                             MacroStepCompleted?.Invoke(this, new MacroStepCompletedEventArgs(macro.Macro.Id, 1, 1));
                         }
                         catch (OperationCanceledException)
                         {
+                            Svc.Log.Info($"Operation cancelled for macro {macro.Macro.Id}");
                             throw;
                         }
                         catch (LuaException ex)
                         {
-                            Svc.Log.Error($"Lua execution error: {ex.Message}");
+                            Svc.Log.Error($"Lua execution error for macro {macro.Macro.Id}: {ex.Message}");
                             break;
                         }
                         catch (Exception ex)
@@ -150,7 +180,7 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                                 errorDetails = ex.Message;
                             }
 
-                            Svc.Log.Error($"Error executing Lua function: {errorDetails}", ex);
+                            Svc.Log.Error($"Error executing Lua function for macro {macro.Macro.Id}: {errorDetails}", ex);
                             break;
                         }
 
@@ -159,20 +189,21 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                 }
                 catch (OperationCanceledException)
                 {
-
+                    Svc.Log.Info($"Operation cancelled for macro {macro.Macro.Id}");
                 }
                 catch (Exception ex)
                 {
-                    Svc.Log.Error($"{ex}");
+                    Svc.Log.Error($"Error in Lua macro execution for {macro.Macro.Id}: {ex}");
                 }
             }, cancellationToken: token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-
+            Svc.Log.Info($"Operation cancelled for macro {macro.Macro.Id}");
         }
         catch (Exception ex)
         {
+            Svc.Log.Error($"Error executing macro {macro.Macro.Id}: {ex}");
             OnMacroError(macro.Macro.Id, "Error executing macro", ex);
             throw;
         }
