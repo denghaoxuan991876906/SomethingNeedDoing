@@ -1,5 +1,6 @@
 ﻿using NLua;
 using System.Reflection;
+using System.Linq.Expressions;
 
 namespace SomethingNeedDoing.Utils;
 public static class LuaExtensions
@@ -20,13 +21,35 @@ public static class LuaExtensions
     public static void RegisterDalamudServices(this Lua lua)
     {
         // Create a table to hold all services
-        lua.DoString("dalamud = {}");
+        lua.DoString(@"
+            dalamud = {}
+
+            -- Helper function to get a service property
+            function dalamud.getProperty(serviceName, propertyName)
+                local service = dalamud[serviceName]
+                if not service then return nil end
+                return service[propertyName]
+            end
+
+            -- Helper function to call a service method
+            function dalamud.callMethod(serviceName, methodName, ...)
+                local service = dalamud[serviceName]
+                if not service then return nil end
+                local method = service[methodName]
+                if not method then return nil end
+                return method(...)
+            end
+        ");
 
         // Register each service
         foreach (var prop in typeof(Svc).GetProperties(BindingFlags.Public | BindingFlags.Static))
         {
             var serviceName = prop.Name;
             var serviceType = prop.PropertyType;
+
+            // Get the service instance
+            var service = prop.GetValue(null);
+            if (service == null) continue;
 
             // Create a table for this service
             lua.DoString($"dalamud.{serviceName} = {{}}");
@@ -35,13 +58,19 @@ public static class LuaExtensions
             foreach (var serviceProp in serviceType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
                 var propName = serviceProp.Name;
-                lua.DoString($@"
-                    dalamud.{serviceName}.{propName} = function()
-                        local service = Svc.{serviceName}
-                        if service == nil then return nil end
-                        return service.{propName}
-                    end
-                ");
+
+                // Skip indexers and properties with parameters
+                if (serviceProp.GetIndexParameters().Length > 0) continue;
+
+                try
+                {
+                    var value = serviceProp.GetValue(service);
+                    lua[$"dalamud.{serviceName}.{propName}"] = value;
+                }
+                catch (Exception ex)
+                {
+                    Svc.Log.Error(ex, $"Failed to get value for {serviceName}.{propName}");
+                }
             }
 
             // Register methods
@@ -52,16 +81,21 @@ public static class LuaExtensions
                 var methodName = method.Name;
                 var paramCount = method.GetParameters().Length;
 
-                // Create a string of parameter names (p1, p2, etc.)
-                var paramList = string.Join(", ", Enumerable.Range(1, paramCount).Select(i => $"p{i}"));
+                // Create a dynamic method that will call the method on the service instance
+                var dynamicMethod = new Func<object?[], object?>(args =>
+                {
+                    try
+                    {
+                        return method.Invoke(service, args);
+                    }
+                    catch (Exception ex)
+                    {
+                        Svc.Log.Error(ex, $"Failed to invoke {serviceName}.{methodName}");
+                        return null;
+                    }
+                });
 
-                lua.DoString($@"
-                    dalamud.{serviceName}.{methodName} = function({paramList})
-                        local service = Svc.{serviceName}
-                        if service == nil then return nil end
-                        return service:{methodName}({paramList})
-                    end
-                ");
+                lua[$"dalamud.{serviceName}.{methodName}"] = dynamicMethod;
             }
         }
     }
