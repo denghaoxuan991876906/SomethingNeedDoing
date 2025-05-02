@@ -169,7 +169,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 {
                     try
                     {
-                        Svc.Log.Info($"Setting macro {macro.Id} state to Running");
+                        Svc.Log.Verbose($"Setting macro {macro.Id} state to Running");
                         state.Macro.State = MacroState.Running;
                         await engine.StartMacro(macro, state.CancellationSource.Token, triggerArgs);
                     }
@@ -188,7 +188,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         });
 
         await state.ExecutionTask;
-        Svc.Log.Info($"Setting macro {macro.Id} state to Completed");
+        Svc.Log.Verbose($"Setting macro {macro.Id} state to Completed");
         state.Macro.State = MacroState.Completed;
     }
 
@@ -332,7 +332,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnMacroStateChanged(object? sender, MacroStateChangedEventArgs e)
     {
-        Svc.Log.Info($"[{nameof(MacroScheduler)}] Macro state changed for {e.MacroId}: {e.NewState}");
+        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Macro state changed for {e.MacroId}: {e.NewState}");
 
         // If this is a temporary macro, find its parent
         var parts = e.MacroId.Split("_");
@@ -488,18 +488,18 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnMacroControlRequested(object? sender, MacroControlEventArgs e)
     {
-        Svc.Log.Info($"[{nameof(MacroScheduler)}] Received MacroControlRequested event for macro {e.MacroId} with control type {e.ControlType}");
+        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Received MacroControlRequested event for macro {e.MacroId} with control type {e.ControlType}");
 
         if (e.ControlType == MacroControlType.Start)
         {
             if (C.GetMacro(e.MacroId) is { } macro)
             {
-                Svc.Log.Info($"[{nameof(MacroScheduler)}] Starting macro {e.MacroId}");
+                Svc.Log.Debug($"[{nameof(MacroScheduler)}] Starting macro {e.MacroId}");
                 _ = StartMacro(macro);
             }
             else if (sender is IMacroEngine engine && engine.GetTemporaryMacro(e.MacroId) is { } tempMacro)
             {
-                Svc.Log.Info($"[{nameof(MacroScheduler)}] Starting temporary macro {e.MacroId}");
+                Svc.Log.Debug($"[{nameof(MacroScheduler)}] Starting temporary macro {e.MacroId}");
                 // Find the parent macro by looking at the ID prefix
                 var parentId = e.MacroId.Split("_")[0];
                 if (C.GetMacro(parentId) is { } parentMacro)
@@ -508,7 +508,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     _macroHierarchy.RegisterTemporaryMacro(parentMacro, tempMacro);
 
                     // Subscribe to state changes for the temporary macro
-                    Svc.Log.Info($"[{nameof(MacroScheduler)}] Subscribing to state changes for temporary macro {e.MacroId}");
+                    Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Subscribing to state changes for temporary macro {e.MacroId}");
                     tempMacro.StateChanged += OnMacroStateChanged;
 
                     // Start the temporary macro
@@ -532,7 +532,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnMacroStepCompleted(object? sender, MacroStepCompletedEventArgs e)
     {
-        Svc.Log.Info($"Macro step completed for {e.MacroId}: {e.StepIndex}/{e.TotalSteps}");
+        Svc.Log.Verbose($"Macro step completed for {e.MacroId}: {e.StepIndex}/{e.TotalSteps}");
     }
     #endregion
 
