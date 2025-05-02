@@ -52,14 +52,8 @@ public class GitMacroDependency() : IMacroDependency
     public string FilePath { get; set; } = string.Empty;
 
     /// <inheritdoc/>
-    public Task<string> GetContentAsync()
-    {
-        throw new NotImplementedException("Git macro dependencies are handled by the GitMacroManager.");
-    }
+    public Task<string> GetContentAsync() => throw new NotImplementedException("Git macro dependencies are handled by the GitMacroManager.");
 
     /// <inheritdoc/>
-    public Task<bool> IsAvailableAsync()
-    {
-        throw new NotImplementedException("Git macro dependencies are handled by the GitMacroManager.");
-    }
+    public Task<bool> IsAvailableAsync() => throw new NotImplementedException("Git macro dependencies are handled by the GitMacroManager.");
 }

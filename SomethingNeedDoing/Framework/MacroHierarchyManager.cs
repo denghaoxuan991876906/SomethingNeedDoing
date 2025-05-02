@@ -8,22 +8,17 @@ namespace SomethingNeedDoing.Framework;
 /// </summary>
 public class MacroHierarchyManager
 {
-    private readonly ConcurrentDictionary<string, MacroNode> _macroNodes = new();
-    private readonly ConcurrentDictionary<string, string> _parentLookup = new();
+    private readonly ConcurrentDictionary<string, MacroNode> _macroNodes = [];
+    private readonly ConcurrentDictionary<string, string> _parentLookup = [];
 
     /// <summary>
     /// Represents a node in the macro hierarchy.
     /// </summary>
-    private class MacroNode
+    private class MacroNode(IMacro macro)
     {
-        public IMacro Macro { get; }
-        public List<IMacro> Children { get; } = new();
+        public IMacro Macro { get; } = macro;
+        public List<IMacro> Children { get; } = [];
         public TaskCompletionSource<bool>? CompletionSource { get; set; }
-
-        public MacroNode(IMacro macro)
-        {
-            Macro = macro;
-        }
     }
 
     /// <summary>
@@ -59,40 +54,14 @@ public class MacroHierarchyManager
     /// <param name="temporaryMacroId">The ID of the temporary macro.</param>
     /// <returns>The parent macro, or null if not found.</returns>
     public IMacro? GetParentMacro(string temporaryMacroId)
-    {
-        if (_parentLookup.TryGetValue(temporaryMacroId, out var parentId) &&
-            _macroNodes.TryGetValue(parentId, out var parentNode))
-        {
-            return parentNode.Macro;
-        }
-        return null;
-    }
+        => _parentLookup.TryGetValue(temporaryMacroId, out var parentId) && _macroNodes.TryGetValue(parentId, out var parentNode) ? parentNode.Macro : null;
 
     /// <summary>
     /// Gets all child macros of a parent macro.
     /// </summary>
     /// <param name="parentMacroId">The ID of the parent macro.</param>
     /// <returns>A list of child macros.</returns>
-    public IReadOnlyList<IMacro> GetChildMacros(string parentMacroId)
-    {
-        if (_macroNodes.TryGetValue(parentMacroId, out var node))
-        {
-            return node.Children;
-        }
-        return Array.Empty<IMacro>();
-    }
-
-    /// <summary>
-    /// Creates a task completion source for a macro to wait for its children to complete.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro.</param>
-    /// <returns>The task completion source.</returns>
-    public TaskCompletionSource<bool> CreateCompletionSource(string macroId)
-    {
-        var node = _macroNodes.GetOrAdd(macroId, _ => new MacroNode(C.GetMacro(macroId)!));
-        node.CompletionSource = new TaskCompletionSource<bool>();
-        return node.CompletionSource;
-    }
+    public IReadOnlyList<IMacro> GetChildMacros(string parentMacroId) => _macroNodes.TryGetValue(parentMacroId, out var node) ? node.Children : [];
 
     /// <summary>
     /// Unregisters a temporary macro and cleans up its relationships.
@@ -100,11 +69,8 @@ public class MacroHierarchyManager
     /// <param name="temporaryMacroId">The ID of the temporary macro to unregister.</param>
     public void UnregisterTemporaryMacro(string temporaryMacroId)
     {
-        if (_parentLookup.TryRemove(temporaryMacroId, out var parentId) &&
-            _macroNodes.TryGetValue(parentId, out var parentNode))
-        {
+        if (_parentLookup.TryRemove(temporaryMacroId, out var parentId) && _macroNodes.TryGetValue(parentId, out var parentNode))
             parentNode.Children.RemoveAll(m => m.Id == temporaryMacroId);
-        }
         _macroNodes.TryRemove(temporaryMacroId, out _);
     }
 
@@ -115,11 +81,7 @@ public class MacroHierarchyManager
     public void UnregisterMacro(string macroId)
     {
         if (_macroNodes.TryRemove(macroId, out var node))
-        {
             foreach (var child in node.Children)
-            {
                 UnregisterTemporaryMacro(child.Id);
-            }
-        }
     }
 }

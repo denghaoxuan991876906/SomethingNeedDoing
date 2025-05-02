@@ -19,8 +19,6 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
     /// <inheritdoc/>
     public IMacroScheduler? Scheduler { get; set; }
 
-    private readonly MacroParser _parser;
-
     /// <summary>
     /// Represents the current execution state of a macro.
     /// </summary>
@@ -44,9 +42,6 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
     /// <inheritdoc/>
     public async Task StartMacro(IMacro macro, CancellationToken token, TriggerEventArgs? triggerArgs = null)
     {
-        if (macro.Type != MacroType.Native)
-            throw new ArgumentException("This engine only supports native macros", nameof(macro));
-
         if (Scheduler == null)
             throw new InvalidOperationException("Scheduler must be set before starting a macro");
 
@@ -122,10 +117,7 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
         => MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
 
     /// <inheritdoc/>
-    public IMacro? GetTemporaryMacro(string macroId)
-    {
-        return null; // Native engine doesn't create temporary macros
-    }
+    public IMacro? GetTemporaryMacro(string macroId) => null; // Native engine doesn't create temporary macros
 
     public void Dispose() { }
 }

@@ -78,8 +78,5 @@ public class TriggerEventManager : IDisposable
     /// <summary>
     /// Disposes of the trigger event manager.
     /// </summary>
-    public void Dispose()
-    {
-        _eventHandlers.Clear();
-    }
+    public void Dispose() => _eventHandlers.Clear();
 }

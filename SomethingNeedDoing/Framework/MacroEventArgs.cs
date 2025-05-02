@@ -50,48 +50,39 @@ public class MacroErrorEventArgs(string macroId, string errorMessage, Exception?
 /// <summary>
 /// Event arguments for macro control requests.
 /// </summary>
-public class MacroControlEventArgs : EventArgs
+/// <remarks>
+/// Initializes a new instance of the <see cref="MacroControlEventArgs"/> class.
+/// </remarks>
+/// <param name="macroId">The ID of the macro to control.</param>
+/// <param name="controlType">The type of control operation.</param>
+public class MacroControlEventArgs(string macroId, MacroControlType controlType) : EventArgs
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="MacroControlEventArgs"/> class.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro to control.</param>
-    /// <param name="controlType">The type of control operation.</param>
-    public MacroControlEventArgs(string macroId, MacroControlType controlType)
-    {
-        MacroId = macroId;
-        ControlType = controlType;
-    }
 
     /// <summary>
     /// Gets the ID of the macro to control.
     /// </summary>
-    public string MacroId { get; }
+    public string MacroId { get; } = macroId;
 
     /// <summary>
     /// Gets the type of control operation.
     /// </summary>
-    public MacroControlType ControlType { get; }
+    public MacroControlType ControlType { get; } = controlType;
 }
 
 /// <summary>
 /// Event arguments for macro loop checks.
 /// </summary>
-public class MacroLoopCheckEventArgs : EventArgs
+/// <remarks>
+/// Initializes a new instance of the <see cref="MacroLoopCheckEventArgs"/> class.
+/// </remarks>
+/// <param name="macroId">The ID of the macro to check.</param>
+public class MacroLoopCheckEventArgs(string macroId) : EventArgs
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="MacroLoopCheckEventArgs"/> class.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro to check.</param>
-    public MacroLoopCheckEventArgs(string macroId)
-    {
-        MacroId = macroId;
-    }
 
     /// <summary>
     /// Gets the ID of the macro to check.
     /// </summary>
-    public string MacroId { get; }
+    public string MacroId { get; } = macroId;
 
     /// <summary>
     /// Gets or sets whether the macro should pause at the next loop point.
@@ -107,33 +98,27 @@ public class MacroLoopCheckEventArgs : EventArgs
 /// <summary>
 /// Event arguments for macro step completion.
 /// </summary>
-public class MacroStepCompletedEventArgs : EventArgs
+/// <remarks>
+/// Initializes a new instance of the <see cref="MacroStepCompletedEventArgs"/> class.
+/// </remarks>
+/// <param name="macroId">The ID of the macro.</param>
+/// <param name="stepIndex">The index of the completed step.</param>
+/// <param name="totalSteps">The total number of steps in the macro.</param>
+public class MacroStepCompletedEventArgs(string macroId, int stepIndex, int totalSteps) : EventArgs
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="MacroStepCompletedEventArgs"/> class.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro.</param>
-    /// <param name="stepIndex">The index of the completed step.</param>
-    /// <param name="totalSteps">The total number of steps in the macro.</param>
-    public MacroStepCompletedEventArgs(string macroId, int stepIndex, int totalSteps)
-    {
-        MacroId = macroId;
-        StepIndex = stepIndex;
-        TotalSteps = totalSteps;
-    }
 
     /// <summary>
     /// Gets the ID of the macro.
     /// </summary>
-    public string MacroId { get; }
+    public string MacroId { get; } = macroId;
 
     /// <summary>
     /// Gets the index of the completed step.
     /// </summary>
-    public int StepIndex { get; }
+    public int StepIndex { get; } = stepIndex;
 
     /// <summary>
     /// Gets the total number of steps in the macro.
     /// </summary>
-    public int TotalSteps { get; }
+    public int TotalSteps { get; } = totalSteps;
 }

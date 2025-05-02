@@ -19,8 +19,6 @@ public class LuaModuleManager
 
     public void RegisterAll(Lua lua) => _modules.ForEach(m => m.Register(lua));
     public T? GetModule<T>() where T : class, ILuaModule => _modules.FirstOrDefault(m => m is T, null) as T;
-    public void ShowHelp() => _documentation.GenerateInGameHelp();
-    public string GenerateMarkdown() => _documentation.GenerateMarkdown();
     private void RegisterModule(ILuaModule module)
     {
         _modules.Add(module);

@@ -23,15 +23,12 @@ public class DependencyFactory(HttpClient httpClient, IGitService gitService)
     /// <param name="parameters">The parameters for creating the dependency.</param>
     /// <returns>The created dependency.</returns>
     /// <exception cref="ArgumentException">Thrown when the dependency type is not supported or required parameters are missing.</exception>
-    public IMacroDependency CreateDependency(DependencyType type, string name, params string[] parameters)
+    public IMacroDependency CreateDependency(DependencyType type, string name, params string[] parameters) => type switch
     {
-        return type switch
-        {
-            DependencyType.GitRepository => CreateGitDependency(name, parameters),
-            DependencyType.Http => CreateHttpDependency(name, parameters),
-            _ => throw new ArgumentException($"Unsupported dependency type: {type}", nameof(type))
-        };
-    }
+        DependencyType.GitRepository => CreateGitDependency(name, parameters),
+        DependencyType.Http => CreateHttpDependency(name, parameters),
+        _ => throw new ArgumentException($"Unsupported dependency type: {type}", nameof(type))
+    };
 
     private IMacroDependency CreateGitDependency(string name, string[] parameters)
     {

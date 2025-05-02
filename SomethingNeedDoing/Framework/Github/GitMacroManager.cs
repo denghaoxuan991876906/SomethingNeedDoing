@@ -15,7 +15,6 @@ public class GitMacroManager : IDisposable
     private readonly HttpClient _httpClient = new();
     private readonly string _cacheDirectory;
     private readonly ConcurrentDictionary<string, GitMacro> _gitMacros = [];
-    private readonly DependencyFactory _dependencyFactory;
 
     /// <summary>
     /// Event raised when a macro is updated.
@@ -31,9 +30,8 @@ public class GitMacroManager : IDisposable
     /// Initializes a new instance of the <see cref="GitMacroManager"/> class.
     /// </summary>
     /// <param name="dependencyFactory">The dependency factory.</param>
-    public GitMacroManager(DependencyFactory dependencyFactory, IMacroScheduler scheduler)
+    public GitMacroManager(IMacroScheduler scheduler)
     {
-        _dependencyFactory = dependencyFactory;
         _scheduler = scheduler;
         _cacheDirectory = Path.Combine(Svc.PluginInterface.ConfigDirectory.FullName, "GitMacros");
         Directory.CreateDirectory(_cacheDirectory);
@@ -93,10 +91,9 @@ public class GitMacroManager : IDisposable
             foreach (var triggerEvent in triggerEvents)
                 _scheduler.UnsubscribeFromTriggerEvent(macro, triggerEvent);
 
-            // Update the macro
             await UpdateMacro(macro);
 
-            // Resubscribe to events
+            // Resubscribe
             foreach (var triggerEvent in triggerEvents)
                 _scheduler.SubscribeToTriggerEvent(macro, triggerEvent);
 
@@ -291,9 +288,7 @@ public class GitMacroManager : IDisposable
             {
                 // For non-Git dependencies, just ensure they're available
                 if (!await dependency.IsAvailableAsync())
-                {
                     throw new InvalidOperationException($"Dependency {dependency.Name} is not available");
-                }
             }
         }
     }
@@ -305,10 +300,7 @@ public class GitMacroManager : IDisposable
     }
 
     /// <inheritdoc/>
-    public void Dispose()
-    {
-        _httpClient.Dispose();
-    }
+    public void Dispose() => _httpClient.Dispose();
 
     private class GitHubFileInfo
     {

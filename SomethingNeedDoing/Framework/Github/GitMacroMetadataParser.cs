@@ -18,13 +18,18 @@ public static class GitMacroMetadataParser
     /// <returns>The parsed metadata.</returns>
     public static MacroMetadata ParseMetadata(string content)
     {
+        /* Metadata looks like
+         * --[[SND Metadata]]
+         * author: croizat
+         * version: 1.0.0
+         * --[[End Metadata]]
+         */
         var match = MetadataBlockRegex.Match(content);
         if (!match.Success) return new MacroMetadata();
 
         var metadataContent = match.Groups[1].Value;
         var metadata = new MacroMetadata();
 
-        // Split into lines and process each line
         var lines = metadataContent.Split('\n')
             .Select(l => l.Trim())
             .Where(l => !string.IsNullOrWhiteSpace(l) && !l.StartsWith("--"));
@@ -54,7 +59,6 @@ public static class GitMacroMetadataParser
                 case "triggers":
                     ParseTriggers(value, metadata);
                     break;
-                    // Add more metadata fields as needed
             }
         }
 
@@ -63,20 +67,15 @@ public static class GitMacroMetadataParser
 
     private static void ParseDependencies(string value, MacroMetadata metadata)
     {
+        // TODO: better determining factors for JSON vs YAML
         try
         {
             if (value.Contains('{'))
-            {
                 ParseJsonDependencies(value, metadata);
-            }
             else if (value.Contains('\n'))
-            {
                 ParseYamlDependencies(value, metadata);
-            }
             else
-            {
                 ParseSimpleDependencies(value, metadata);
-            }
         }
         catch (Exception ex)
         {
@@ -118,9 +117,7 @@ public static class GitMacroMetadataParser
             }
 
             if (!string.IsNullOrEmpty(dep.RepositoryUrl) && !string.IsNullOrEmpty(dep.FilePath))
-            {
                 dependencies.Add(dep);
-            }
         }
 
         metadata.Dependencies = dependencies;
@@ -135,12 +132,10 @@ public static class GitMacroMetadataParser
         foreach (var line in lines)
         {
             var trimmed = line.Trim();
-            if (trimmed.StartsWith("-"))
+            if (trimmed.StartsWith('-'))
             {
                 if (currentDep != null)
-                {
                     dependencies.Add(currentDep);
-                }
                 currentDep = new GitMacroDependency();
             }
             else if (currentDep != null)

@@ -198,12 +198,10 @@ public class MacroParser
     {
         var commandInfo = new CommandParseInfo(command.CommandText, string.Empty, string.Empty);
 
-        // Process modifiers in order
         foreach (var modifier in modifiers)
         {
             var macroModifier = CreateModifier(modifier, commandInfo);
 
-            // Apply the modifier based on its type
             switch (macroModifier)
             {
                 case WaitModifier waitMod:

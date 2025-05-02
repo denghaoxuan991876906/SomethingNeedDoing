@@ -62,7 +62,7 @@ public class GitService : IGitService
 
     private class GitHubFileInfo
     {
-        public string Content { get; set; }
-        public string Encoding { get; set; }
+        public string Content { get; set; } = string.Empty;
+        public string Encoding { get; set; } = string.Empty;
     }
 }
