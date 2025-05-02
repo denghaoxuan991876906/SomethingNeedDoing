@@ -1,4 +1,5 @@
 ﻿using NLua;
+using System.Reflection;
 
 namespace SomethingNeedDoing.Utils;
 public static class LuaExtensions
@@ -11,6 +12,59 @@ public static class LuaExtensions
     /// </summary>
     /// <param name="lua">The Lua state.</param>
     public static void LoadErrorHandler(this Lua lua) => lua.DoString(LuaCodeSnippets.ErrorHandlerSnippet);
+
+    /// <summary>
+    /// Registers all Dalamud services as dynamically accessible objects in a lua table.
+    /// </summary>
+    /// <param name="lua">The Lua state to register services in.</param>
+    public static void RegisterDalamudServices(this Lua lua)
+    {
+        // Create a table to hold all services
+        lua.DoString("dalamud = {}");
+
+        // Register each service
+        foreach (var prop in typeof(Svc).GetProperties(BindingFlags.Public | BindingFlags.Static))
+        {
+            var serviceName = prop.Name;
+            var serviceType = prop.PropertyType;
+
+            // Create a table for this service
+            lua.DoString($"dalamud.{serviceName} = {{}}");
+
+            // Register properties
+            foreach (var serviceProp in serviceType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                var propName = serviceProp.Name;
+                lua.DoString($@"
+                    dalamud.{serviceName}.{propName} = function()
+                        local service = Svc.{serviceName}
+                        if service == nil then return nil end
+                        return service.{propName}
+                    end
+                ");
+            }
+
+            // Register methods
+            foreach (var method in serviceType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (method.IsSpecialName) continue; // Skip property getters/setters
+
+                var methodName = method.Name;
+                var paramCount = method.GetParameters().Length;
+
+                // Create a string of parameter names (p1, p2, etc.)
+                var paramList = string.Join(", ", Enumerable.Range(1, paramCount).Select(i => $"p{i}"));
+
+                lua.DoString($@"
+                    dalamud.{serviceName}.{methodName} = function({paramList})
+                        local service = Svc.{serviceName}
+                        if service == nil then return nil end
+                        return service:{methodName}({paramList})
+                    end
+                ");
+            }
+        }
+    }
 
     /// <summary>
     /// Gets detailed error information from a Lua error.
