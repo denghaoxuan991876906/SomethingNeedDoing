@@ -81,7 +81,7 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
             lua.LoadFStrings();
             lua.LoadErrorHandler();
             lua.SetTriggerEventData(triggerArgs);
-            lua.RegisterDalamudServices();
+            lua.RegisterClass<Svc>();
             moduleManager.RegisterAll(lua);
 
             await Svc.Framework.RunOnTick(async () =>

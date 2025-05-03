@@ -14,17 +14,12 @@ public static class LuaExtensions
     public static void LoadErrorHandler(this Lua lua) => lua.DoString(LuaCodeSnippets.ErrorHandlerSnippet);
 
     /// <summary>
-    /// Registers all Dalamud services as dynamically accessible objects in a lua table.
+    /// Registers a class as a dynamically accessible object. Must be called after <see cref="Lua.LoadCLRPackage"/>
     /// </summary>
-    /// <param name="lua">The Lua state to register services in.</param>
-    public static void RegisterDalamudServices(this Lua lua)
+    public static void RegisterClass<T>(this Lua lua)
     {
-        void RegisterClass<T>()
-        {
-            lua.DoString(@$"luanet.load_assembly('{typeof(T).Assembly.GetName().Name}')");
-            lua.DoString(@$"{typeof(T).Name} = luanet.import_type('{typeof(T).FullName}')()");
-        }
-        RegisterClass<Svc>();
+        lua.DoString(@$"luanet.load_assembly('{typeof(T).Assembly.GetName().Name}')");
+        lua.DoString(@$"{typeof(T).Name} = luanet.import_type('{typeof(T).FullName}')()");
     }
 
     /// <summary>
@@ -74,13 +69,9 @@ public static class LuaExtensions
         lua.NewTable("TriggerData");
         var table = lua.GetTable("TriggerData");
 
-        // Set the event type
         table["eventType"] = args.EventType;
-
-        // Set the timestamp
         table["timestamp"] = args.Timestamp;
 
-        // Handle the data based on its type
         if (args.Data is Dictionary<string, object> data)
         {
             // If it's a dictionary, add each key-value pair to the table
