@@ -1,9 +1,13 @@
-﻿using FFXIVClientStructs.FFXIV.Client.UI;
+﻿using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace SomethingNeedDoing.MacroFeatures.LuaModules;
 public class GameStateModule : LuaModuleBase
 {
     public override string ModuleName => "Game";
+
+    [LuaFunction]
+    public IClientState GetClientState() => Svc.ClientState;
 
     [LuaFunction]
     public bool IsCrafting() => Svc.Condition[ConditionFlag.Crafting];

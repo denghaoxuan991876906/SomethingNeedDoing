@@ -12,11 +12,13 @@ public static class ServiceCollectionExtensions
         // Core Services
         services.AddSingleton<MacroParser>();
         services.AddSingleton<NativeMacroEngine>();
-        services.AddSingleton<LuaMacroEngine>();
+        services.AddSingleton<NLuaMacroEngine>();
+        services.AddSingleton<LayLuaMacroEngine>();
         services.AddSingleton<TriggerEventManager>();
         services.AddSingleton<IMacroScheduler, MacroScheduler>();
         services.AddSingleton<IMacroEngine, NativeMacroEngine>();
-        services.AddSingleton<IMacroEngine, LuaMacroEngine>();
+        services.AddSingleton<IMacroEngine, NLuaMacroEngine>();
+        services.AddSingleton<IMacroEngine, LayLuaMacroEngine>();
         services.AddSingleton<LuaModuleManager>();
         services.AddSingleton<GitMacroManager>();
 

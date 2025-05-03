@@ -21,7 +21,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private readonly MacroHierarchyManager _macroHierarchy = new();
 
     private readonly NativeMacroEngine _nativeEngine;
-    private readonly LuaMacroEngine _luaEngine;
+    private readonly LayLuaMacroEngine _luaEngine;
     private readonly TriggerEventManager _triggerEventManager;
 
     /// <summary>
@@ -34,7 +34,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// </summary>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
 
-    public MacroScheduler(NativeMacroEngine nativeEngine, LuaMacroEngine luaEngine, TriggerEventManager triggerEventManager)
+    public MacroScheduler(NativeMacroEngine nativeEngine, LayLuaMacroEngine luaEngine, TriggerEventManager triggerEventManager)
     {
         _nativeEngine = nativeEngine;
         _luaEngine = luaEngine;

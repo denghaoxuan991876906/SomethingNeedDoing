@@ -10,8 +10,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Laylua" Version="1.0.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />
-		<PackageReference Include="NLua" Version="1.6.0" />
+		<PackageReference Include="NLua" Version="1.7.5" />
 	</ItemGroup>
 
 	<ItemGroup>

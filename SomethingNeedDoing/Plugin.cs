@@ -32,8 +32,8 @@ public sealed class Plugin : IDalamudPlugin
         EzConfig.DefaultSerializationFactory = new ConfigFactory();
         EzConfig.Migrate<Config>();
         _config = EzConfig.Init<Config>();
-        _config.Migrate(_config);
-        _config.ValidateMigration();
+        //_config.Migrate(_config);
+        //_config.ValidateMigration();
         EzConfig.Save();
 
         // Set up dependency injection

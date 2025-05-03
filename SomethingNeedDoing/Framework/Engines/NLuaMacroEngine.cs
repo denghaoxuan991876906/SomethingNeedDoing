@@ -8,7 +8,7 @@ namespace SomethingNeedDoing.Framework;
 /// <summary>
 /// Executes Lua script macros using NLua.
 /// </summary>
-public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
+public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
 {
     /// <inheritdoc/>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
@@ -106,7 +106,6 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                                 break;
 
                             var result = macro.LuaGenerator.Call();
-
                             if (result.Length == 0) // completed
                                 break;
 
@@ -140,16 +139,16 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                                     tcs.TrySetResult(e.NewState == MacroState.Completed);
                             };
 
-                            if (Scheduler is { } scheduler)
-                                scheduler.MacroStateChanged += macro.StateChangedHandler;
+                            if (Scheduler is { })
+                                Scheduler.MacroStateChanged += macro.StateChangedHandler;
 
                             MacroControlRequested?.Invoke(this, new MacroControlEventArgs(nativeMacroId, MacroControlType.Start));
 
                             var completedSuccessfully = await tcs.Task;
 
-                            if (Scheduler is { } scheduler2 && macro.StateChangedHandler != null)
+                            if (Scheduler is { } && macro.StateChangedHandler is { })
                             {
-                                scheduler2.MacroStateChanged -= macro.StateChangedHandler;
+                                Scheduler.MacroStateChanged -= macro.StateChangedHandler;
                                 macro.StateChangedHandler = null;
                             }
 
@@ -166,7 +165,7 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                         catch (OperationCanceledException)
                         {
                             Svc.Log.Debug($"Operation cancelled for macro {macro.Macro.Id}");
-                            throw;
+                            break;
                         }
                         catch (LuaException ex)
                         {
@@ -176,17 +175,17 @@ public class LuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                         catch (Exception ex)
                         {
                             var errorDetails = "Unknown error";
-                            try
-                            {
-                                errorDetails = lua.GetLuaErrorDetails();
-                                Svc.Log.Error($"Lua error details: {errorDetails}");
-                            }
-                            catch
-                            {
-                                errorDetails = ex.Message;
-                            }
+                            //try
+                            //{
+                            //    errorDetails = lua.GetLuaErrorDetails();
+                            //    Svc.Log.Error($"Lua error details: {errorDetails}");
+                            //}
+                            //catch
+                            //{
+                            //    errorDetails = ex.Message;
+                            //}
 
-                            Svc.Log.Error($"Error executing Lua function for macro {macro.Macro.Id}: {errorDetails}", ex);
+                            Svc.Log.Error(ex, $"Error executing Lua function for macro {macro.Macro.Id}: {errorDetails}");
                             break;
                         }
                     }

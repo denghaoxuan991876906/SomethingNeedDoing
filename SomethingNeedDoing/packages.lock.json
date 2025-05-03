@@ -14,6 +14,16 @@
         "resolved": "1.2.25",
         "contentHash": "xCXiw7BCxHJ8pF6wPepRUddlh2dlQlbr81gXA72hdk4FLHkKXas7EH/n+fk5UCA/YfMqG1Z6XaPiUjDbUNBUzg=="
       },
+      "Laylua": {
+        "type": "Direct",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "0pQ03yiQbgTmmKK+NmAjMnA1I0ok2gSSijpa/2i5j3i8M4a5GhyHFUkFA9ShOrGnIYOVb+h7It//A6nI6wWRbw==",
+        "dependencies": {
+          "Laylua.Natives": "1.0.0",
+          "Qommon": "4.0.1"
+        }
+      },
       "Microsoft.Extensions.DependencyInjection": {
         "type": "Direct",
         "requested": "[9.0.4, )",
@@ -25,22 +35,32 @@
       },
       "NLua": {
         "type": "Direct",
-        "requested": "[1.6.0, )",
-        "resolved": "1.6.0",
-        "contentHash": "0+p4yrJoAGfsMuoZpcdSpp8jNHrZs9nyGPoYLbHaxzqbPZIS8RhBO1fnQLYsECrTMiQVledR3bDkEfRybjBdpw==",
+        "requested": "[1.7.5, )",
+        "resolved": "1.7.5",
+        "contentHash": "ACDMZiuJxQWw3rMeP7nPIIOid5fv2Bp66XKr7q1+vJdfcr9AZ8NRqoKOAf0ZsZGBUODEZhEbwliuwgo0T0s2XA==",
         "dependencies": {
-          "KeraLua": "1.3.1"
+          "KeraLua": "1.4.4"
         }
       },
       "KeraLua": {
         "type": "Transitive",
-        "resolved": "1.3.1",
-        "contentHash": "DSZkJx3+9YmJONylrJY2xvjmBBT6oPZO1Iv+MBZh4Ta8KsYewKmpp5n+yW2J5vkIxkJ1yxiQuHE+iKw25Kw6GA=="
+        "resolved": "1.4.4",
+        "contentHash": "JsTqvTtHP9DzBK0EigywkQ/EwOHBGgBrk+vtgIqSKHWFGKkR1uIXmt8woDOG8cnprg/8uhS5YRmdCjjlyd15WQ=="
+      },
+      "Laylua.Natives": {
+        "type": "Transitive",
+        "resolved": "1.0.0",
+        "contentHash": "i8cfsCPbymI5Y/J4Ucz5IBFY2ET7dJY24R7/3RSHK1zQBqcMbKLty5juEo+l5CsLnTAXuc1wXqvkCBF1ZYkkrQ=="
       },
       "Microsoft.Extensions.DependencyInjection.Abstractions": {
         "type": "Transitive",
         "resolved": "9.0.4",
         "contentHash": "UI0TQPVkS78bFdjkTodmkH0Fe8lXv9LnhGFKgKrsgUJ5a5FVdFRcgjIkBVLbGgdRhxWirxH/8IXUtEyYJx6GQg=="
+      },
+      "Qommon": {
+        "type": "Transitive",
+        "resolved": "4.0.1",
+        "contentHash": "ghT7L2enRlK82KyOpiqEtxJ5reMEKrkoVifL74qA6lP2XWRqEze18CXzk0FY40KV5PC51CaQgbFC9u9Gthti0g=="
       },
       "autoretainerapi": {
         "type": "Project",
