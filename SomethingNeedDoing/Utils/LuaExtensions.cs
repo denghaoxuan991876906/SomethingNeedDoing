@@ -1,6 +1,5 @@
-﻿using NLua;
-using System.Reflection;
-using System.Linq.Expressions;
+﻿using ECommons;
+using NLua;
 
 namespace SomethingNeedDoing.Utils;
 public static class LuaExtensions
@@ -20,84 +19,12 @@ public static class LuaExtensions
     /// <param name="lua">The Lua state to register services in.</param>
     public static void RegisterDalamudServices(this Lua lua)
     {
-        // Create a table to hold all services
-        lua.DoString(@"
-            dalamud = {}
-
-            -- Helper function to get a service property
-            function dalamud.getProperty(serviceName, propertyName)
-                local service = dalamud[serviceName]
-                if not service then return nil end
-                return service[propertyName]
-            end
-
-            -- Helper function to call a service method
-            function dalamud.callMethod(serviceName, methodName, ...)
-                local service = dalamud[serviceName]
-                if not service then return nil end
-                local method = service[methodName]
-                if not method then return nil end
-                return method(...)
-            end
-        ");
-
-        // Register each service
-        foreach (var prop in typeof(Svc).GetProperties(BindingFlags.Public | BindingFlags.Static))
+        void RegisterClass<T>()
         {
-            var serviceName = prop.Name;
-            var serviceType = prop.PropertyType;
-
-            // Get the service instance
-            var service = prop.GetValue(null);
-            if (service == null) continue;
-
-            // Create a table for this service
-            lua.DoString($"dalamud.{serviceName} = {{}}");
-
-            // Register properties
-            foreach (var serviceProp in serviceType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
-            {
-                var propName = serviceProp.Name;
-
-                // Skip indexers and properties with parameters
-                if (serviceProp.GetIndexParameters().Length > 0) continue;
-
-                try
-                {
-                    var value = serviceProp.GetValue(service);
-                    lua[$"dalamud.{serviceName}.{propName}"] = value;
-                }
-                catch (Exception ex)
-                {
-                    Svc.Log.Error(ex, $"Failed to get value for {serviceName}.{propName}");
-                }
-            }
-
-            // Register methods
-            foreach (var method in serviceType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
-            {
-                if (method.IsSpecialName) continue; // Skip property getters/setters
-
-                var methodName = method.Name;
-                var paramCount = method.GetParameters().Length;
-
-                // Create a dynamic method that will call the method on the service instance
-                var dynamicMethod = new Func<object?[], object?>(args =>
-                {
-                    try
-                    {
-                        return method.Invoke(service, args);
-                    }
-                    catch (Exception ex)
-                    {
-                        Svc.Log.Error(ex, $"Failed to invoke {serviceName}.{methodName}");
-                        return null;
-                    }
-                });
-
-                lua[$"dalamud.{serviceName}.{methodName}"] = dynamicMethod;
-            }
+            lua.DoString(@$"luanet.load_assembly('{typeof(T).Assembly.GetName().Name}')");
+            lua.DoString(@$"{typeof(T).Name} = luanet.import_type('{typeof(T).FullName}')()");
         }
+        RegisterClass<Svc>();
     }
 
     /// <summary>
