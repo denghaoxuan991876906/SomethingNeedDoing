@@ -93,6 +93,10 @@ public class LayLuaMacroEngine() : IMacroEngine
             macro.LuaGenerator = lua.Load(macro.Macro.Content);
             if (macro.LuaGenerator == null)
                 throw new LuaException("Failed to load Lua script: No function returned");
+            await Svc.Framework.RunOnTick(() =>
+            {
+
+            });
         }
 
         //    await Svc.Framework.RunOnTick(async () =>
