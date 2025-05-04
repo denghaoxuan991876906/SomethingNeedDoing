@@ -1,5 +1,4 @@
-﻿using ECommons;
-using NLua;
+﻿using NLua;
 
 namespace SomethingNeedDoing.Utils;
 public static class LuaExtensions

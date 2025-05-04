@@ -105,8 +105,13 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                             if (macro.LuaGenerator == null)
                                 break;
 
-                            var result = macro.LuaGenerator.Call();
-                            if (result.Length == 0) // completed
+                            var (macroComplete, result) = await Svc.Framework.RunOnTick(() =>
+                            {
+                                var result = macro.LuaGenerator.Call();
+                                return (result.Length == 0, result);
+                            });
+
+                            if (macroComplete)
                                 break;
 
                             if (result.First() is not string text)

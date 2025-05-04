@@ -2,7 +2,6 @@
 using Dalamud.Plugin.Services;
 using Laylua;
 using Laylua.Marshaling;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 

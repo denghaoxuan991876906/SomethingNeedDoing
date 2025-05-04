@@ -2,7 +2,7 @@
 /// <summary>
 /// Marks a method as exposed to Lua and provides documentation.
 /// </summary>
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Field)]
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Field)]
 public class LuaFunctionAttribute(string? name = null, string? description = null, string[]? parameterDescriptions = null, string[]? examples = null) : Attribute
 {
     /// <summary>

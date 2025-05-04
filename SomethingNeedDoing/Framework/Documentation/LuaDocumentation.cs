@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using System.Text;
 
 namespace SomethingNeedDoing.Framework;
 /// <summary>
@@ -33,8 +32,10 @@ public class LuaDocumentation
 
             var description = attr.Description ?? method.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>()?.Description;
 
+            var modulePath = module is LuaModuleBase baseModule ? baseModule.GetModulePath() : module.ModuleName;
+
             var doc = new LuaFunctionDoc(
-                module.ModuleName,
+                modulePath,
                 attr.Name ?? method.Name,
                 description,
                 returnType,

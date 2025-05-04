@@ -1,13 +1,9 @@
-﻿using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.UI;
+﻿using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace SomethingNeedDoing.MacroFeatures.LuaModules;
 public class GameStateModule : LuaModuleBase
 {
     public override string ModuleName => "Game";
-
-    [LuaFunction]
-    public IClientState GetClientState() => Svc.ClientState;
 
     [LuaFunction]
     public bool IsCrafting() => Svc.Condition[ConditionFlag.Crafting];
@@ -22,7 +18,4 @@ public class GameStateModule : LuaModuleBase
             return uint.Parse(addon->CurrentProgress->NodeText.ToString());
         }
     }
-
-    [LuaFunction]
-    public void LogInfo(object message) => Svc.Log.Info(message.ToString() ?? string.Empty);
 }

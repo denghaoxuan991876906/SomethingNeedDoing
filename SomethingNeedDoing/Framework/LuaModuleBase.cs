@@ -9,18 +9,40 @@ namespace SomethingNeedDoing.Framework;
 public abstract class LuaModuleBase : ILuaModule
 {
     public abstract string ModuleName { get; }
+    public ILuaModule? ParentModule { get; set; }
+    public virtual Type? ParentType => null;
 
     public virtual void Register(Lua lua)
     {
         // Create module table
-        lua.DoString($"{ModuleName} = {{}}");
+        var modulePath = GetModulePath();
+        lua.DoString($"{modulePath} = {{}}");
 
         // Register all methods marked with LuaFunction attribute
         foreach (var method in GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance))
         {
             if (method.GetCustomAttribute<LuaFunctionAttribute>() is not { } attr) continue;
-            lua[$"{ModuleName}.{attr.Name ?? method.Name}"] = CreateDelegate(method);
+            lua[$"{modulePath}.{attr.Name ?? method.Name}"] = CreateDelegate(method);
         }
+
+        // Register all properties marked with LuaFunction attribute
+        foreach (var property in GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (property.GetCustomAttribute<LuaFunctionAttribute>() is not { } attr) continue;
+            if (property.GetValue(this) is { } propertyValue)
+                lua[$"{modulePath}.{attr.Name ?? property.Name}"] = propertyValue;
+        }
+    }
+
+    public string GetModulePath()
+    {
+        if (ParentModule == null)
+            return ModuleName;
+
+        if (ParentModule is LuaModuleBase parent)
+            return $"{parent.GetModulePath()}.{ModuleName}";
+
+        return $"{ParentModule.ModuleName}.{ModuleName}";
     }
 
     private Delegate CreateDelegate(MethodInfo method)
