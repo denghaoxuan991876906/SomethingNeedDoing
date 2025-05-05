@@ -13,10 +13,22 @@ public unsafe class AddonModule : LuaModuleBase
     {
         private AtkUnitBase* Addon => (AtkUnitBase*)Svc.GameGui.GetAddonByName(name);
         private Span<Pointer<AtkResNode>> NodeList => Addon->UldManager.Nodes;
+        private Span<AtkValue> AtkValuesList => Addon->AtkValuesSpan;
 
-        public bool Exists => Addon != null;
+        public bool Exists => (nint)Addon != IntPtr.Zero;
         public bool Ready => IsAddonReady(Addon);
 
+        public AtkValueWrapper GetAtkValue(int index) => new(Addon->AtkValues[index]);
+        public unsafe IEnumerable<AtkValueWrapper> AtkValues
+        {
+            get
+            {
+                foreach (var v in AtkValuesList)
+                    yield return new AtkValueWrapper(v);
+            }
+        }
+
+        public NodeWrapper GetNode(params int[] nodeIds) => new(Addon, nodeIds);
         public unsafe IEnumerable<NodeWrapper> Nodes
         {
             get
@@ -25,7 +37,6 @@ public unsafe class AddonModule : LuaModuleBase
                     yield return new NodeWrapper(node);
             }
         }
-        public NodeWrapper GetNode(params int[] nodeIds) => new(Addon, nodeIds);
     }
 
     public class NodeWrapper
@@ -38,5 +49,12 @@ public unsafe class AddonModule : LuaModuleBase
         public bool IsVisible => Node->IsVisible();
         public string Text { get => Node->GetAsAtkTextNode()->NodeText.ToString(); set => Node->GetAsAtkTextNode()->NodeText.SetString(value); }
         public NodeType NodeType => Node->Type;
+    }
+
+    public class AtkValueWrapper(AtkValue value)
+    {
+        private AtkValue Value = value;
+
+        public string ValueString => Value.GetValueAsString();
     }
 }
