@@ -7,6 +7,7 @@ using Dalamud.Plugin.Services;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace SomethingNeedDoing.Framework;
 /// <summary>
@@ -136,9 +137,66 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     public async Task StartMacro(IMacro macro) => await StartMacro(macro, null);
 
     /// <summary>
+    /// Registers function-level triggers for a macro.
+    /// </summary>
+    /// <param name="macro">The macro to register function triggers for.</param>
+    private void RegisterFunctionTriggers(IMacro macro)
+    {
+        if (macro.Type == MacroType.Lua)
+        {
+            // Look for function definitions in the format "function OnEventName()"
+            var matches = Regex.Matches(macro.Content, @"function\s+(\w+)\s*\(");
+            foreach (Match match in matches)
+            {
+                var functionName = match.Groups[1].Value;
+                _triggerEventManager.RegisterFunctionTrigger(macro, functionName);
+            }
+        }
+        else
+        {
+            // Look for commands in the format "/OnEventName"
+            var matches = Regex.Matches(macro.Content, @"^/\s*(\w+)", RegexOptions.Multiline);
+            foreach (Match match in matches)
+            {
+                var functionName = match.Groups[1].Value;
+                _triggerEventManager.RegisterFunctionTrigger(macro, functionName);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Unregisters function-level triggers for a macro.
+    /// </summary>
+    /// <param name="macro">The macro to unregister function triggers for.</param>
+    private void UnregisterFunctionTriggers(IMacro macro)
+    {
+        if (macro.Type == MacroType.Lua)
+        {
+            // Look for function definitions in the format "function OnEventName()"
+            var matches = Regex.Matches(macro.Content, @"function\s+(\w+)\s*\(");
+            foreach (Match match in matches)
+            {
+                var functionName = match.Groups[1].Value;
+                _triggerEventManager.UnregisterFunctionTrigger(macro, functionName);
+            }
+        }
+        else
+        {
+            // Look for commands in the format "/OnEventName"
+            var matches = Regex.Matches(macro.Content, @"^/\s*(\w+)", RegexOptions.Multiline);
+            foreach (Match match in matches)
+            {
+                var functionName = match.Groups[1].Value;
+                _triggerEventManager.UnregisterFunctionTrigger(macro, functionName);
+            }
+        }
+    }
+
+    /// <summary>
     /// Starts execution of a macro.
     /// </summary>
     /// <param name="macro">The macro to execute.</param>
+    /// <param name="triggerArgs">Optional trigger event arguments.</param>
     public async Task StartMacro(IMacro macro, TriggerEventArgs? triggerArgs = null)
     {
         if (_macroStates.ContainsKey(macro.Id))
@@ -150,6 +208,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         // Subscribe to state changes before creating the state
         macro.StateChanged += OnMacroStateChanged;
         var state = new MacroExecutionState(macro);
+
+        // Register function-level triggers when macro starts
+        RegisterFunctionTriggers(macro);
 
         state.ExecutionTask = Task.Run(async () =>
         {
@@ -230,6 +291,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             state.Macro.StateChanged -= OnMacroStateChanged;
             state.Macro.State = MacroState.Completed;
 
+            // Unregister function-level triggers when macro stops
+            UnregisterFunctionTriggers(state.Macro);
+
             if (_macroStates.TryRemove(macroId, out var removedState))
                 removedState.Dispose();
             _enginesByMacroId.TryRemove(macroId, out _);
@@ -246,6 +310,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         {
             if (state.Macro is ConfigMacro configMacro)
                 _triggerEventManager.UnregisterAllTriggers(configMacro);
+
+            UnregisterFunctionTriggers(state.Macro);
+
             state.CancellationSource.Cancel();
             state.CancellationSource.Dispose();
             state.Macro.StateChanged -= OnMacroStateChanged;
@@ -359,6 +426,11 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     tempMacro.StateChanged -= OnMacroStateChanged;
                 }
             }
+
+            // Unregister function-level triggers before stopping the macro
+            if (sender is IMacro macro)
+                UnregisterFunctionTriggers(macro);
+
             StopMacro(e.MacroId);
             CleanupMacro(e.MacroId);
         }
