@@ -1,0 +1,42 @@
+﻿using FFXIVClientStructs.FFXIV.Component.GUI;
+using FFXIVClientStructs.Interop;
+using NLua;
+
+namespace SomethingNeedDoing.MacroFeatures.LuaModules;
+public unsafe class AddonModule : LuaModuleBase
+{
+    public override string ModuleName => "Addons";
+
+    [LuaFunction] public AddonWrapper GetAddon(string name) => new(name);
+
+    public class AddonWrapper(string name)
+    {
+        private AtkUnitBase* Addon => (AtkUnitBase*)Svc.GameGui.GetAddonByName(name);
+        private Span<Pointer<AtkResNode>> NodeList => Addon->UldManager.Nodes;
+
+        public bool Exists => Addon != null;
+        public bool Ready => IsAddonReady(Addon);
+
+        public unsafe IEnumerable<NodeWrapper> Nodes
+        {
+            get
+            {
+                foreach (var node in NodeList)
+                    yield return new NodeWrapper(node);
+            }
+        }
+        public NodeWrapper GetNode(params int[] nodeIds) => new(Addon, nodeIds);
+    }
+
+    public class NodeWrapper
+    {
+        public NodeWrapper(AtkUnitBase* addon, params int[] nodeIds) => Node = GetNodeByIDChain(addon->RootNode, nodeIds);
+        public NodeWrapper(Pointer<AtkResNode> node) => Node = node.Value;
+        private AtkResNode* Node { get; set; }
+
+        public uint Id => Node->NodeId;
+        public bool IsVisible => Node->IsVisible();
+        public string Text { get => Node->GetAsAtkTextNode()->NodeText.ToString(); set => Node->GetAsAtkTextNode()->NodeText.SetString(value); }
+        public NodeType NodeType => Node->Type;
+    }
+}

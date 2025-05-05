@@ -20,7 +20,7 @@ public unsafe class FateModule : LuaModuleBase
         Fete = 8, // firmament fates
     }
 
-    [LuaFunction] public FateWrapper? CurrentFate => new(Fm->CurrentFate->FateId);
+    [LuaFunction] public FateWrapper? CurrentFate => Fm->CurrentFate != null ? new(Fm->CurrentFate->FateId) : null;
     [LuaFunction] public FateWrapper? GetFateById(ushort fateID) => new(fateID);
 
     [LuaFunction]
@@ -30,10 +30,9 @@ public unsafe class FateModule : LuaModuleBase
         .FirstOrDefault();
 
     [LuaFunction]
-    public unsafe List<FateWrapper> GetActiveFates() => Fm->Fates.Where(f => f.Value is not null)
+    public unsafe List<FateWrapper> GetActiveFates() => [.. Fm->Fates.Where(f => f.Value is not null)
         .OrderBy(f => Player.DistanceTo(f.Value->Location))
-        .Select(f => new FateWrapper(f.Value->FateId))
-        .ToList();
+        .Select(f => new FateWrapper(f.Value->FateId))];
 
     public class FateWrapper(ushort Id)
     {
