@@ -4,6 +4,3 @@
 [submodule "AutoRetainerAPI"]
 	path = AutoRetainerAPI
 	url = https://github.com/PunishXIV/AutoRetainerAPI.git
-[submodule "OtterGui"]
-	path = OtterGui
-	url = https://github.com/Ottermandias/OtterGui.git

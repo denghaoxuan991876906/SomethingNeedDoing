@@ -1,4 +1,7 @@
-﻿namespace SomethingNeedDoing.Utils;
+﻿using SomethingNeedDoing.Core.Events;
+using SomethingNeedDoing.Framework.Interfaces;
+
+namespace SomethingNeedDoing.Utils;
 public static class ConfigMacroExtensions
 {
     public static void Rename(this ConfigMacro macro, string newName) => macro.Name = newName;

@@ -1,4 +1,6 @@
 ﻿using NLua;
+using SomethingNeedDoing.Core.Events;
+using SomethingNeedDoing.LuaMacro;
 
 namespace SomethingNeedDoing.Utils;
 public static class LuaExtensions

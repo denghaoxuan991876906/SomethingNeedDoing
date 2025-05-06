@@ -1,6 +1,7 @@
 ﻿using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using ECommons.ImGuiMethods;
+using SomethingNeedDoing.Framework.Interfaces;
 
 namespace SomethingNeedDoing.Gui;
 public class MacroUI : Window

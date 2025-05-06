@@ -1,4 +1,5 @@
 ﻿using ECommons.EzIpcManager;
+using SomethingNeedDoing.Framework.Interfaces;
 
 namespace SomethingNeedDoing.External;
 public class Wrath : IPC

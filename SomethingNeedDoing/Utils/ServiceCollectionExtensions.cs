@@ -2,6 +2,11 @@ using Microsoft.Extensions.DependencyInjection;
 using SomethingNeedDoing.Gui;
 using SomethingNeedDoing.External;
 using Dalamud.Interface.Windowing;
+using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.NativeMacro;
+using SomethingNeedDoing.LuaMacro;
+using SomethingNeedDoing.Scheduler;
+using SomethingNeedDoing.Managers;
 
 namespace SomethingNeedDoing.Utils;
 

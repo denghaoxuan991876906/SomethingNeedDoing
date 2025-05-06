@@ -4,6 +4,7 @@ using ECommons;
 using ECommons.Configuration;
 using ECommons.SimpleGui;
 using Microsoft.Extensions.DependencyInjection;
+using SomethingNeedDoing.Framework.Interfaces;
 using SomethingNeedDoing.Gui;
 
 namespace SomethingNeedDoing;

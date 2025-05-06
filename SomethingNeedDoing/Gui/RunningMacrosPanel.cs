@@ -1,4 +1,5 @@
 using Dalamud.Interface.Utility.Raii;
+using SomethingNeedDoing.Framework.Interfaces;
 
 namespace SomethingNeedDoing.Gui;
 
