@@ -16,25 +16,25 @@ public unsafe class InstancedContentModule : LuaModuleBase
     [LuaFunction] public OceanFishingWrapper OceanFishing => new();
     public class OceanFishingWrapper
     {
-        public uint CurrentRoute => EventFramework.Instance()->GetInstanceContentOceanFishing()->CurrentRoute;
-        public byte GetCurrentOceanFishingTimeOfDay() => Svc.Data.GetExcelSheet<IKDRoute>()?.GetRow(CurrentRoute).Time[GetCurrentOceanFishingZone].Value.Unknown0 ?? 0;
-        public OceanFishingStatus GetCurrentOceanFishingStatus() => EventFramework.Instance()->GetInstanceContentOceanFishing()->Status;
-        public int GetCurrentOceanFishingZone => (int)EventFramework.Instance()->GetInstanceContentOceanFishing()->CurrentZone;
-        public float TimeLeft => EventFramework.Instance()->GetInstanceContentDirector()->ContentDirector.ContentTimeLeft - TimeOffset;
-        public uint TimeOffset => EventFramework.Instance()->GetInstanceContentOceanFishing()->TimeOffset;
-        public uint WeatherId => EventFramework.Instance()->GetInstanceContentOceanFishing()->WeatherId;
-        public bool SpectralCurrentActive => EventFramework.Instance()->GetInstanceContentOceanFishing()->SpectralCurrentActive;
-        public uint Mission1Type => EventFramework.Instance()->GetInstanceContentOceanFishing()->Mission1Type;
-        public uint Mission2Type => EventFramework.Instance()->GetInstanceContentOceanFishing()->Mission2Type;
-        public uint Mission3Type => EventFramework.Instance()->GetInstanceContentOceanFishing()->Mission3Type;
-        public byte Mission1Goal => GetRow<IKDPlayerMissionCondition>(Mission1Type)!.Value.Unknown1;
-        public byte Mission2Goal => GetRow<IKDPlayerMissionCondition>(Mission2Type)!.Value.Unknown1;
-        public byte Mission3Goal => GetRow<IKDPlayerMissionCondition>(Mission3Type)!.Value.Unknown1;
-        public uint Mission1Progress => EventFramework.Instance()->GetInstanceContentOceanFishing()->Mission1Progress;
-        public uint Mission2Progress => EventFramework.Instance()->GetInstanceContentOceanFishing()->Mission2Progress;
-        public uint Mission3Progress => EventFramework.Instance()->GetInstanceContentOceanFishing()->Mission3Progress;
-        public uint Points => AgentModule.Instance()->GetAgentIKDFishingLog()->Points;
-        public uint Score => AgentModule.Instance()->GetAgentIKDResult()->Data->Score;
-        public uint TotalScore => AgentModule.Instance()->GetAgentIKDResult()->Data->TotalScore;
+        [LuaWrapper] public uint CurrentRoute => EventFramework.Instance()->GetInstanceContentOceanFishing()->CurrentRoute;
+        [LuaWrapper] public byte TimeOfDaty => Svc.Data.GetExcelSheet<IKDRoute>()?.GetRow(CurrentRoute).Time[GetCurrentOceanFishingZone].Value.Unknown0 ?? 0;
+        [LuaWrapper] public OceanFishingStatus Status => EventFramework.Instance()->GetInstanceContentOceanFishing()->Status;
+        [LuaWrapper] public int GetCurrentOceanFishingZone => (int)EventFramework.Instance()->GetInstanceContentOceanFishing()->CurrentZone;
+        [LuaWrapper] public float TimeLeft => EventFramework.Instance()->GetInstanceContentDirector()->ContentDirector.ContentTimeLeft - TimeOffset;
+        [LuaWrapper] public uint TimeOffset => EventFramework.Instance()->GetInstanceContentOceanFishing()->TimeOffset;
+        [LuaWrapper] public uint WeatherId => EventFramework.Instance()->GetInstanceContentOceanFishing()->WeatherId;
+        [LuaWrapper] public bool SpectralCurrentActive => EventFramework.Instance()->GetInstanceContentOceanFishing()->SpectralCurrentActive;
+        [LuaWrapper] public uint Mission1Type => EventFramework.Instance()->GetInstanceContentOceanFishing()->Mission1Type;
+        [LuaWrapper] public uint Mission2Type => EventFramework.Instance()->GetInstanceContentOceanFishing()->Mission2Type;
+        [LuaWrapper] public uint Mission3Type => EventFramework.Instance()->GetInstanceContentOceanFishing()->Mission3Type;
+        [LuaWrapper] public byte Mission1Goal => GetRow<IKDPlayerMissionCondition>(Mission1Type)!.Value.Unknown1;
+        [LuaWrapper] public byte Mission2Goal => GetRow<IKDPlayerMissionCondition>(Mission2Type)!.Value.Unknown1;
+        [LuaWrapper] public byte Mission3Goal => GetRow<IKDPlayerMissionCondition>(Mission3Type)!.Value.Unknown1;
+        [LuaWrapper] public uint Mission1Progress => EventFramework.Instance()->GetInstanceContentOceanFishing()->Mission1Progress;
+        [LuaWrapper] public uint Mission2Progress => EventFramework.Instance()->GetInstanceContentOceanFishing()->Mission2Progress;
+        [LuaWrapper] public uint Mission3Progress => EventFramework.Instance()->GetInstanceContentOceanFishing()->Mission3Progress;
+        [LuaWrapper] public uint Points => AgentModule.Instance()->GetAgentIKDFishingLog()->Points;
+        [LuaWrapper] public uint Score => AgentModule.Instance()->GetAgentIKDResult()->Data->Score;
+        [LuaWrapper] public uint TotalScore => AgentModule.Instance()->GetAgentIKDResult()->Data->TotalScore;
     }
 }

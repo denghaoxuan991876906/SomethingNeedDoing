@@ -18,12 +18,12 @@ public unsafe class Actions : LuaModuleBase
     {
         private ActionManager* Am => ActionManager.Instance();
 
-        public uint AdjustedActionId => Am->GetAdjustedActionId(actionId);
-        public float RecastTimeElapsed => Am->GetRecastTimeElapsed(ActionType.Action, AdjustedActionId);
-        public float RealRecastTimeElapsed => Am->GetRecastTimeElapsed(ActionType.Action, actionId);
-        public float RecastTime => Am->GetRecastTime(ActionType.Action, AdjustedActionId);
-        public float RealRecastTime => Am->GetRecastTime(ActionType.Action, actionId);
-        public float SpellCooldown => Math.Abs(RecastTime - RecastTimeElapsed);
-        public float RealSpellCooldown => Math.Abs(RealRecastTime - RealRecastTimeElapsed);
+        [LuaWrapper] public uint AdjustedActionId => Am->GetAdjustedActionId(actionId);
+        [LuaWrapper] public float RecastTimeElapsed => Am->GetRecastTimeElapsed(ActionType.Action, AdjustedActionId);
+        [LuaWrapper] public float RealRecastTimeElapsed => Am->GetRecastTimeElapsed(ActionType.Action, actionId);
+        [LuaWrapper] public float RecastTime => Am->GetRecastTime(ActionType.Action, AdjustedActionId);
+        [LuaWrapper] public float RealRecastTime => Am->GetRecastTime(ActionType.Action, actionId);
+        [LuaWrapper] public float SpellCooldown => Math.Abs(RecastTime - RecastTimeElapsed);
+        [LuaWrapper] public float RealSpellCooldown => Math.Abs(RealRecastTime - RealRecastTimeElapsed);
     }
 }

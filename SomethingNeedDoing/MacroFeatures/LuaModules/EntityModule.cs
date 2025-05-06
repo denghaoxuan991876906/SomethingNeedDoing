@@ -28,31 +28,31 @@ public unsafe class EntityModule : LuaModuleBase
         private BattleChara* BattleChara => Type == ObjectKind.BattleNpc ? (BattleChara*)_obj : null;
         private bool IsPlayer => Type == ObjectKind.Pc && Character != null;
 
-        public ObjectKind Type => _obj->ObjectKind;
-        public string Name => _obj->NameString;
-        public Vector3 Position => _obj->Position;
-        public float DistanceTo => Player.DistanceTo(Position);
+        [LuaWrapper] public ObjectKind Type => _obj->ObjectKind;
+        [LuaWrapper] public string Name => _obj->NameString;
+        [LuaWrapper] public Vector3 Position => _obj->Position;
+        [LuaWrapper] public float DistanceTo => Player.DistanceTo(Position);
 
         private T GetCharacterValue<T>(Func<T> getter) => IsPlayer ? getter() : default!;
-        public ulong ContentId => GetCharacterValue(() => Character->ContentId);
-        public ulong AccountId => GetCharacterValue(() => Character->AccountId);
-        public ushort CurrentWorld => GetCharacterValue(() => Character->CurrentWorld);
-        public ushort HomeWorld => GetCharacterValue(() => Character->HomeWorld);
+        [LuaWrapper] public ulong ContentId => GetCharacterValue(() => Character->ContentId);
+        [LuaWrapper] public ulong AccountId => GetCharacterValue(() => Character->AccountId);
+        [LuaWrapper] public ushort CurrentWorld => GetCharacterValue(() => Character->CurrentWorld);
+        [LuaWrapper] public ushort HomeWorld => GetCharacterValue(() => Character->HomeWorld);
 
-        public uint CurrentHp => GetCharacterValue(() => Character->Health);
-        public uint MaxHp => GetCharacterValue(() => Character->MaxHealth);
-        public float HealthPercent => CurrentHp / MaxHp * 100;
-        public uint CurrentMp => GetCharacterValue(() => Character->Mana);
-        public uint MaxMp => GetCharacterValue(() => Character->MaxMana);
+        [LuaWrapper] public uint CurrentHp => GetCharacterValue(() => Character->Health);
+        [LuaWrapper] public uint MaxHp => GetCharacterValue(() => Character->MaxHealth);
+        [LuaWrapper] public float HealthPercent => CurrentHp / MaxHp * 100;
+        [LuaWrapper] public uint CurrentMp => GetCharacterValue(() => Character->Mana);
+        [LuaWrapper] public uint MaxMp => GetCharacterValue(() => Character->MaxMana);
 
-        public EntityWrapper? Target => Dalamud?.TargetObject is { } target ? new(target) : null;
-        public bool IsCasting => GetCharacterValue(() => Character->IsCasting);
-        public bool IsCastInterruptible => GetCharacterValue(() => Character->GetCastInfo()->Interruptible) > 0;
-        public bool IsInCombat => GetCharacterValue(() => Character->InCombat);
-        public byte HuntRank => FindRow<NotoriousMonster>(x => x.BNpcBase.Value!.RowId == _obj->EntityId)?.Rank ?? 0;
+        [LuaWrapper] public EntityWrapper? Target => Dalamud?.TargetObject is { } target ? new(target) : null;
+        [LuaWrapper] public bool IsCasting => GetCharacterValue(() => Character->IsCasting);
+        [LuaWrapper] public bool IsCastInterruptible => GetCharacterValue(() => Character->GetCastInfo()->Interruptible) > 0;
+        [LuaWrapper] public bool IsInCombat => GetCharacterValue(() => Character->InCombat);
+        [LuaWrapper] public byte HuntRank => FindRow<NotoriousMonster>(x => x.BNpcBase.Value!.RowId == _obj->EntityId)?.Rank ?? 0;
 
-        public void SetAsTarget() => Svc.Targets.Target = Dalamud;
-        public void SetAsFocusTarget() => Svc.Targets.FocusTarget = Dalamud;
-        public void ClearTarget() => Svc.Targets.Target = null;
+        [LuaWrapper] public void SetAsTarget() => Svc.Targets.Target = Dalamud;
+        [LuaWrapper] public void SetAsFocusTarget() => Svc.Targets.FocusTarget = Dalamud;
+        [LuaWrapper] public void ClearTarget() => Svc.Targets.Target = null;
     }
 }
