@@ -38,22 +38,22 @@ public unsafe class FateModule : LuaModuleBase
     {
         private FateContext* Fate => FateManager.Instance()->GetFateById(Id);
 
-        [LuaWrapper] public bool Exists => Fate != null;
-        [LuaWrapper] public bool InFate => FateManager.Instance()->CurrentFate->FateId == Id;
-        [LuaWrapper] public FateState State => Fate->State;
-        [LuaWrapper] public int StartTimeEpoch => Fate->StartTimeEpoch;
-        [LuaWrapper] public float Duration => Fate->Duration;
-        [LuaWrapper] public string Name => Fate->Name.ToString();
-        [LuaWrapper] public float HandInCount => Fate->HandInCount;
-        [LuaWrapper] public Vector3 Location => Fate->Location;
-        [LuaWrapper] public float Progress => Fate->Progress;
-        [LuaWrapper] public bool IsBonus => Fate->IsBonus;
-        [LuaWrapper] public float Radius => Fate->Radius;
-        [LuaWrapper] public FateRule Rule => (FateRule)Fate->Rule;
-        [LuaWrapper] public int Level => Fate->Level;
-        [LuaWrapper] public int MaxLevel => Fate->MaxLevel;
-        [LuaWrapper] public ushort FATEChain => Fate->FATEChain;
-        [LuaWrapper] public uint EventItem => Fate->EventItem;
-        [LuaWrapper] public float DistanceToPlayer => Player.DistanceTo(Location);
+        [LuaDocs] public bool Exists => Fate != null;
+        [LuaDocs] public bool InFate => FateManager.Instance()->CurrentFate->FateId == Id;
+        [LuaDocs] public FateState State => Fate->State;
+        [LuaDocs] public int StartTimeEpoch => Fate->StartTimeEpoch;
+        [LuaDocs] public float Duration => Fate->Duration;
+        [LuaDocs] public string Name => Fate->Name.ToString();
+        [LuaDocs] public float HandInCount => Fate->HandInCount;
+        [LuaDocs] public Vector3 Location => Fate->Location;
+        [LuaDocs] public float Progress => Fate->Progress;
+        [LuaDocs] public bool IsBonus => Fate->IsBonus;
+        [LuaDocs] public float Radius => Fate->Radius;
+        [LuaDocs] public FateRule Rule => (FateRule)Fate->Rule;
+        [LuaDocs] public int Level => Fate->Level;
+        [LuaDocs] public int MaxLevel => Fate->MaxLevel;
+        [LuaDocs] public ushort FATEChain => Fate->FATEChain;
+        [LuaDocs] public uint EventItem => Fate->EventItem;
+        [LuaDocs] public float DistanceToPlayer => Player.DistanceTo(Location);
     }
 }

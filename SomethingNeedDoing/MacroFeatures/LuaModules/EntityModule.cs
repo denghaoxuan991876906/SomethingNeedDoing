@@ -27,32 +27,32 @@ public unsafe class EntityModule : LuaModuleBase
         private Character* Character => Type == ObjectKind.Pc ? (Character*)_obj : null;
         private BattleChara* BattleChara => Type == ObjectKind.BattleNpc ? (BattleChara*)_obj : null;
         private bool IsPlayer => Type == ObjectKind.Pc && Character != null;
-
-        [LuaWrapper] public ObjectKind Type => _obj->ObjectKind;
-        [LuaWrapper] public string Name => _obj->NameString;
-        [LuaWrapper] public Vector3 Position => _obj->Position;
-        [LuaWrapper] public float DistanceTo => Player.DistanceTo(Position);
-
         private T GetCharacterValue<T>(Func<T> getter) => IsPlayer ? getter() : default!;
-        [LuaWrapper] public ulong ContentId => GetCharacterValue(() => Character->ContentId);
-        [LuaWrapper] public ulong AccountId => GetCharacterValue(() => Character->AccountId);
-        [LuaWrapper] public ushort CurrentWorld => GetCharacterValue(() => Character->CurrentWorld);
-        [LuaWrapper] public ushort HomeWorld => GetCharacterValue(() => Character->HomeWorld);
 
-        [LuaWrapper] public uint CurrentHp => GetCharacterValue(() => Character->Health);
-        [LuaWrapper] public uint MaxHp => GetCharacterValue(() => Character->MaxHealth);
-        [LuaWrapper] public float HealthPercent => CurrentHp / MaxHp * 100;
-        [LuaWrapper] public uint CurrentMp => GetCharacterValue(() => Character->Mana);
-        [LuaWrapper] public uint MaxMp => GetCharacterValue(() => Character->MaxMana);
+        [LuaDocs] public ObjectKind Type => _obj->ObjectKind;
+        [LuaDocs] public string Name => _obj->NameString;
+        [LuaDocs] public Vector3 Position => _obj->Position;
+        [LuaDocs] public float DistanceTo => Player.DistanceTo(Position);
 
-        [LuaWrapper] public EntityWrapper? Target => Dalamud?.TargetObject is { } target ? new(target) : null;
-        [LuaWrapper] public bool IsCasting => GetCharacterValue(() => Character->IsCasting);
-        [LuaWrapper] public bool IsCastInterruptible => GetCharacterValue(() => Character->GetCastInfo()->Interruptible) > 0;
-        [LuaWrapper] public bool IsInCombat => GetCharacterValue(() => Character->InCombat);
-        [LuaWrapper] public byte HuntRank => FindRow<NotoriousMonster>(x => x.BNpcBase.Value!.RowId == _obj->EntityId)?.Rank ?? 0;
+        [LuaDocs] public ulong ContentId => GetCharacterValue(() => Character->ContentId);
+        [LuaDocs] public ulong AccountId => GetCharacterValue(() => Character->AccountId);
+        [LuaDocs] public ushort CurrentWorld => GetCharacterValue(() => Character->CurrentWorld);
+        [LuaDocs] public ushort HomeWorld => GetCharacterValue(() => Character->HomeWorld);
 
-        [LuaWrapper] public void SetAsTarget() => Svc.Targets.Target = Dalamud;
-        [LuaWrapper] public void SetAsFocusTarget() => Svc.Targets.FocusTarget = Dalamud;
-        [LuaWrapper] public void ClearTarget() => Svc.Targets.Target = null;
+        [LuaDocs] public uint CurrentHp => GetCharacterValue(() => Character->Health);
+        [LuaDocs] public uint MaxHp => GetCharacterValue(() => Character->MaxHealth);
+        [LuaDocs] public float HealthPercent => CurrentHp / MaxHp * 100;
+        [LuaDocs] public uint CurrentMp => GetCharacterValue(() => Character->Mana);
+        [LuaDocs] public uint MaxMp => GetCharacterValue(() => Character->MaxMana);
+
+        [LuaDocs] public EntityWrapper? Target => Dalamud?.TargetObject is { } target ? new(target) : null;
+        [LuaDocs] public bool IsCasting => GetCharacterValue(() => Character->IsCasting);
+        [LuaDocs] public bool IsCastInterruptible => GetCharacterValue(() => Character->GetCastInfo()->Interruptible) > 0;
+        [LuaDocs] public bool IsInCombat => GetCharacterValue(() => Character->InCombat);
+        [LuaDocs] public byte HuntRank => FindRow<NotoriousMonster>(x => x.BNpcBase.Value!.RowId == _obj->EntityId)?.Rank ?? 0;
+
+        [LuaDocs] public void SetAsTarget() => Svc.Targets.Target = Dalamud;
+        [LuaDocs] public void SetAsFocusTarget() => Svc.Targets.FocusTarget = Dalamud;
+        [LuaDocs] public void ClearTarget() => Svc.Targets.Target = null;
     }
 }

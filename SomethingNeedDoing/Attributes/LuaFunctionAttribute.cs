@@ -1,6 +1,6 @@
 ﻿namespace SomethingNeedDoing.Attributes;
 /// <summary>
-/// Marks a method as exposed to Lua and provides documentation.
+/// Marks a method as exposed to Lua and provides documentation. To provide documentation without exposing to Lua, use <see cref="LuaDocsAttribute"/>
 /// </summary>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Field)]
 public class LuaFunctionAttribute(string? name = null, string? description = null, string[]? parameterDescriptions = null, string[]? examples = null) : Attribute

@@ -15,12 +15,12 @@ public unsafe class AddonModule : LuaModuleBase
         private Span<Pointer<AtkResNode>> NodeList => Addon->UldManager.Nodes;
         private Span<AtkValue> AtkValuesList => Addon->AtkValuesSpan;
 
-        [LuaWrapper] public bool Exists => (nint)Addon != IntPtr.Zero;
-        [LuaWrapper] public bool Ready => IsAddonReady(Addon);
+        [LuaDocs] public bool Exists => (nint)Addon != IntPtr.Zero;
+        [LuaDocs] public bool Ready => IsAddonReady(Addon);
 
-        [LuaWrapper] public AtkValueWrapper GetAtkValue(int index) => new(Addon->AtkValues[index]);
+        [LuaDocs] public AtkValueWrapper GetAtkValue(int index) => new(Addon->AtkValues[index]);
 
-        [LuaWrapper]
+        [LuaDocs]
         public unsafe IEnumerable<AtkValueWrapper> AtkValues
         {
             get
@@ -30,9 +30,9 @@ public unsafe class AddonModule : LuaModuleBase
             }
         }
 
-        [LuaWrapper] public NodeWrapper GetNode(params int[] nodeIds) => new(Addon, nodeIds);
+        [LuaDocs] public NodeWrapper GetNode(params int[] nodeIds) => new(Addon, nodeIds);
 
-        [LuaWrapper]
+        [LuaDocs]
         public unsafe IEnumerable<NodeWrapper> Nodes
         {
             get
@@ -49,16 +49,16 @@ public unsafe class AddonModule : LuaModuleBase
         public NodeWrapper(Pointer<AtkResNode> node) => Node = node.Value;
         private AtkResNode* Node { get; set; }
 
-        [LuaWrapper] public uint Id => Node->NodeId;
-        [LuaWrapper] public bool IsVisible => Node->IsVisible();
-        [LuaWrapper] public string Text { get => Node->GetAsAtkTextNode()->NodeText.ToString(); set => Node->GetAsAtkTextNode()->NodeText.SetString(value); }
-        [LuaWrapper] public NodeType NodeType => Node->Type;
+        [LuaDocs] public uint Id => Node->NodeId;
+        [LuaDocs] public bool IsVisible => Node->IsVisible();
+        [LuaDocs] public string Text { get => Node->GetAsAtkTextNode()->NodeText.ToString(); set => Node->GetAsAtkTextNode()->NodeText.SetString(value); }
+        [LuaDocs] public NodeType NodeType => Node->Type;
     }
 
     public class AtkValueWrapper(AtkValue value)
     {
         private AtkValue Value = value;
 
-        [LuaWrapper] public string ValueString => Value.GetValueAsString();
+        [LuaDocs] public string ValueString => Value.GetValueAsString();
     }
 }

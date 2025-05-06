@@ -52,7 +52,7 @@ public class LuaDocumentation
                 var wrapperProperties = method.ReturnType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
                 foreach (var prop in wrapperProperties)
                 {
-                    if (prop.GetCustomAttribute<LuaWrapperAttribute>() is not { } wrapperAttr) continue;
+                    if (prop.GetCustomAttribute<LuaDocsAttribute>() is not { } wrapperAttr) continue;
 
                     var propType = LuaTypeConverter.GetLuaType(prop.PropertyType);
                     var propDoc = new LuaFunctionDoc(
@@ -70,7 +70,7 @@ public class LuaDocumentation
                 var wrapperMethods = method.ReturnType.GetMethods(BindingFlags.Public | BindingFlags.Instance);
                 foreach (var wrapperMethod in wrapperMethods)
                 {
-                    if (wrapperMethod.GetCustomAttribute<LuaWrapperAttribute>() is not { } wrapperAttr) continue;
+                    if (wrapperMethod.GetCustomAttribute<LuaDocsAttribute>() is not { } wrapperAttr) continue;
 
                     var wrapperMethodParams = wrapperMethod.GetParameters();
                     var wrapperParameters = new List<(string Name, LuaTypeInfo Type, string? Description)>();
