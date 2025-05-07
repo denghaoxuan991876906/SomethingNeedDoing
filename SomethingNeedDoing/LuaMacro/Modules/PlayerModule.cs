@@ -15,6 +15,8 @@ public unsafe class PlayerModule : LuaModuleBase
     [LuaFunction] public byte GCRankImmortalFlames { get => Ps->GCRankImmortalFlames; set => Ps->GCRankImmortalFlames = value; }
     [LuaFunction] public byte GCRankTwinAdders { get => Ps->GCRankTwinAdders; set => Ps->GCRankTwinAdders = value; }
 
+    [LuaFunction] public uint FishingBait => Ps->FishingBait;
+
     [LuaFunction] public FreeCompanyWrapper FreeCompany => new();
     public unsafe class FreeCompanyWrapper
     {

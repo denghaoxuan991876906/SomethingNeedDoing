@@ -14,6 +14,14 @@ public unsafe class ActionsModule : LuaModuleBase
     [LuaFunction] public void ExecuteGeneralAction(uint actionID) => ActionManager.Instance()->UseAction(ActionType.GeneralAction, actionID);
     [LuaFunction] public void Teleport(uint aetheryteId) => Telepo.Instance()->Teleport(aetheryteId, 0);
 
+    [LuaFunction] public LimitBreakWrapper LimitBreak => new();
+    public class LimitBreakWrapper
+    {
+        [LuaDocs] public ushort CurrentUnits => UIState.Instance()->LimitBreakController.CurrentUnits;
+        [LuaDocs] public uint BarUnits => UIState.Instance()->LimitBreakController.BarUnits;
+        [LuaDocs] public byte BarCount => UIState.Instance()->LimitBreakController.BarCount;
+    }
+
     [LuaFunction] public ActionWrapper GetActionInfo(uint actionId) => new(actionId);
     public class ActionWrapper(uint actionId)
     {
