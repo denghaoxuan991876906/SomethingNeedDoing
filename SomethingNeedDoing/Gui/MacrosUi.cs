@@ -1,7 +1,10 @@
 ﻿using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using ECommons.ImGuiMethods;
+using SomethingNeedDoing.Core.Github;
 using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Managers;
+using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.Gui;
 public class MacroUI : Window
@@ -16,14 +19,19 @@ public class MacroUI : Window
     private readonly RunningMacrosPanel _panel;
     private readonly WindowSystem _ws;
     private readonly IMacroScheduler _scheduler;
+    private readonly GitMacroManager _gitManager;
+    private bool showVersionHistory = false;
+    private List<GitCommitInfo>? versionHistory;
+    private string? newMacroContent;
 
-    public MacroUI(WindowSystem ws, RunningMacrosPanel panel, IMacroScheduler scheduler) : base("Macro Manager", ImGuiWindowFlags.NoScrollbar)
+    public MacroUI(WindowSystem ws, RunningMacrosPanel panel, IMacroScheduler scheduler, GitMacroManager gitManager) : base("Macro Manager", ImGuiWindowFlags.NoScrollbar)
     {
         _ws = ws;
         Size = new Vector2(800, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
         _panel = panel;
         _scheduler = scheduler;
+        _gitManager = gitManager;
     }
 
     public override void Draw()
@@ -42,6 +50,100 @@ public class MacroUI : Window
             else
             {
                 Svc.Chat.PrintError("No configuration data in clipboard");
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGui.Button("New Macro"))
+        {
+            var clipboard = ImGui.GetClipboardText();
+            if (!string.IsNullOrEmpty(clipboard))
+            {
+                try
+                {
+                    if (Uri.TryCreate(clipboard, UriKind.Absolute, out var uri) &&
+                        (uri.Host.Contains("github.com") || uri.Host.Contains("gitlab.com")))
+                    {
+                        // Handle GitHub Gists
+                        if (uri.Host == "gist.github.com")
+                        {
+                            var parts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length >= 2)
+                            {
+                                var gistId = parts[0];
+                                var fileName = parts.Length > 2 ? parts[2] : null;
+                                var repoUrl = $"https://gist.github.com/{gistId}";
+
+                                Task.Run(async () =>
+                                {
+                                    try
+                                    {
+                                        var macro = await _gitManager.AddGitMacro(repoUrl, fileName ?? "gistfile1.txt");
+                                        if (macro != null)
+                                        {
+                                            Svc.Chat.Print($"Added Git macro from Gist {gistId}");
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Svc.Chat.PrintError($"Failed to add Git macro: {ex.Message}");
+                                    }
+                                });
+                            }
+                        }
+                        // Handle regular GitHub/GitLab repositories
+                        else
+                        {
+                            var parts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length >= 3)
+                            {
+                                var owner = parts[0];
+                                var repo = parts[1];
+                                var filePath = string.Join("/", parts.Skip(2));
+                                var repoUrl = $"https://{uri.Host}/{owner}/{repo}";
+
+                                Task.Run(async () =>
+                                {
+                                    try
+                                    {
+                                        var macro = await _gitManager.AddGitMacro(repoUrl, filePath);
+                                        if (macro != null)
+                                        {
+                                            Svc.Chat.Print($"Added Git macro from {repoUrl}");
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Svc.Chat.PrintError($"Failed to add Git macro: {ex.Message}");
+                                    }
+                                });
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // It's a regular macro
+                        var macro = new ConfigMacro
+                        {
+                            Name = "New Macro",
+                            Content = clipboard
+                        };
+                        C.Macros.Add(macro);
+                        C.Save();
+                        selectedMacroId = macro.Id;
+                        selectedFolderPath = "/";
+                        Svc.Chat.Print("Added new macro");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Svc.Chat.PrintError($"Failed to add macro: {ex.Message}");
+                }
+            }
+            else
+            {
+                Svc.Chat.PrintError("No content in clipboard");
             }
         }
 
@@ -104,9 +206,10 @@ public class MacroUI : Window
                     foreach (var macro in macros)
                     {
                         var macroIndent = new string(' ', (depth + 1) * 2);
+                        var prefix = macro is GitMacro ? "📦 " : "";
 
                         // Macro node
-                        if (ImGui.Selectable($"{macroIndent} {macro.Name}", macro.Id == selectedMacroId))
+                        if (ImGui.Selectable($"{macroIndent} {prefix}{macro.Name}", macro.Id == selectedMacroId))
                         {
                             selectedMacroId = macro.Id;
                             selectedFolderPath = path;
@@ -135,8 +238,10 @@ public class MacroUI : Window
         var rootMacros = C.GetMacrosInFolder("/");
         foreach (var (macro, idx) in rootMacros.WithIndex())
         {
+            var prefix = macro is GitMacro ? "📦 " : "";
+
             // Macro node at root level
-            if (ImGui.Selectable($"{macro.Name}", macro.Id == selectedMacroId))
+            if (ImGui.Selectable($"{prefix}{macro.Name}", macro.Id == selectedMacroId))
             {
                 selectedMacroId = macro.Id;
                 selectedFolderPath = "/";
@@ -235,22 +340,22 @@ public class MacroUI : Window
         DrawMacroContent(macro);
     }
 
-    private void DrawMacroHeader(ConfigMacro macro)
+    private void DrawMacroHeader(IMacro macro)
     {
-        using var _ = ImRaii.Child("MacroHeader", new(-1, 60));
+        using var header = ImRaii.Child("MacroHeader", new(-1, 60));
 
         // Macro name and type
         ImGui.Text($"Name: {macro.Name}");
         ImGui.SameLine();
         ImGui.Text($"Type: {macro.Type}");
 
-        var lang = macro.Type;
-        if (ImGuiEx.EnumCombo("Language", ref lang))
-        {
-            macro.Type = lang;
-            C.Save();
-        }
-        ImGui.SameLine();
+        //var lang = macro.en;
+        //if (ImGuiEx.EnumCombo("Language", ref lang))
+        //{
+        //    macro.Type = lang;
+        //    C.Save();
+        //}
+        //ImGui.SameLine();
 
         // Action buttons
         if (ImGui.Button("Rename"))
@@ -258,14 +363,61 @@ public class MacroUI : Window
             // Show rename dialog
         }
         ImGui.SameLine();
-        if (ImGui.Button("Duplicate"))
-            macro.Duplicate();
+        if (ImGui.Button("Duplicate")) { }
+        //macro.Duplicate();
         ImGui.SameLine();
         if (ImGui.Button("Delete"))
         {
-            macro.Delete();
-            selectedMacroId = string.Empty;
+            //macro.Delete();
+            //selectedMacroId = string.Empty;
         }
+
+        // Git-specific controls
+        if (macro is GitMacro gitMacro)
+        {
+            ImGui.Separator();
+
+            if (ImGui.Button("Check for Updates"))
+            {
+                _ = _gitManager.CheckForUpdates(gitMacro);
+            }
+            ImGui.SameLine();
+
+            if (ImGui.Button("Version History"))
+            {
+                showVersionHistory = true;
+                versionHistory = null;
+                _ = LoadVersionHistory(gitMacro);
+            }
+            ImGui.SameLine();
+
+            if (gitMacro.HasUpdate)
+            {
+                if (ImGui.Button("Update Available"))
+                {
+                    _ = _gitManager.CheckForUpdates(gitMacro);
+                }
+            }
+
+            if (showVersionHistory && versionHistory != null)
+            {
+                ImGui.Separator();
+                ImGui.Text("Version History:");
+                foreach (var commit in versionHistory)
+                {
+                    if (ImGui.Selectable($"{commit.CommitHash[..8]} - {commit.Commit.Message}"))
+                    {
+                        _ = _gitManager.DowngradeToVersion(gitMacro, commit.CommitHash);
+                        showVersionHistory = false;
+                    }
+                }
+            }
+        }
+    }
+
+    private async Task LoadVersionHistory(GitMacro macro)
+    {
+        versionHistory = await _gitManager.GetVersionHistory(macro);
     }
 
     private void DrawMacroControls(ConfigMacro macro)

@@ -12,8 +12,8 @@ public unsafe class AddonModule : LuaModuleBase
     public class AddonWrapper(string name)
     {
         private AtkUnitBase* Addon => (AtkUnitBase*)Svc.GameGui.GetAddonByName(name);
-        private Span<Pointer<AtkResNode>> NodeList => Addon->UldManager.Nodes;
-        private Span<AtkValue> AtkValuesList => Addon->AtkValuesSpan;
+        private Pointer<AtkResNode>[] NodeList => Addon->UldManager.Nodes.ToArray();
+        private AtkValue[] AtkValuesList => Addon->AtkValuesSpan.ToArray();
 
         [LuaDocs] public bool Exists => (nint)Addon != nint.Zero;
         [LuaDocs] public bool Ready => IsAddonReady(Addon);

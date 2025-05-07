@@ -14,6 +14,7 @@ public class LuaModuleManager
 
     public LuaModuleManager()
     {
+        RegisterModule(new ActionsModule());
         RegisterModule(new InstancesModule());
         RegisterModule(new IPCModule());
         RegisterModule(new ExcelModule());
