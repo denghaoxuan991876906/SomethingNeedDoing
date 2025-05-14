@@ -1,6 +1,13 @@
-﻿using Dalamud.Interface.Windowing;
+﻿using Dalamud.Interface.Colors;
+using Dalamud.Interface.Windowing;
+using ImGuiNET;
 using Newtonsoft.Json;
+using SomethingNeedDoing.Utils;
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Numerics;
 
 namespace SomethingNeedDoing.Gui;
 public class MigrationPreviewWindow : Window
@@ -16,7 +23,7 @@ public class MigrationPreviewWindow : Window
     private bool selectAllRemovedMacros = true;
     private bool selectAllChanges = true;
 
-    public MigrationPreviewWindow(WindowSystem ws, string oldConfigJson) : base("Migration Preview", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings)
+    public MigrationPreviewWindow(WindowSystem ws, string oldConfigJson) : base($"{FontAwesomeHelper.IconImport} Migration Preview", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings)
     {
         _ws = ws;
         _oldConfigJson = oldConfigJson;
@@ -161,7 +168,7 @@ public class MigrationPreviewWindow : Window
         }
 
         // General Settings Section
-        if (ImGui.CollapsingHeader("General Settings"))
+        if (ImGui.CollapsingHeader($"{FontAwesomeHelper.IconSettings} General Settings"))
         {
             if (ImGui.Checkbox("Select All Changes", ref selectAllChanges))
             {
@@ -192,7 +199,7 @@ public class MigrationPreviewWindow : Window
         }
 
         // New Macros Section
-        if (ImGui.CollapsingHeader($"New Macros ({newMacros.Count})"))
+        if (ImGui.CollapsingHeader($"{FontAwesomeHelper.IconNew} New Macros ({newMacros.Count})"))
         {
             if (ImGui.Checkbox("Select All New Macros", ref selectAllNewMacros))
             {
@@ -217,7 +224,7 @@ public class MigrationPreviewWindow : Window
         }
 
         // Removed Macros Section
-        if (ImGui.CollapsingHeader($"Removed Macros ({removedMacros.Count})"))
+        if (ImGui.CollapsingHeader($"{FontAwesomeHelper.IconDelete} Removed Macros ({removedMacros.Count})"))
         {
             if (ImGui.Checkbox("Select All Removed Macros", ref selectAllRemovedMacros))
             {
@@ -244,13 +251,13 @@ public class MigrationPreviewWindow : Window
         }
 
         ImGui.Separator();
-        if (ImGui.Button("Apply Selected Changes"))
+        if (ImGui.Button($"{FontAwesomeHelper.IconPlay} Apply Selected Changes", new Vector2(180, 0)))
         {
             ApplySelectedChanges();
             IsOpen = false;
         }
         ImGui.SameLine();
-        if (ImGui.Button("Cancel"))
+        if (ImGui.Button($"{FontAwesomeHelper.IconClear} Cancel", new Vector2(100, 0)))
             IsOpen = false;
     }
 

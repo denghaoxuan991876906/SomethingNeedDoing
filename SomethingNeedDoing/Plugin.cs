@@ -6,6 +6,9 @@ using ECommons.SimpleGui;
 using Microsoft.Extensions.DependencyInjection;
 using SomethingNeedDoing.Framework.Interfaces;
 using SomethingNeedDoing.Gui;
+using ImGuiNET;
+using Dalamud.Interface;
+using System.Numerics;
 
 namespace SomethingNeedDoing;
 
@@ -22,7 +25,8 @@ public sealed class Plugin : IDalamudPlugin
     private const string Command = "/somethingneeddoing";
     private readonly ServiceProvider _serviceProvider;
     private readonly WindowSystem _windowSystem;
-    private readonly MacroUI _macroUI;
+    private readonly MainWindow _mainWindow;
+    private readonly RunningMacrosTab _runningMacrosTab;
     private readonly IMacroScheduler _macroScheduler;
 
     public Plugin(IDalamudPluginInterface pluginInterface)
@@ -44,17 +48,20 @@ public sealed class Plugin : IDalamudPlugin
 
         // Get required services
         _windowSystem = _serviceProvider.GetRequiredService<WindowSystem>();
-        _macroUI = _serviceProvider.GetRequiredService<MacroUI>();
         _macroScheduler = _serviceProvider.GetRequiredService<IMacroScheduler>();
-
+        _mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+        _runningMacrosTab = _serviceProvider.GetRequiredService<RunningMacrosTab>();
+        
         // Initialize UI
-        _windowSystem.AddWindow(_macroUI);
+        _windowSystem.AddWindow(_mainWindow);
+        _windowSystem.AddWindow(_runningMacrosTab);
 
         // Set up commands and UI
         Svc.Framework.RunOnFrameworkThread(() =>
         {
             Svc.PluginInterface.UiBuilder.Draw += DrawDevBarEntry;
             Svc.PluginInterface.UiBuilder.Draw += _windowSystem.Draw;
+            Svc.PluginInterface.UiBuilder.OpenConfigUi += ToggleMainWindow;
             EzCmd.Add(Command, OnChatCommand, "Open a window to edit various settings.", displayOrder: int.MaxValue);
             Aliases.ToList().ForEach(a => EzCmd.Add(a, OnChatCommand, $"{Command} Alias"));
         });
@@ -72,10 +79,16 @@ public sealed class Plugin : IDalamudPlugin
             ImGui.EndMainMenuBar();
         }
     }
+    
+    private void ToggleMainWindow()
+    {
+        _mainWindow.IsOpen = !_mainWindow.IsOpen;
+    }
 
     public void Dispose()
     {
         Svc.PluginInterface.UiBuilder.Draw -= _windowSystem.Draw;
+        Svc.PluginInterface.UiBuilder.OpenConfigUi -= ToggleMainWindow;
         _windowSystem.RemoveAllWindows();
         Svc.PluginInterface.UiBuilder.Draw -= DrawDevBarEntry;
         _serviceProvider.Dispose();
@@ -88,8 +101,7 @@ public sealed class Plugin : IDalamudPlugin
 
         if (arguments == string.Empty)
         {
-            _macroUI.Toggle();
-            //EzConfigGui.Window.IsOpen ^= true;
+            _mainWindow.IsOpen = !_mainWindow.IsOpen;
             return;
         }
         else if (arguments.StartsWith("run "))

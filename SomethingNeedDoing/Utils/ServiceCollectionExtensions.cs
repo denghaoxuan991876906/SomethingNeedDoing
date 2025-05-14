@@ -26,11 +26,15 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMacroEngine, LayLuaMacroEngine>();
         services.AddSingleton<LuaModuleManager>();
         services.AddSingleton<GitMacroManager>();
+        services.AddSingleton<MacroHierarchyManager>();
 
         // UI Services
         services.AddSingleton<RunningMacrosPanel>();
-        services.AddSingleton<MacroUI>();
         services.AddSingleton<WindowSystem>();
+        services.AddSingleton<MacroEditor>();
+        services.AddSingleton<HelpUI>();
+        services.AddSingleton<MainWindow>();
+        services.AddSingleton<RunningMacrosTab>();
 
         // External Services
         services.AddSingleton<Tippy>();

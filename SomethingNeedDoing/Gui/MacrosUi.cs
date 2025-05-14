@@ -1,4 +1,5 @@
-﻿using Dalamud.Interface.Utility.Raii;
+﻿using Dalamud.Interface.Colors;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Github;
@@ -23,6 +24,7 @@ public class MacroUI : Window
     private bool showVersionHistory = false;
     private List<GitCommitInfo>? versionHistory;
     private string? newMacroContent;
+    private readonly MacroMetadataEditor _metadataEditor = new();
 
     public MacroUI(WindowSystem ws, RunningMacrosPanel panel, IMacroScheduler scheduler, GitMacroManager gitManager) : base("Macro Manager", ImGuiWindowFlags.NoScrollbar)
     {
@@ -234,20 +236,34 @@ public class MacroUI : Window
             }
         }
 
-        // Show macros in the root folder
-        var rootMacros = C.GetMacrosInFolder("/");
-        foreach (var (macro, idx) in rootMacros.WithIndex())
+        // Replace the "macros in root folder" section with macro settings UI
+        ImGui.Separator();
+        
+        // Draw macro settings here
+        if (ImGui.CollapsingHeader("Macro Settings", ImGuiTreeNodeFlags.DefaultOpen))
         {
-            var prefix = macro is GitMacro ? "📦 " : "";
-
-            // Macro node at root level
-            if (ImGui.Selectable($"{prefix}{macro.Name}", macro.Id == selectedMacroId))
+            // Use a child window for better styling
+            using var settingsChild = ImRaii.Child("SettingsPanel", new Vector2(-1, 250), true);
+            
+            // Check if a macro is selected to show macro-specific settings
+            if (!string.IsNullOrEmpty(selectedMacroId))
             {
-                selectedMacroId = macro.Id;
-                selectedFolderPath = "/";
+                var selectedMacro = C.GetMacro(selectedMacroId);
+                if (selectedMacro != null)
+                {
+                    // Draw the macro-specific metadata editor
+                    _metadataEditor.Draw(selectedMacro);
+                }
+                else
+                {
+                    ImGui.TextColored(ImGuiColors.DalamudGrey, "Selected macro not found.");
+                }
             }
-
-            ImGuiUtils.ContextMenu($"{macro.Name}_{idx}", ("Delete", () => { macro.Delete(); if (selectedMacroId == macro.Id) selectedMacroId = string.Empty; }));
+            else
+            {
+                // No macro selected, show a message
+                ImGui.TextColored(ImGuiColors.DalamudGrey, "Select a macro to view and edit its settings.");
+            }
         }
     }
 
