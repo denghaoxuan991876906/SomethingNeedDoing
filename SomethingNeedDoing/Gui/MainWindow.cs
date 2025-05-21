@@ -1,16 +1,20 @@
 ﻿using Dalamud.Interface.Colors;
-using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
+using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
+using Dalamud.Plugin.Services;
+using Dalamud.Interface.Utility;
 using ImGuiNET;
+using System;
+using System.Numerics;
+using System.Threading.Tasks;
+using SomethingNeedDoing.Scheduler;
+using System.Linq;
+using Dalamud.Interface.Components;
 using SomethingNeedDoing.Core.Github;
 using SomethingNeedDoing.Framework.Interfaces;
 using SomethingNeedDoing.Managers;
-using SomethingNeedDoing.Scheduler;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
+using SomethingNeedDoing.Gui;
 
 namespace SomethingNeedDoing.Gui;
 
@@ -32,6 +36,11 @@ public class MainWindow : Window
     private string _renameMacroBuffer = string.Empty;
     private bool _showRenamePopup = false;
     private string _macroToRename = string.Empty;
+    
+    // Fields for the new macro creation popup
+    private string _newMacroName = "New Macro";
+    private bool _showCreateMacroPopup = false;
+    private int _newMacroType = 0; // 0 = Native, 1 = Lua
 
     // Add these fields for folder management
     private string _selectedFolderId = "General";  // Default to General folder instead of Root
@@ -203,50 +212,8 @@ public class MainWindow : Window
         
         // Remove the status indicator from here since it's now in the tab bar
         
-        // Top tool bar with better styled buttons - now spans the full width
-        if (ImGui.Button("New Macro", new Vector2(120, 0)))
-        {
-            var newMacro = new ConfigMacro
-            {
-                Name = "New Macro",
-                Content = string.Empty,
-                Type = MacroType.Native,
-                FolderPath = _selectedFolderId == "Root" ? DEFAULT_FOLDER : _selectedFolderId  // Never use Root
-            };
-            C.Macros.Add(newMacro);
-            C.Save();
-            _selectedMacroId = newMacro.Id;
-            
-            // If current folder is Root, switch to the default folder
-            if (_selectedFolderId == "Root")
-            {
-                _selectedFolderId = DEFAULT_FOLDER;
-            }
-        }
-
-        ImGui.SameLine();
-
-        if (ImGui.Button("Import Macro", new Vector2(120, 0)))
-        {
-            var clipboard = ImGui.GetClipboardText();
-            if (!string.IsNullOrEmpty(clipboard))
-            {
-                var migrationWindow = new MigrationPreviewWindow(_ws, clipboard)
-                {
-                    IsOpen = true
-                };
-                _ws.AddWindow(migrationWindow);
-            }
-        }
-
-        ImGui.SameLine();
+        // Remove the buttons from top toolbar
         
-        if (ImGui.Button("New Folder", new Vector2(120, 0)))
-        {
-            _showCreateFolderPopup = true;
-            ImGui.OpenPopup("CreateFolderPopup");
-        }
-
         // Separator after toolbar
         ImGui.Separator();
         
@@ -284,6 +251,7 @@ public class MainWindow : Window
         var selectedMacro = GetSelectedMacro();
         if (selectedMacro != null)
         {
+            // Remove the duplicate toolbar buttons
             _macroEditor.Draw(selectedMacro);
         }
         else
@@ -294,9 +262,6 @@ public class MainWindow : Window
         ImGui.EndChild(); // End RightPanel
         
         ImGui.EndTable(); // End MainLayout table
-        
-        // Show create folder popup if active
-        ShowCreateFolderPopup();
     }
     
     private void DrawFolderMacroTree()
@@ -308,8 +273,10 @@ public class MainWindow : Window
         // If there's no search, display the hierarchical tree
         if (string.IsNullOrEmpty(_searchText))
         {
-            // FOLDERS SECTION - more compact header
+            // FOLDERS SECTION - more compact header without New Folder button
+            ImGui.BeginGroup();
             ImGui.TextColored(ImGuiColors.DalamudViolet, "FOLDERS");
+            ImGui.EndGroup();
             
             // Make a scrollable area for the folder tree to maximize available space
             ImGui.BeginChild("FolderTreeArea", new Vector2(-1, ImGui.GetContentRegionAvail().Y * 0.6f), false);
@@ -317,6 +284,9 @@ public class MainWindow : Window
             // Root/All Macros node
             bool isRootSelected = _selectedFolderId == "Root";
             int rootCount = C.Macros.Count; // Total macro count
+            
+            ImGuiX.Icon(FontAwesomeHelper.IconHome);
+            ImGui.SameLine();
             
             if (ImGui.TreeNodeEx($"All Macros ({rootCount})##root", 
                 isRootSelected ? ImGuiTreeNodeFlags.Selected : ImGuiTreeNodeFlags.None))
@@ -351,6 +321,9 @@ public class MainWindow : Window
                     // Display folder as a tree node with macro count
                     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.SpanAvailWidth;
                     if (isSelected) flags |= ImGuiTreeNodeFlags.Selected;
+                    
+                    ImGuiX.Icon(FontAwesomeHelper.IconFolder);
+                    ImGui.SameLine();
                     
                     bool folderOpen = ImGui.TreeNodeEx($"{folderPath} ({folderCount})##folder_{folderPath}", flags);
                     
@@ -407,11 +380,71 @@ public class MainWindow : Window
             
             ImGui.EndChild(); // End FolderTreeArea
             
+            // Place all buttons in a row above the MACRO SETTINGS header
+            
+            // New Macro button
+            if (ImGuiX.IconButton(FontAwesomeHelper.IconNew, "New Macro"))
+            {
+                // Reset popup fields
+                _newMacroName = "New Macro";
+                _newMacroType = 0; // Default to Native
+                _showCreateMacroPopup = true;
+                ImGui.OpenPopup("Create New Macro##Popup");
+            }
+            
+            // Draw the create macro popup here to ensure it opens properly
+            ShowCreateMacroPopup();
+            
+            // Import button with icon
+            ImGui.SameLine(0, 15);
+            if (ImGuiX.IconButton(FontAwesomeHelper.IconImport, "Import"))
+            {
+                var clipboard = ImGui.GetClipboardText();
+                if (!string.IsNullOrEmpty(clipboard))
+                {
+                    try
+                    {
+                        // Import macro logic - use existing methods in your codebase
+                        var importedMacro = new ConfigMacro
+                        {
+                            Name = "Imported Macro",
+                            Content = clipboard,
+                            Type = MacroType.Native
+                        };
+                        
+                        if (_selectedFolderId != "Root")
+                        {
+                            importedMacro.FolderPath = _selectedFolderId;
+                        }
+                        
+                        C.Macros.Add(importedMacro);
+                    }
+                    catch (Exception e)
+                    {
+                        // Log error using your logging mechanism
+                        Console.WriteLine($"Failed to import macro: {e.Message}");
+                    }
+                }
+            }
+            
+            // New Folder button with icon
+            ImGui.SameLine(0, 15);
+            if (ImGuiX.IconButton(FontAwesomeHelper.IconFolder, "New Folder"))
+            {
+                // Reset and show folder creation popup
+                _newFolderName = "New Folder";
+                _showCreateFolderPopup = true;
+                ImGui.OpenPopup("Create New Folder##Popup");
+            }
+            
+            // Show create folder popup
+            ShowCreateFolderPopup();
+            
             // Separator between folders and macro settings
             ImGui.Separator();
             
-            // MACRO SETTINGS section with collapsible header and tabs
-            var selectedMacro = GetSelectedMacro();
+            // MACRO SETTINGS section with no buttons
+            ImGui.TextColored(ImGuiColors.DalamudViolet, "MACRO SETTINGS");
             
             // Use triangle for collapsible header like in the screenshot
             ImGui.PushStyleColor(ImGuiCol.Header, new Vector4(0.2f, 0.2f, 0.3f, 0.7f));
@@ -422,6 +455,7 @@ public class MainWindow : Window
                 // Create a scrollable area for settings content that fills remaining space
                 ImGui.BeginChild("SettingsScrollArea", new Vector2(-1, -1), false);
                 
+                var selectedMacro = GetSelectedMacro();
                 if (selectedMacro != null)
                 {
                     // Show selected macro name and type with proper styling
@@ -429,7 +463,7 @@ public class MainWindow : Window
                     string macroTypeStr = selectedMacro.Type == MacroType.Lua ? "Lua" : "Native";
                     
                     ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudWhite);
-                    ImGui.Text($"{macroName} (= {macroTypeStr})");
+                    ImGui.Text($"{macroName} ({macroTypeStr})");
                     ImGui.PopStyleColor();
                     
                     // Create tabs similar to the screenshot
@@ -628,12 +662,20 @@ public class MainWindow : Window
     private void DrawMacroTreeNode(ConfigMacro macro, bool showFolder)
     {
         // Get icon based on macro type
-        string prefix = macro is GitMacro ? "📦 " : "📄 ";
+        FontAwesomeIcon icon;
+        if (macro is GitMacro)
+            icon = FontAwesomeHelper.IconGitMacro;
+        else
+            icon = macro.Type == MacroType.Lua ? FontAwesomeHelper.IconLuaMacro : FontAwesomeHelper.IconNativeMacro;
+        
+        // Show icon
+        ImGuiX.Icon(icon);
+        ImGui.SameLine();
         
         // Build display name
         string displayName = showFolder 
-            ? $"{prefix}{macro.Name} [{macro.FolderPath}]"
-            : $"{prefix}{macro.Name}";
+            ? $"{macro.Name} [{macro.FolderPath}]"
+            : macro.Name;
             
         // Macro type indicator
         string typeIndicator = macro.Type == MacroType.Lua ? " (Lua)" : "";
@@ -677,42 +719,89 @@ public class MainWindow : Window
         // Context menu
         if (ImGui.BeginPopupContextItem())
         {
-            if (ImGui.MenuItem("Run"))
+            if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconPlay, "Run"))
             {
                 _scheduler.StartMacro(macro);
             }
 
-            if (ImGui.MenuItem("Copy Content"))
+            if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconCopy, "Copy Content"))
             {
                 ImGui.SetClipboardText(macro.Content);
             }
             
-            if (ImGui.BeginMenu("Move to Folder"))
+            // Add Type selector to the context menu (only for ConfigMacro, not GitMacro)
+            if (macro is ConfigMacro configMacro)
             {
-                if (ImGui.MenuItem("Root"))
+                if (ImGui.BeginMenu(ImGuiX.GetIconString(FontAwesomeHelper.IconNativeMacro) + " Set Type"))
                 {
-                    MoveMacroToFolder(macro.Id, "Root");
-                }
-                
-                foreach (var folderPath in C.GetFolderPaths())
-                {
-                    if (folderPath != "Root" && !string.IsNullOrEmpty(folderPath) && folderPath != macro.FolderPath)
+                    bool isNative = macro.Type == MacroType.Native;
+                    bool isLua = macro.Type == MacroType.Lua;
+                    
+                    if (ImGui.MenuItem("Native", null, isNative))
                     {
-                        if (ImGui.MenuItem(folderPath))
-                        {
-                            MoveMacroToFolder(macro.Id, folderPath);
-                        }
+                        configMacro.Type = MacroType.Native;
+                        C.Save();
                     }
+                    
+                    if (ImGui.MenuItem("Lua", null, isLua))
+                    {
+                        configMacro.Type = MacroType.Lua;
+                        C.Save();
+                    }
+                    
+                    ImGui.EndMenu();
                 }
-                
-                ImGui.EndMenu();
             }
 
-            if (ImGui.MenuItem("Delete"))
+            if (ImGui.BeginMenu(ImGuiX.GetIconString(FontAwesomeHelper.IconEdit) + " Actions"))
             {
-                macro.Delete();
-                if (_selectedMacroId == macro.Id)
-                    _selectedMacroId = string.Empty;
+                if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconRename, "Rename"))
+                {
+                    _renameMacroBuffer = macro.Name;
+                    _showRenamePopup = true;
+                    _macroToRename = macro.Id;
+                }
+
+                if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconDelete, "Delete"))
+                {
+                    macro.Delete();
+                    C.Save();
+                }
+
+                // Add folder move options
+                if (ImGui.BeginMenu(ImGuiX.GetIconString(FontAwesomeHelper.IconFolder) + " Move to folder"))
+                {
+                    // Option to move to the default folder
+                    if (ImGui.MenuItem("Default"))
+                    {
+                        MoveMacroToFolder(macro.Id, DEFAULT_FOLDER);
+                    }
+
+                    // Show other available folders
+                    var folders = new List<string>();
+                    foreach (var m in C.Macros)
+                    {
+                        if (!string.IsNullOrEmpty(m.FolderPath) && 
+                            !folders.Contains(m.FolderPath) && 
+                            m.FolderPath != DEFAULT_FOLDER &&
+                            m.FolderPath != "Root")
+                        {
+                            folders.Add(m.FolderPath);
+                        }
+                    }
+                    
+                    foreach (var folder in folders)
+                    {
+                        if (ImGui.MenuItem(folder))
+                        {
+                            MoveMacroToFolder(macro.Id, folder);
+                        }
+                    }
+
+                    ImGui.EndMenu();
+                }
+
+                ImGui.EndMenu();
             }
 
             ImGui.EndPopup();
@@ -867,31 +956,177 @@ public class MainWindow : Window
         }
     }
 
+    private void ShowCreateMacroPopup()
+    {
+        if (!_showCreateMacroPopup) return;
+
+        // Center the popup
+        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+
+        // Use a fixed size popup with better styling
+        ImGui.SetNextWindowSize(new Vector2(400, 200));
+        
+        // Use specific flags to make popup work properly
+        bool isOpen = _showCreateMacroPopup;
+        
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(15, 15));
+        
+        if (ImGui.BeginPopupModal("Create New Macro##Popup", ref isOpen, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings))
+        {
+            // Header with icon
+            ImGuiX.Icon(FontAwesomeHelper.IconNew);
+            ImGui.SameLine();
+            ImGui.Text("Create New Macro");
+            ImGui.Separator();
+            ImGui.Spacing();
+            
+            // Macro name input
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text("Name:");
+            ImGui.SameLine();
+            ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
+            ImGui.InputText("##MacroName", ref _newMacroName, 100);
+            ImGui.PopItemWidth();
+            
+            ImGui.Spacing();
+            
+            // Macro type selection with better UI
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text("Type:");
+            ImGui.SameLine();
+            
+            // Radio buttons for macro type
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(15, 0));
+            
+            bool isNative = _newMacroType == 0;
+            if (ImGui.RadioButton("Native##MacroType", isNative))
+            {
+                _newMacroType = 0;
+            }
+            ImGui.SameLine();
+            
+            bool isLua = _newMacroType == 1;
+            if (ImGui.RadioButton("Lua##MacroType", isLua))
+            {
+                _newMacroType = 1;
+            }
+            ImGui.PopStyleVar();
+            
+            ImGui.Spacing();
+            ImGui.Spacing();
+            
+            // Buttons at the bottom
+            float buttonWidth = 120;
+            float windowWidth = ImGui.GetWindowWidth();
+            float totalButtonsWidth = buttonWidth * 2 + 10;  // Two buttons + spacing
+            float startPosX = (windowWidth - totalButtonsWidth) / 2;
+            
+            ImGui.SetCursorPosX(startPosX);
+            
+            // Create button
+            if (ImGui.Button("Create", new Vector2(buttonWidth, 0)))
+            {
+                MacroType selectedType = _newMacroType == 0 ? MacroType.Native : MacroType.Lua;
+                
+                var newMacro = new ConfigMacro
+                {
+                    Name = _newMacroName,
+                    Type = selectedType,
+                    Content = string.Empty
+                };
+                
+                if (_selectedFolderId != "Root")
+                {
+                    newMacro.FolderPath = _selectedFolderId;
+                }
+                
+                C.Macros.Add(newMacro);
+                _selectedMacroId = newMacro.Id;
+                
+                _showCreateMacroPopup = false;
+                ImGui.CloseCurrentPopup();
+            }
+            
+            ImGui.SameLine();
+            
+            // Cancel button
+            if (ImGui.Button("Cancel", new Vector2(buttonWidth, 0)))
+            {
+                _showCreateMacroPopup = false;
+                ImGui.CloseCurrentPopup();
+            }
+            
+            ImGui.EndPopup();
+        }
+        
+        ImGui.PopStyleVar();
+        
+        if (!isOpen)
+        {
+            _showCreateMacroPopup = false;
+        }
+    }
+    
     private void ShowCreateFolderPopup()
     {
         if (!_showCreateFolderPopup) return;
 
-        ImGui.SetNextWindowSize(new Vector2(300, 100));
-        if (ImGui.BeginPopupModal("CreateFolderPopup", ref _showCreateFolderPopup))
-        {
-            ImGui.Text("Enter folder name:");
-            ImGui.SetNextItemWidth(-1);
-            ImGui.InputText("##FolderNameInput", ref _newFolderName, 100);
+        // Center the popup
+        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
 
-            ImGui.Spacing();
+        // Use a fixed size popup with better styling
+        ImGui.SetNextWindowSize(new Vector2(400, 170));
+        
+        // Use specific flags to make popup work properly
+        bool isOpen = _showCreateFolderPopup;
+        
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(15, 15));
+        
+        if (ImGui.BeginPopupModal("Create New Folder##Popup", ref isOpen, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings))
+        {
+            // Header with icon
+            ImGuiX.Icon(FontAwesomeHelper.IconFolder);
+            ImGui.SameLine();
+            ImGui.Text("Create New Folder");
             ImGui.Separator();
             ImGui.Spacing();
-
-            if (ImGui.Button("Create", new Vector2(120, 0)))
+            
+            // Folder name input
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text("Name:");
+            ImGui.SameLine();
+            ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
+            ImGui.InputText("##FolderName", ref _newFolderName, 100);
+            ImGui.PopItemWidth();
+            
+            ImGui.Spacing();
+            ImGui.Spacing();
+            
+            // Buttons at the bottom
+            float buttonWidth = 120;
+            float windowWidth = ImGui.GetWindowWidth();
+            float totalButtonsWidth = buttonWidth * 2 + 10;  // Two buttons + spacing
+            float startPosX = (windowWidth - totalButtonsWidth) / 2;
+            
+            ImGui.SetCursorPosX(startPosX);
+            
+            // Create button
+            if (ImGui.Button("Create", new Vector2(buttonWidth, 0)))
             {
-                if (!string.IsNullOrWhiteSpace(_newFolderName))
+                // Check if folder exists already
+                bool folderExists = false;
+                foreach (var macro in C.Macros)
                 {
-                    // Create folder by simply using the name and track it in our custom folders
-                    _selectedFolderId = _newFolderName;
-                    _customFolders.Add(_newFolderName);
-                    
-                    // Create a dummy macro in the folder to ensure it exists in the config system
-                    // This can be removed if you implement a proper folder storage system later
+                    if (macro.FolderPath == _newFolderName)
+                    {
+                        folderExists = true;
+                        break;
+                    }
+                }
+                
+                if (!folderExists && !string.IsNullOrWhiteSpace(_newFolderName))
+                {
+                    // Create a dummy macro in the folder to ensure it exists
                     var dummyMacro = new ConfigMacro
                     {
                         Name = $"{_newFolderName} Template",
@@ -899,24 +1134,32 @@ public class MainWindow : Window
                         Type = MacroType.Native,
                         FolderPath = _newFolderName
                     };
-                    C.Macros.Add(dummyMacro);
-                    C.Save();
                     
-                    _newFolderName = string.Empty;
+                    C.Macros.Add(dummyMacro);
+                    _selectedFolderId = _newFolderName;
+                    
+                    _showCreateFolderPopup = false;
+                    ImGui.CloseCurrentPopup();
                 }
-                _showCreateFolderPopup = false;
-                ImGui.CloseCurrentPopup();
             }
-
+            
             ImGui.SameLine();
             
-            if (ImGui.Button("Cancel", new Vector2(120, 0)))
+            // Cancel button
+            if (ImGui.Button("Cancel", new Vector2(buttonWidth, 0)))
             {
                 _showCreateFolderPopup = false;
                 ImGui.CloseCurrentPopup();
             }
-
+            
             ImGui.EndPopup();
+        }
+        
+        ImGui.PopStyleVar();
+        
+        if (!isOpen)
+        {
+            _showCreateFolderPopup = false;
         }
     }
 

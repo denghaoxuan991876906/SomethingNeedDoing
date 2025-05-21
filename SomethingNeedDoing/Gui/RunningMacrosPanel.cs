@@ -24,10 +24,10 @@ public class RunningMacrosPanel
         using var panel = ImRaii.Child("RunningMacrosPanel", new Vector2(-1, _isCollapsed ? 30 : 150));
         if (!panel) return;
 
-        // Header with collapse button
-        string collapseText = _isCollapsed ? "▼" : "▶";
+        // Header with collapse button using FontAwesome icons
+        FontAwesomeIcon collapseIcon = _isCollapsed ? FontAwesomeHelper.IconExpanded : FontAwesomeHelper.IconCollapsed;
         
-        bool collapseClicked = ImGui.Button($"{collapseText}##collapse");
+        bool collapseClicked = ImGuiX.IconButton(collapseIcon, _isCollapsed ? "Collapse" : "Expand");
 
         if (collapseClicked)
         {
@@ -64,10 +64,14 @@ public class RunningMacrosPanel
         {
             var center = ImGui.GetContentRegionAvail() / 2;
 
-            var icon = "◙"; // Simple text replacement for icon
-            var iconSize = ImGui.CalcTextSize(icon);
-            ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2(center.X - iconSize.X / 2, center.Y - 30));
-            ImGui.TextColored(ImGuiColors.DalamudGrey, icon);
+            // Display the desktop icon properly
+            ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2(center.X, center.Y - 30)); 
+            ImGui.PushFont(UiBuilder.IconFont);
+            var iconText = FontAwesomeIcon.Desktop.ToIconString();
+            var iconSize = ImGui.CalcTextSize(iconText);
+            ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2(-iconSize.X / 2, 0));
+            ImGui.TextColored(ImGuiColors.DalamudGrey, iconText);
+            ImGui.PopFont();
 
             var text = "No running macros";
             var textSize = ImGui.CalcTextSize(text);
@@ -101,11 +105,12 @@ public class RunningMacrosPanel
         ImGui.Text(macro.Name);
         ImGui.SameLine(ImGui.GetWindowWidth() - 200);
 
-        // Control buttons with text instead of icons
+        // Control buttons with proper FontAwesome icons
         var state = _scheduler.GetMacroState(macro.Id);
-        string actionText = state == MacroState.Paused ? "▶ Resume" : "⏸ Pause";
+        FontAwesomeIcon actionIcon = state == MacroState.Paused ? FontAwesomeHelper.IconPlay : FontAwesomeHelper.IconPause;
+        string actionText = state == MacroState.Paused ? "Resume" : "Pause";
 
-        bool actionClicked = ImGui.Button($"{actionText}##action");
+        bool actionClicked = ImGuiX.IconTextButton(actionIcon, actionText);
 
         if (actionClicked)
         {
@@ -117,7 +122,7 @@ public class RunningMacrosPanel
 
         ImGui.SameLine();
 
-        bool stopClicked = ImGui.Button("⏹ Stop##stop");
+        bool stopClicked = ImGuiX.IconTextButton(FontAwesomeHelper.IconStop, "Stop");
 
         if (stopClicked)
         {
@@ -140,11 +145,12 @@ public class RunningMacrosPanel
         ImGui.Separator();
         ImGui.Spacing();
 
-        // Control buttons with text
+        // Control buttons with proper FontAwesome icons
         var state = _scheduler.GetMacroState(macro.Id);
-        string actionText = state == MacroState.Paused ? "▶ Resume" : "⏸ Pause";
+        FontAwesomeIcon actionIcon = state == MacroState.Paused ? FontAwesomeHelper.IconPlay : FontAwesomeHelper.IconPause;
+        string actionText = state == MacroState.Paused ? "Resume" : "Pause";
 
-        bool actionClicked = ImGui.Button($"{actionText}##action", new Vector2(80, 0));
+        bool actionClicked = ImGuiX.IconTextButton(actionIcon, actionText, new Vector2(80, 0));
 
         if (actionClicked)
         {
@@ -155,7 +161,7 @@ public class RunningMacrosPanel
         }
 
         ImGui.SameLine();
-        bool stopClicked = ImGui.Button("⏹ Stop##stop", new Vector2(80, 0));
+        bool stopClicked = ImGuiX.IconTextButton(FontAwesomeHelper.IconStop, "Stop", new Vector2(80, 0));
 
         if (stopClicked)
         {
@@ -165,13 +171,18 @@ public class RunningMacrosPanel
 
     private string GetStatusText(MacroState state)
     {
-        return state switch
+        FontAwesomeIcon icon = state switch
         {
-            MacroState.Completed => "✓",
-            MacroState.Running => "⏵",
-            MacroState.Paused => "⏸",
-            MacroState.Error => "✗",
-            _ => "◌"
+            MacroState.Completed => FontAwesomeHelper.IconCompletedStatus,
+            MacroState.Running => FontAwesomeHelper.IconRunningStatus,
+            MacroState.Paused => FontAwesomeHelper.IconPausedStatus,
+            MacroState.Error => FontAwesomeHelper.IconErrorStatus,
+            _ => FontAwesomeIcon.Circle
         };
+        
+        ImGui.PushFont(UiBuilder.IconFont);
+        string iconText = icon.ToIconString();
+        ImGui.PopFont();
+        return iconText;
     }
 }

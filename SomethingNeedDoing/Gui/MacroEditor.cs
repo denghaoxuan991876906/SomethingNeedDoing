@@ -1,5 +1,6 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
 using SomethingNeedDoing.Core.Github;
@@ -173,7 +174,7 @@ public class MacroEditor
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.8f, 0.3f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.4f, 0.9f, 0.4f, 1.0f));
         
-        if (ImGui.Button("▶ Run", new Vector2(buttonWidth, 0)))
+        if (ImGuiX.IconTextButton(FontAwesomeHelper.IconPlay, "Run", new Vector2(buttonWidth, 0)))
         {
             _scheduler.StartMacro(macro);
         }
@@ -187,7 +188,7 @@ public class MacroEditor
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.8f, 0.3f, 0.3f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.9f, 0.4f, 0.4f, 1.0f));
         
-        if (ImGui.Button("■ Stop", new Vector2(buttonWidth, 0)))
+        if (ImGuiX.IconTextButton(FontAwesomeHelper.IconStop, "Stop", new Vector2(buttonWidth, 0)))
         {
             _scheduler.StopMacro(macro.Id);
         }
@@ -196,10 +197,17 @@ public class MacroEditor
 
         ImGui.SameLine();
         
-        if (ImGui.Button("📋 Copy", new Vector2(buttonWidth, 0)))
+        // Copy button with gray color
+        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.4f, 0.4f, 0.4f, 1.0f));
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.5f, 0.5f, 0.5f, 1.0f));
+        
+        if (ImGuiX.IconTextButton(FontAwesomeHelper.IconCopy, "Copy", new Vector2(buttonWidth, 0)))
         {
             ImGui.SetClipboardText(macro.Content);
         }
+        
+        ImGui.PopStyleColor(3);
         
         // Add some spacing
         ImGui.SameLine(0, 20);
@@ -209,29 +217,32 @@ public class MacroEditor
         ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
         
         // Line numbers toggle
-        if (ImGui.Button(_showLineNumbers ? "123#" : "---#", new Vector2(iconButtonWidth, 0)))
+        if (ImGuiX.IconButton(
+            _showLineNumbers ? FontAwesomeHelper.IconSortAsc : FontAwesomeHelper.IconSortDesc, 
+            "Toggle Line Numbers"))
         {
             _showLineNumbers = !_showLineNumbers;
         }
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Toggle Line Numbers");
         
         ImGui.SameLine();
         
         // Syntax highlighting toggle
-        if (ImGui.Button(_highlightSyntax ? "🎨" : "⬜", new Vector2(iconButtonWidth, 0)))
+        if (ImGuiX.IconButton(
+            _highlightSyntax ? FontAwesomeHelper.IconCheck : FontAwesomeHelper.IconXmark, 
+            "Toggle Syntax Highlighting"))
         {
             _highlightSyntax = !_highlightSyntax;
         }
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Toggle Syntax Highlighting");
         
         ImGui.SameLine();
         
         // Word wrap toggle
-        if (ImGui.Button(_wrapText ? "↩" : "→", new Vector2(iconButtonWidth, 0)))
+        if (ImGuiX.IconButton(
+            _wrapText ? FontAwesomeHelper.IconIndent : FontAwesomeHelper.IconAlignLeft, 
+            "Toggle Word Wrap"))
         {
             _wrapText = !_wrapText;
         }
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Toggle Word Wrap");
         
         ImGui.PopStyleColor();
     }
