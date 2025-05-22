@@ -30,7 +30,6 @@ public class MacroEditor
     private bool _showLineNumbers = true;
     private int _tabSize = 4;
     private bool _highlightSyntax = true;
-    private bool _wrapText = false;
     
     // Lua keywords and patterns for syntax highlighting
     private static readonly string[] LuaKeywords = new[] { 
@@ -237,16 +236,6 @@ public class MacroEditor
             _highlightSyntax = !_highlightSyntax;
         }
         
-        ImGui.SameLine();
-        
-        // Word wrap toggle
-        if (ImGuiX.IconButton(
-            _wrapText ? FontAwesomeHelper.IconIndent : FontAwesomeHelper.IconAlignLeft, 
-            "Toggle Word Wrap"))
-        {
-            _wrapText = !_wrapText;
-        }
-        
         ImGui.PopStyleColor();
     }
 
@@ -310,7 +299,6 @@ public class MacroEditor
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, editorPadding));
         
         ImGuiInputTextFlags flags = ImGuiInputTextFlags.AllowTabInput;
-        if (_wrapText) flags |= ImGuiInputTextFlags.NoHorizontalScroll;
         
         // For editable macros
         if (macro is ConfigMacro configMacro)
