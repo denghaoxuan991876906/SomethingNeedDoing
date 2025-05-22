@@ -10,6 +10,8 @@ using ImGuiNET;
 using Dalamud.Interface;
 using System.Numerics;
 using SomethingNeedDoing.Utils;
+using System.Threading.Tasks;
+using System.IO;
 
 namespace SomethingNeedDoing;
 
@@ -29,6 +31,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly MainWindow _mainWindow;
     private readonly RunningMacrosTab _runningMacrosTab;
     private readonly IMacroScheduler _macroScheduler;
+    private bool _isFirstDraw = true;
 
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
@@ -41,7 +44,7 @@ public sealed class Plugin : IDalamudPlugin
         //_config.Migrate(_config);
         //_config.ValidateMigration();
         EzConfig.Save();
-
+        
         // Set up dependency injection
         var services = new ServiceCollection();
         services.AddSomethingNeedDoingServices();
@@ -60,12 +63,44 @@ public sealed class Plugin : IDalamudPlugin
         // Set up commands and UI
         Svc.Framework.RunOnFrameworkThread(() =>
         {
+            Svc.PluginInterface.UiBuilder.Draw += CheckFontsOnFirstDraw;
             Svc.PluginInterface.UiBuilder.Draw += DrawDevBarEntry;
             Svc.PluginInterface.UiBuilder.Draw += _windowSystem.Draw;
             Svc.PluginInterface.UiBuilder.OpenConfigUi += ToggleMainWindow;
             EzCmd.Add(Command, OnChatCommand, "Open a window to edit various settings.", displayOrder: int.MaxValue);
             Aliases.ToList().ForEach(a => EzCmd.Add(a, OnChatCommand, $"{Command} Alias"));
         });
+    }
+
+    private void CheckFontsOnFirstDraw()
+    {
+        if (!_isFirstDraw) return;
+        _isFirstDraw = false;
+
+        // Unregister this handler after first draw
+        Svc.PluginInterface.UiBuilder.Draw -= CheckFontsOnFirstDraw;
+        
+        // Check if IconFont is properly loaded
+        bool isFontValid = UiBuilder.IconFont.IsLoaded();
+        
+        if (!isFontValid)
+        {
+            Svc.Chat.PrintError("[SomethingNeedDoing] WARNING: FontAwesome icon font is not loaded properly.");
+            Svc.Chat.PrintError("[SomethingNeedDoing] This may cause toolbar icons to display incorrectly.");
+            Svc.Chat.Print("[SomethingNeedDoing] Try reloading the plugin if icons appear as '=' characters.");
+        }
+        else
+        {
+            Svc.Chat.Print("[SomethingNeedDoing] FontAwesome icon font loaded successfully.");
+            
+            // Check first time run and show tutorial
+            if (!C.HasCompletedTutorial)
+            {
+                Svc.Chat.Print("[SomethingNeedDoing] Welcome! Type /snd to open the main window.");
+                C.HasCompletedTutorial = true;
+                C.Save();
+            }
+        }
     }
 
     private void DrawDevBarEntry()
@@ -87,7 +122,8 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     public void Dispose()
-    {
+    {        
+        Svc.PluginInterface.UiBuilder.Draw -= CheckFontsOnFirstDraw;
         Svc.PluginInterface.UiBuilder.Draw -= _windowSystem.Draw;
         Svc.PluginInterface.UiBuilder.OpenConfigUi -= ToggleMainWindow;
         _windowSystem.RemoveAllWindows();

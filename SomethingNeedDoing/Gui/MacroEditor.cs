@@ -174,7 +174,8 @@ public class MacroEditor
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.8f, 0.3f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.4f, 0.9f, 0.4f, 1.0f));
         
-        if (ImGuiX.IconTextButton(FontAwesomeHelper.IconPlay, "Run", new Vector2(buttonWidth, 0)))
+        // Use direct FontAwesomeIcon values to ensure proper icon display
+        if (ImGuiX.IconTextButton(FontAwesomeIcon.PlayCircle, "Run", new Vector2(buttonWidth, 0)))
         {
             _scheduler.StartMacro(macro);
         }
@@ -188,7 +189,8 @@ public class MacroEditor
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.8f, 0.3f, 0.3f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.9f, 0.4f, 0.4f, 1.0f));
         
-        if (ImGuiX.IconTextButton(FontAwesomeHelper.IconStop, "Stop", new Vector2(buttonWidth, 0)))
+        // Use direct FontAwesomeIcon values to ensure proper icon display
+        if (ImGuiX.IconTextButton(FontAwesomeIcon.StopCircle, "Stop", new Vector2(buttonWidth, 0)))
         {
             _scheduler.StopMacro(macro.Id);
         }
@@ -202,7 +204,8 @@ public class MacroEditor
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.4f, 0.4f, 0.4f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.5f, 0.5f, 0.5f, 1.0f));
         
-        if (ImGuiX.IconTextButton(FontAwesomeHelper.IconCopy, "Copy", new Vector2(buttonWidth, 0)))
+        // Use direct FontAwesomeIcon values to ensure proper icon display
+        if (ImGuiX.IconTextButton(FontAwesomeIcon.Clipboard, "Copy", new Vector2(buttonWidth, 0)))
         {
             ImGui.SetClipboardText(macro.Content);
         }
