@@ -1,5 +1,6 @@
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
+using Dalamud.Game.Command;
 using ECommons;
 using ECommons.Configuration;
 using ECommons.SimpleGui;
@@ -29,7 +30,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly ServiceProvider _serviceProvider;
     private readonly WindowSystem _windowSystem;
     private readonly MainWindow _mainWindow;
-    private readonly RunningMacrosTab _runningMacrosTab;
+    private readonly MacroStatusWindow _macroStatusWindow;
     private readonly IMacroScheduler _macroScheduler;
     private bool _isFirstDraw = true;
 
@@ -54,11 +55,11 @@ public sealed class Plugin : IDalamudPlugin
         _windowSystem = _serviceProvider.GetRequiredService<WindowSystem>();
         _macroScheduler = _serviceProvider.GetRequiredService<IMacroScheduler>();
         _mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-        _runningMacrosTab = _serviceProvider.GetRequiredService<RunningMacrosTab>();
+        _macroStatusWindow = _serviceProvider.GetRequiredService<MacroStatusWindow>();
         
         // Initialize UI
         _windowSystem.AddWindow(_mainWindow);
-        _windowSystem.AddWindow(_runningMacrosTab);
+        _windowSystem.AddWindow(_macroStatusWindow);
 
         // Set up commands and UI
         Svc.Framework.RunOnFrameworkThread(() =>
@@ -69,6 +70,20 @@ public sealed class Plugin : IDalamudPlugin
             Svc.PluginInterface.UiBuilder.OpenConfigUi += ToggleMainWindow;
             EzCmd.Add(Command, OnChatCommand, "Open a window to edit various settings.", displayOrder: int.MaxValue);
             Aliases.ToList().ForEach(a => EzCmd.Add(a, OnChatCommand, $"{Command} Alias"));
+        });
+
+        // Set up commands
+        Svc.Commands.AddHandler(Command, new CommandInfo(OnCommand)
+        {
+            HelpMessage = "Opens the Something Need Doing UI",
+            ShowInHelp = true
+        });
+        
+        // Add additional command for status window
+        Svc.Commands.AddHandler("/sndstatus", new CommandInfo(ToggleStatusWindow)
+        {
+            HelpMessage = "Toggle the macro status window",
+            ShowInHelp = true
         });
     }
 
@@ -176,5 +191,28 @@ public sealed class Plugin : IDalamudPlugin
             C.SetProperty(args[0], args[1]);
             return;
         }
+    }
+
+    private void OnCommand(string command, string args)
+    {
+        var argParts = args.ToLowerInvariant().Split(' ');
+        
+        if (args == "drgn")
+        {
+            Svc.Chat.Print("Mrraaz...");
+            return;
+        }
+        
+        _mainWindow.IsOpen = true;
+    }
+    
+    private void ToggleStatusWindow(string command, string args)
+    {
+        // Toggle status window visibility
+        _macroStatusWindow.IsOpen = !_macroStatusWindow.IsOpen;
+        
+        // If we're opening it, bring it to front
+        if (_macroStatusWindow.IsOpen)
+            _macroStatusWindow.BringToFront();
     }
 }

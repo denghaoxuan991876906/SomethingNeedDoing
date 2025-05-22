@@ -3,6 +3,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
 using System;
 using System.Numerics;
@@ -26,36 +27,45 @@ public class MainWindow : Window
     private readonly WindowSystem _ws;
     private readonly IMacroScheduler _scheduler;
     private readonly GitMacroManager _gitManager;
-    private readonly MacroStatusIndicator _statusIndicator;
+    private readonly MacroStatusWindow _statusWindow;
 
-    // Macro selection state
+    // Macro selection
     private string _selectedMacroId = string.Empty;
     private string _searchText = string.Empty;
 
-    // Add these fields to the MainWindow class
+    // Rename popup
     private string _renameMacroBuffer = string.Empty;
     private bool _showRenamePopup = false;
     private string _macroToRename = string.Empty;
     
-    // Fields for the new macro creation popup
+    // New macro popup
     private string _newMacroName = "New Macro";
     private bool _showCreateMacroPopup = false;
     private int _newMacroType = 0; // 0 = Native, 1 = Lua
 
-    // Add these fields for folder management
+    // Folder management
     private string _selectedFolderId = "General";  // Default to General folder instead of Root
     private string _newFolderName = string.Empty;
     private bool _showCreateFolderPopup = false;
-    private bool _isDraggingMacro = false;
-    private string _draggedMacroId = string.Empty;
 
-    // Add this field to store custom folders that might be empty
+    // Storage for custom folders that might be empty
     private HashSet<string> _customFolders = new HashSet<string>();
     
-    // Default folder name constant
+    // Track which folders are expanded
+    private HashSet<string> _expandedFolders = new HashSet<string>();
+    
+    // Panel resizing
+    private float _leftPanelWidth = 250f;
+    private float _minLeftPanelWidth = 180f;
+    private float _maxLeftPanelWidth = 400f;
+    
+    // Default folder
     private const string DEFAULT_FOLDER = "General";
+    
+    // UI state
+    private bool _isFolderSectionCollapsed = false;
 
-    public MainWindow(WindowSystem ws, IMacroScheduler scheduler, GitMacroManager gitManager, RunningMacrosPanel runningPanel, MacroEditor macroEditor, HelpUI helpUI)
+    public MainWindow(WindowSystem ws, IMacroScheduler scheduler, GitMacroManager gitManager, RunningMacrosPanel runningPanel, MacroEditor macroEditor, HelpUI helpUI, MacroStatusWindow statusWindow)
         : base("Something Need Doing", ImGuiWindowFlags.NoScrollbar)
     {
         _ws = ws;
@@ -64,7 +74,7 @@ public class MainWindow : Window
         _runningPanel = runningPanel;
         _macroEditor = macroEditor;
         _helpUI = helpUI;
-        _statusIndicator = new MacroStatusIndicator(scheduler);
+        _statusWindow = statusWindow;
 
         Size = new Vector2(1000, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
@@ -152,12 +162,6 @@ public class MainWindow : Window
             ImGui.EndTabItem();
         }
 
-        if (ImGui.BeginTabItem("Running Macros"))
-        {
-            _runningPanel.Draw();
-            ImGui.EndTabItem();
-        }
-
         if (ImGui.BeginTabItem("Help"))
         {
             _helpUI.Draw();
@@ -170,14 +174,7 @@ public class MainWindow : Window
             ImGui.EndTabItem();
         }
         
-        // Status indicator placed at the right edge of the tab bar
-        float indicatorWidth = 150f;
-        float windowWidth = ImGui.GetWindowWidth();
-        float tabBarHeight = ImGui.GetItemRectSize().Y; // Get the height of the tab bar
-        
-        // Position indicator at the right edge, aligned with tabs
-        ImGui.SameLine(windowWidth - indicatorWidth - 10);
-        _statusIndicator.Draw(indicatorWidth, tabBarHeight - 4); // Slightly smaller than tab height
+        ImGui.EndTabBar();
         
         // Show rename popup if active
         ShowRenamePopup();
@@ -185,73 +182,245 @@ public class MainWindow : Window
 
     private void DrawSettingsTab()
     {
-        ImGui.Text("General Settings");
-        ImGui.Separator();
+        // We'll use a child area with scrolling for the settings
+        ImGui.BeginChild("SettingsScrollArea", new Vector2(-1, -1), false);
         
-        // Add settings controls here
-        var useCraftLoopTemplate = C.UseCraftLoopTemplate;
-        if (ImGui.Checkbox("Enable automatic updates for Git macros", ref useCraftLoopTemplate))
+        // Start with collapsing headers for each section
+        if (ImGui.CollapsingHeader("General Settings", ImGuiTreeNodeFlags.DefaultOpen))
         {
-            C.UseCraftLoopTemplate = useCraftLoopTemplate;
-            C.Save();
-        }
+            ImGui.Indent(10);
+            
+            // Basic settings
+            var useCraftLoopTemplate = C.UseCraftLoopTemplate;
+            if (ImGui.Checkbox("Enable automatic updates for Git macros", ref useCraftLoopTemplate))
+            {
+                C.UseCraftLoopTemplate = useCraftLoopTemplate;
+                C.Save();
+            }
 
-        var craftSkip = C.CraftSkip;
-        if (ImGui.Checkbox("Enable unsafe actions during crafting", ref craftSkip))
-        {
-            C.CraftSkip = craftSkip;
-            C.Save();
+            var craftSkip = C.CraftSkip;
+            if (ImGui.Checkbox("Enable unsafe actions during crafting", ref craftSkip))
+            {
+                C.CraftSkip = craftSkip;
+                C.Save();
+            }
+            
+            ImGui.Unindent(10);
         }
+        
+        // Native macro options
+        if (ImGui.CollapsingHeader("Native Macro Options"))
+        {
+            ImGui.Indent(10);
+            
+            var qualitySkip = C.QualitySkip;
+            if (ImGui.Checkbox("Skip quality actions at max quality", ref qualitySkip))
+            {
+                C.QualitySkip = qualitySkip;
+                C.Save();
+            }
+            
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("When enabled, quality-increasing actions will be skipped at max quality");
+            }
+
+            var loopTotal = C.LoopTotal;
+            if (ImGui.Checkbox("Loop command specifies total iterations", ref loopTotal))
+            {
+                C.LoopTotal = loopTotal;
+                C.Save();
+            }
+            
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("When enabled, /loop 5 means 'loop a total of 5 times' instead of 'loop 5 more times'");
+            }
+            
+            ImGui.Unindent(10);
+        }
+        
+        // UI Automation options
+        if (ImGui.CollapsingHeader("UI Automation Options"))
+        {
+            ImGui.Indent(10);
+            
+            var stopMacroIfAddonNotFound = C.StopMacroIfAddonNotFound;
+            if (ImGui.Checkbox("Stop macro if UI element is not found", ref stopMacroIfAddonNotFound))
+            {
+                C.StopMacroIfAddonNotFound = stopMacroIfAddonNotFound;
+                C.Save();
+            }
+            
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("When enabled, macros will stop if a UI element is not found");
+            }
+            
+            ImGui.Unindent(10);
+        }
+        
+        // Git Macros section
+        if (ImGui.CollapsingHeader("Git Macros"))
+        {
+            ImGui.Indent(10);
+            
+            ImGui.TextWrapped("Git macros allow you to use macros directly from GitHub repositories.");
+            ImGui.TextWrapped("These macros can be automatically updated when changes are made to the source repository.");
+            
+            ImGui.Spacing();
+            ImGui.TextColored(ImGuiColors.DalamudViolet, "How to Add a Git Macro:");
+            
+            ImGui.TextWrapped("1. Copy a GitHub URL to your clipboard. Supported formats:");
+            ImGui.Indent(10);
+            ImGui.TextColored(ImGuiColors.DalamudYellow, "• GitHub file URL: https://github.com/username/repo/blob/main/path/to/macro.txt");
+            ImGui.TextColored(ImGuiColors.DalamudYellow, "• GitHub Gist URL: https://gist.github.com/username/gistid");
+            ImGui.Unindent(10);
+            
+            ImGui.TextWrapped("2. Click the 'New Macro' button in the main interface");
+            ImGui.TextWrapped("3. The URL will be detected automatically and the macro will be imported");
+            
+            ImGui.Spacing();
+            ImGui.TextColored(ImGuiColors.DalamudViolet, "Git Macro Features:");
+            
+            ImGui.TextWrapped("• Automatic Updates: Git macros check for updates when loaded");
+            ImGui.TextWrapped("• Metadata: Git macros can include author info, version details, and documentation");
+            
+            ImGui.Unindent(10);
+        }
+        
+        // Lua Script Options
+        if (ImGui.CollapsingHeader("Lua Script Options"))
+        {
+            ImGui.Indent(10);
+            
+            ImGui.TextWrapped("Lua require paths (where to look for Lua modules):");
+            
+            var paths = C.LuaRequirePaths.ToArray();
+            for (var index = 0; index < paths.Length; index++)
+            {
+                var path = paths[index];
+                
+                if (ImGui.InputText($"Path #{index}", ref path, 200))
+                {
+                    var newPaths = paths.ToList();
+                    newPaths[index] = path;
+                    C.LuaRequirePaths = newPaths.Where(p => !string.IsNullOrWhiteSpace(p)).ToArray();
+                    C.Save();
+                }
+            }
+
+            if (ImGui.Button("Add Path"))
+            {
+                var newPaths = paths.ToList();
+                newPaths.Add(string.Empty);
+                C.LuaRequirePaths = newPaths.ToArray();
+                C.Save();
+            }
+            
+            ImGui.Unindent(10);
+        }
+        
+        ImGui.Separator();
+        ImGui.Spacing();
+        
+        // Import/Export Section
+        ImGui.TextColored(ImGuiColors.DalamudViolet, "Import Configuration");
+        ImGui.Spacing();
+        
+        // Instructions for import
+        ImGui.TextWrapped("Import configuration from a previous version of SomethingNeedDoing:");
+        ImGui.TextWrapped("1. Copy the old config JSON to clipboard");
+        ImGui.TextWrapped("2. Click the Import button below");
+        ImGui.Spacing();
+        
+        // Import button with better label
+        if (ImGuiX.IconButton(FontAwesomeHelper.IconImport, "Import from Clipboard"))
+        {
+            var clipboard = ImGui.GetClipboardText();
+            if (!string.IsNullOrEmpty(clipboard))
+            {
+                try 
+                {
+                    // Create and show the migration preview window with more explicit logging
+                    Svc.Log.Information("Creating migration preview window...");
+                    var migrationWindow = new MigrationPreviewWindow(_ws, clipboard);
+                    migrationWindow.IsOpen = true;
+                    _ws.AddWindow(migrationWindow);
+                    Svc.Log.Information($"Migration window created and added to window system. IsOpen: {migrationWindow.IsOpen}");
+                    
+                    // Force the window to appear in the foreground
+                    migrationWindow.BringToFront();
+                    
+                    // Notify the user
+                    Svc.Chat.Print("Migration preview window opened. Please review the changes.");
+                }
+                catch (Exception ex)
+                {
+                    Svc.Log.Error(ex, "Failed to create migration preview window");
+                    Svc.Chat.PrintError($"Failed to import: {ex.Message}");
+                }
+            }
+            else
+            {
+                Svc.Chat.PrintError("No configuration data in clipboard");
+            }
+        }
+        
+        ImGui.EndChild(); // End SettingsScrollArea
     }
 
     private void DrawMacrosTab()
     {
-        // Split layout between folder/macro tree (left) and editor (right)
-        float leftPanelWidth = 250 * ImGuiHelpers.GlobalScale;
+        // Get UI scale
+        float scale = ImGuiHelpers.GlobalScale;
+        
+        // Calculate scaled widths
+        float minWidth = _minLeftPanelWidth * scale;
+        float maxWidth = _maxLeftPanelWidth * scale;
+        float leftPanelWidth = _leftPanelWidth * scale;
         float windowPadding = ImGui.GetStyle().WindowPadding.X * 2;
         
-        // Remove the status indicator from here since it's now in the tab bar
+        // Start resizable two-column layout
+        ImGui.BeginTable("MainLayout", 2, ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.Resizable);
         
-        // Remove the buttons from top toolbar
-        
-        // Separator after toolbar
-        ImGui.Separator();
-        
-        // Two-column layout
-        ImGui.BeginTable("MainLayout", 2, ImGuiTableFlags.BordersInnerV);
-        
-        // First column - Folders/Macros tree (left side)
+        // Setup columns
         ImGui.TableSetupColumn("Tree", ImGuiTableColumnFlags.WidthFixed, leftPanelWidth);
         ImGui.TableSetupColumn("Editor", ImGuiTableColumnFlags.WidthStretch);
         
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         
-        // Search box now only appears above the folder/macro tree
+        // Search box
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##Search", "Search Folders & Macros...", ref _searchText, 100);
         
         ImGui.Separator();
         
-        // Begin left panel for folders and macros - full height (no status bar at bottom)
+        // Folders and macros panel
         ImGui.BeginChild("LeftPanel", new Vector2(0, -1), true);
-        
-        // Create combined tree view for folders and macros
         DrawFolderMacroTree();
+        ImGui.EndChild();
         
-        ImGui.EndChild(); // End LeftPanel
+        // Store user's panel resizing
+        if (ImGui.TableGetColumnFlags(0).HasFlag(ImGuiTableColumnFlags.WidthFixed))
+        {
+            float currentWidth = ImGui.GetColumnWidth(0) / scale;
+            currentWidth = Math.Clamp(currentWidth, _minLeftPanelWidth, _maxLeftPanelWidth);
+            
+            if (Math.Abs(_leftPanelWidth - currentWidth) > 1f)
+            {
+                _leftPanelWidth = currentWidth;
+            }
+        }
         
-        // Second column - Editor and Macro settings
+        // Editor panel
         ImGui.TableNextColumn();
-        
-        // Right side for macro editor and settings - full height (no status bar at bottom)
         ImGui.BeginChild("RightPanel", new Vector2(0, -1), false);
         
-        // Show selected macro
         var selectedMacro = GetSelectedMacro();
         if (selectedMacro != null)
         {
-            // Remove the duplicate toolbar buttons
             _macroEditor.Draw(selectedMacro);
         }
         else
@@ -259,9 +428,8 @@ public class MainWindow : Window
             DrawEmptyState();
         }
         
-        ImGui.EndChild(); // End RightPanel
-        
-        ImGui.EndTable(); // End MainLayout table
+        ImGui.EndChild();
+        ImGui.EndTable();
     }
     
     private void DrawFolderMacroTree()
@@ -273,177 +441,203 @@ public class MainWindow : Window
         // If there's no search, display the hierarchical tree
         if (string.IsNullOrEmpty(_searchText))
         {
-            // FOLDERS SECTION - more compact header without New Folder button
+            // FOLDERS SECTION HEADER WITH COLLAPSE TOGGLE
             ImGui.BeginGroup();
+            
+            // Draw the FOLDERS text with violet color
             ImGui.TextColored(ImGuiColors.DalamudViolet, "FOLDERS");
-            ImGui.EndGroup();
             
-            // Make a scrollable area for the folder tree to maximize available space
-            ImGui.BeginChild("FolderTreeArea", new Vector2(-1, ImGui.GetContentRegionAvail().Y * 0.6f), false);
+            // Add buttons next to the FOLDERS text
+            float textWidth = ImGui.CalcTextSize("FOLDERS").X;
+            ImGui.SameLine(textWidth + 15);
             
-            // Root/All Macros node
-            bool isRootSelected = _selectedFolderId == "Root";
-            int rootCount = C.Macros.Count; // Total macro count
+            // Add collapse toggle button
+            float buttonSize = ImGui.GetFrameHeight() * 1.2f; // Standard button size for all buttons
             
-            ImGuiX.Icon(FontAwesomeHelper.IconHome);
-            ImGui.SameLine();
-            
-            if (ImGui.TreeNodeEx($"All Macros ({rootCount})##root", 
-                isRootSelected ? ImGuiTreeNodeFlags.Selected : ImGuiTreeNodeFlags.None))
+            using (var iconFont = ImRaii.PushFont(UiBuilder.IconFont))
             {
-                if (ImGui.IsItemClicked())
+                if (ImGui.Button(_isFolderSectionCollapsed 
+                    ? $"{FontAwesomeIcon.AngleDown.ToIconString()}##ExpandFolders" 
+                    : $"{FontAwesomeIcon.AngleUp.ToIconString()}##CollapseFolders", 
+                    new Vector2(buttonSize)))
                 {
-                    _selectedFolderId = "Root";
-                    _selectedMacroId = string.Empty; // Clear macro selection
+                    _isFolderSectionCollapsed = !_isFolderSectionCollapsed;
                 }
                 
-                // Root is just a view, no sub-items
-                ImGui.TreePop();
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip(_isFolderSectionCollapsed ? "Expand folder tree" : "Collapse folder tree");
             }
             
-            // Get all real folders
-            var allFolders = new HashSet<string>(C.GetFolderPaths());
+            // New Macro button - with consistent size
+            ImGui.SameLine(0, 5);
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4)); // Consistent padding
             
-            // Ensure our selected folder exists in the set
-            if (!allFolders.Contains(_selectedFolderId) && _selectedFolderId != "Root")
+            using (var iconFont = ImRaii.PushFont(UiBuilder.IconFont))
             {
-                allFolders.Add(_selectedFolderId);
-            }
-            
-            // Display all folders as tree nodes
-            foreach (var folderPath in allFolders)
-            {
-                if (folderPath != "Root" && !string.IsNullOrEmpty(folderPath))
+                if (ImGui.Button($"{FontAwesomeIcon.FileAlt.ToIconString()}##NewMacro", new Vector2(buttonSize)))
                 {
-                    bool isSelected = _selectedFolderId == folderPath;
-                    int folderCount = C.GetMacroCount(folderPath);
-                    
-                    // Display folder as a tree node with macro count
-                    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.SpanAvailWidth;
-                    if (isSelected) flags |= ImGuiTreeNodeFlags.Selected;
-                    
-                    ImGuiX.Icon(FontAwesomeHelper.IconFolder);
-                    ImGui.SameLine();
-                    
-                    bool folderOpen = ImGui.TreeNodeEx($"{folderPath} ({folderCount})##folder_{folderPath}", flags);
-                    
+                    // Reset popup fields
+                    _newMacroName = "New Macro";
+                    _newMacroType = 0; // Default to Native
+                    _showCreateMacroPopup = true;
+                    ImGui.OpenPopup("Create New Macro##Popup");
+                }
+            }
+            
+            // Show tooltip
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Create a new macro");
+                
+            // New Folder button - with consistent size
+            ImGui.SameLine(0, 5);
+            using (var iconFont = ImRaii.PushFont(UiBuilder.IconFont))
+            {
+                if (ImGui.Button($"{FontAwesomeIcon.FolderPlus.ToIconString()}##NewFolder", new Vector2(buttonSize)))
+                {
+                    // Reset and show folder creation popup
+                    _newFolderName = "New Folder";
+                    _showCreateFolderPopup = true;
+                    ImGui.OpenPopup("Create New Folder##Popup");
+                }
+            }
+            
+            // Show tooltip
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Create a new folder");
+                
+            ImGui.PopStyleVar();
+            
+            ImGui.EndGroup();
+            
+            // Only show folder tree if not collapsed
+            if (!_isFolderSectionCollapsed)
+            {
+                // Make a scrollable area for the folder tree to maximize available space
+                ImGui.BeginChild("FolderTreeArea", new Vector2(-1, ImGui.GetContentRegionAvail().Y * 0.6f), false);
+                
+                // Root/All Macros node - make it clearer
+                bool isRootSelected = _selectedFolderId == "Root";
+                int rootCount = C.Macros.Count; // Total macro count
+                
+                using (var iconFont = ImRaii.PushFont(UiBuilder.IconFont))
+                {
+                    ImGui.TextColored(ImGuiColors.DalamudYellow, FontAwesomeIcon.Search.ToIconString());
+                }
+                ImGui.SameLine();
+                
+                if (ImGui.TreeNodeEx($"Show All Macros ({rootCount})##root", 
+                    isRootSelected ? ImGuiTreeNodeFlags.Selected : ImGuiTreeNodeFlags.None))
+                {
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("View macros from all folders");
+                        
                     if (ImGui.IsItemClicked())
                     {
-                        _selectedFolderId = folderPath;
+                        _selectedFolderId = "Root";
                         _selectedMacroId = string.Empty; // Clear macro selection
                     }
                     
-                    // Handle drop target for folders
-                    if (ImGui.BeginDragDropTarget())
-                    {
-                        if (_isDraggingMacro && !string.IsNullOrEmpty(_draggedMacroId))
-                        {
-                            ImGui.Text($"Drop to move to {folderPath}");
-                            if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
-                            {
-                                MoveMacroToFolder(_draggedMacroId, folderPath);
-                                _isDraggingMacro = false;
-                                _draggedMacroId = string.Empty;
-                            }
-                        }
-                        ImGui.EndDragDropTarget();
-                    }
-                    
-                    // Context menu for folder operations
-                    if (ImGui.BeginPopupContextItem())
-                    {
-                        if (ImGui.MenuItem("Delete Folder"))
-                        {
-                            DeleteFolder(folderPath);
-                        }
-                        ImGui.EndPopup();
-                    }
-                    
-                    // If folder is open, show macros within this folder
-                    if (folderOpen)
-                    {
-                        // Add indent for macros in the folder
-                        ImGui.Indent(10);
-                        
-                        // List macros in this folder
-                        var macrosInFolder = C.GetMacrosInFolder(folderPath);
-                        foreach (var macro in macrosInFolder)
-                        {
-                            DrawMacroTreeNode(macro, false);
-                        }
-                        
-                        ImGui.Unindent(10);
-                        ImGui.TreePop();
-                    }
+                    // Root is just a view, no sub-items
+                    ImGui.TreePop();
                 }
-            }
-            
-            ImGui.EndChild(); // End FolderTreeArea
-            
-            // Place all buttons in a row above the MACRO SETTINGS header
-            
-            // New Macro button
-            if (ImGuiX.IconButton(FontAwesomeHelper.IconNew, "New Macro"))
-            {
-                // Reset popup fields
-                _newMacroName = "New Macro";
-                _newMacroType = 0; // Default to Native
-                _showCreateMacroPopup = true;
-                ImGui.OpenPopup("Create New Macro##Popup");
-            }
-            
-            // Draw the create macro popup here to ensure it opens properly
-            ShowCreateMacroPopup();
-            
-            // Import button with icon
-            ImGui.SameLine(0, 15);
-            if (ImGuiX.IconButton(FontAwesomeHelper.IconImport, "Import"))
-            {
-                var clipboard = ImGui.GetClipboardText();
-                if (!string.IsNullOrEmpty(clipboard))
+                
+                // Get all real folders
+                var allFolders = new HashSet<string>(C.GetFolderPaths());
+                
+                // Ensure our selected folder exists in the set
+                if (!allFolders.Contains(_selectedFolderId) && _selectedFolderId != "Root")
                 {
-                    try
+                    allFolders.Add(_selectedFolderId);
+                }
+                
+                // Display all folders as tree nodes
+                foreach (var folderPath in allFolders)
+                {
+                    if (folderPath != "Root" && !string.IsNullOrEmpty(folderPath))
                     {
-                        // Import macro logic - use existing methods in your codebase
-                        var importedMacro = new ConfigMacro
-                        {
-                            Name = "Imported Macro",
-                            Content = clipboard,
-                            Type = MacroType.Native
-                        };
+                        bool isSelected = _selectedFolderId == folderPath;
+                        int folderCount = C.GetMacroCount(folderPath);
                         
-                        if (_selectedFolderId != "Root")
+                        // Check if this folder should be expanded based on our tracking
+                        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.SpanAvailWidth;
+                        if (isSelected) flags |= ImGuiTreeNodeFlags.Selected;
+                        
+                        // Add DefaultOpen flag if this folder is in our tracked expanded folders set
+                        if (_expandedFolders.Contains(folderPath))
+                            flags |= ImGuiTreeNodeFlags.DefaultOpen;
+                        
+                        ImGuiX.Icon(FontAwesomeHelper.IconFolder);
+                        ImGui.SameLine();
+                        
+                        bool folderOpen = ImGui.TreeNodeEx($"{folderPath} ({folderCount})##folder_{folderPath}", flags);
+                        
+                        // Update our expanded folders tracking
+                        if (folderOpen && !_expandedFolders.Contains(folderPath))
+                            _expandedFolders.Add(folderPath);
+                        else if (!folderOpen && _expandedFolders.Contains(folderPath))
+                            _expandedFolders.Remove(folderPath);
+                        
+                        if (ImGui.IsItemClicked())
                         {
-                            importedMacro.FolderPath = _selectedFolderId;
+                            _selectedFolderId = folderPath;
+                            _selectedMacroId = string.Empty; // Clear macro selection
                         }
                         
-                        C.Macros.Add(importedMacro);
-                    }
-                    catch (Exception e)
-                    {
-                        // Log error using your logging mechanism
-                        Console.WriteLine($"Failed to import macro: {e.Message}");
+                        // Context menu for folder operations - simplified
+                        if (ImGui.BeginPopupContextItem())
+                        {
+                            // Show a more readable header
+                            ImGui.TextColored(ImGuiColors.DalamudViolet, $"Folder: {folderPath}");
+                            ImGui.Separator();
+                            
+                            // Only show relevant operations
+                            if (folderPath != DEFAULT_FOLDER) // Don't allow deleting the default folder
+                            {
+                                if (ImGui.MenuItem("Delete Folder"))
+                                {
+                                    DeleteFolder(folderPath);
+                                    ImGui.CloseCurrentPopup();
+                                }
+                                
+                                if (ImGui.IsItemHovered())
+                                {
+                                    ImGui.SetTooltip("Delete this folder and move all macros to Default folder");
+                                }
+                            }
+                            
+                            ImGui.EndPopup();
+                        }
+                        
+                        // If folder is open, show macros within this folder
+                        if (folderOpen)
+                        {
+                            // Add indent for macros in the folder
+                            ImGui.Indent(10);
+                            
+                            // List macros in this folder
+                            var macrosInFolder = C.GetMacrosInFolder(folderPath);
+                            foreach (var macro in macrosInFolder)
+                            {
+                                DrawMacroTreeNode(macro, false);
+                            }
+                            
+                            ImGui.Unindent(10);
+                            ImGui.TreePop();
+                        }
                     }
                 }
+                
+                ImGui.EndChild(); // End FolderTreeArea
             }
             
-            // New Folder button with icon
-            ImGui.SameLine(0, 15);
-            if (ImGuiX.IconButton(FontAwesomeHelper.IconFolder, "New Folder"))
-            {
-                // Reset and show folder creation popup
-                _newFolderName = "New Folder";
-                _showCreateFolderPopup = true;
-                ImGui.OpenPopup("Create New Folder##Popup");
-            }
-            
-            // Show create folder popup
+            // Handle the popups regardless of whether folder section is collapsed
+            ShowCreateMacroPopup();
             ShowCreateFolderPopup();
             
             // Separator between folders and macro settings
             ImGui.Separator();
             
-            // MACRO SETTINGS section with no buttons
+            // MACRO SETTINGS section
             ImGui.TextColored(ImGuiColors.DalamudViolet, "MACRO SETTINGS");
             
             // Use triangle for collapsible header like in the screenshot
@@ -452,8 +646,12 @@ public class MainWindow : Window
             
             if (ImGui.CollapsingHeader("MACRO SETTINGS", ImGuiTreeNodeFlags.DefaultOpen))
             {
+                // Calculate available height for settings
+                // If folders are collapsed, we can use more space for settings
+                float availableHeight = ImGui.GetContentRegionAvail().Y;
+                
                 // Create a scrollable area for settings content that fills remaining space
-                ImGui.BeginChild("SettingsScrollArea", new Vector2(-1, -1), false);
+                ImGui.BeginChild("SettingsScrollArea", new Vector2(-1, availableHeight), false);
                 
                 var selectedMacro = GetSelectedMacro();
                 if (selectedMacro != null)
@@ -466,17 +664,18 @@ public class MainWindow : Window
                     ImGui.Text($"{macroName} ({macroTypeStr})");
                     ImGui.PopStyleColor();
                     
-                    // Create tabs similar to the screenshot
-                    ImGui.BeginTabBar("MacroSettingsTabs", ImGuiTabBarFlags.None);
+                    ImGui.Spacing();
+                    ImGui.Separator();
+                    ImGui.Spacing();
                     
-                    // General tab
-                    if (ImGui.BeginTabItem("General"))
+                    // COLLAPSIBLE SECTIONS INSTEAD OF TABS
+                    
+                    // General Information Section
+                    ImGui.PushStyleColor(ImGuiCol.Header, new Vector4(0.2f, 0.2f, 0.3f, 0.7f));
+                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, new Vector4(0.25f, 0.25f, 0.35f, 0.8f));
+                    
+                    if (ImGui.CollapsingHeader("General Information", ImGuiTreeNodeFlags.DefaultOpen))
                     {
-                        // Create a scrollable area for the tab content
-                        ImGui.BeginChild("GeneralTabContent", new Vector2(-1, -1), false);
-                        
-                        ImGui.TextColored(ImGuiColors.DalamudViolet, "General Information");
-                        ImGui.Separator();
                         ImGui.Spacing();
                         
                         // Author field
@@ -516,18 +715,13 @@ public class MainWindow : Window
                             selectedMacro.Metadata.Description = description;
                             C.Save();
                         }
-                        
-                        ImGui.EndChild();
-                        ImGui.EndTabItem();
                     }
                     
-                    // Crafting tab
-                    if (ImGui.BeginTabItem("Crafting"))
+                    ImGui.Spacing();
+                    
+                    // Crafting Settings Section
+                    if (ImGui.CollapsingHeader("Crafting Settings", ImGuiTreeNodeFlags.DefaultOpen))
                     {
-                        ImGui.BeginChild("CraftingTabContent", new Vector2(-1, -1), false);
-                        
-                        ImGui.TextColored(ImGuiColors.DalamudViolet, "Crafting Settings");
-                        ImGui.Separator();
                         ImGui.Spacing();
                         
                         // Crafting loop toggle
@@ -559,18 +753,13 @@ public class MainWindow : Window
                             
                             ImGui.Unindent(20);
                         }
-                        
-                        ImGui.EndChild();
-                        ImGui.EndTabItem();
                     }
                     
-                    // Triggers tab
-                    if (ImGui.BeginTabItem("Triggers"))
+                    ImGui.Spacing();
+                    
+                    // Trigger Events Section
+                    if (ImGui.CollapsingHeader("Trigger Events", ImGuiTreeNodeFlags.DefaultOpen))
                     {
-                        ImGui.BeginChild("TriggersTabContent", new Vector2(-1, -1), false);
-                        
-                        ImGui.TextColored(ImGuiColors.DalamudViolet, "Trigger Events");
-                        ImGui.Separator();
                         ImGui.Spacing();
                         
                         // Auto-Retainer checkbox
@@ -585,11 +774,44 @@ public class MainWindow : Window
                             C.Save();
                         }
                         
-                        ImGui.EndChild();
-                        ImGui.EndTabItem();
+                        // Login trigger
+                        bool loginTrigger = selectedMacro.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogin);
+                        if (ImGui.Checkbox("Run on login", ref loginTrigger))
+                        {
+                            if (loginTrigger)
+                                selectedMacro.Metadata.TriggerEvents.Add(TriggerEvent.OnLogin);
+                            else
+                                selectedMacro.Metadata.TriggerEvents.Remove(TriggerEvent.OnLogin);
+                            
+                            C.Save();
+                        }
+                        
+                        // Logout trigger
+                        bool logoutTrigger = selectedMacro.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogout);
+                        if (ImGui.Checkbox("Run on logout", ref logoutTrigger))
+                        {
+                            if (logoutTrigger)
+                                selectedMacro.Metadata.TriggerEvents.Add(TriggerEvent.OnLogout);
+                            else
+                                selectedMacro.Metadata.TriggerEvents.Remove(TriggerEvent.OnLogout);
+                            
+                            C.Save();
+                        }
+                        
+                        // Territory change trigger
+                        bool territoryTrigger = selectedMacro.Metadata.TriggerEvents.Contains(TriggerEvent.OnTerritoryChange);
+                        if (ImGui.Checkbox("Run on zone change", ref territoryTrigger))
+                        {
+                            if (territoryTrigger)
+                                selectedMacro.Metadata.TriggerEvents.Add(TriggerEvent.OnTerritoryChange);
+                            else
+                                selectedMacro.Metadata.TriggerEvents.Remove(TriggerEvent.OnTerritoryChange);
+                            
+                            C.Save();
+                        }
                     }
                     
-                    ImGui.EndTabBar();
+                    ImGui.PopStyleColor(2); // Pop the header colors
                 }
                 else
                 {
@@ -706,106 +928,175 @@ public class MainWindow : Window
             ImGui.PopStyleColor();
         }
         
-        // Handle drag source for macros
-        if (ImGui.IsItemActive() && !_isDraggingMacro)
+        // Move context menu handling to a separate method to avoid ImGui state issues
+        HandleMacroContextMenu(macro);
+    }
+
+    // Separate method for handling context menu to improve ImGui stability
+    private void HandleMacroContextMenu(ConfigMacro macro)
+    {
+        if (!ImGui.BeginPopupContextItem($"##ContextMenu_{macro.Id}"))
+            return;
+            
+        // Show macro name in context menu
+        ImGui.TextColored(ImGuiColors.DalamudViolet, macro.Name);
+        ImGui.Separator();
+        
+        // Basic operations in main menu for clarity
+        if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconPlay, "Run"))
         {
-            if (ImGui.IsMouseDragging(ImGuiMouseButton.Left))
-            {
-                _isDraggingMacro = true;
-                _draggedMacroId = macro.Id;
-            }
+            _scheduler.StartMacro(macro);
+            ImGui.CloseCurrentPopup();
+        }
+
+        if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconCopy, "Copy Content"))
+        {
+            ImGui.SetClipboardText(macro.Content);
+            ImGui.CloseCurrentPopup();
         }
         
-        // Context menu
-        if (ImGui.BeginPopupContextItem())
+        if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconRename, "Rename"))
         {
-            if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconPlay, "Run"))
-            {
-                _scheduler.StartMacro(macro);
-            }
+            _renameMacroBuffer = macro.Name;
+            _showRenamePopup = true;
+            _macroToRename = macro.Id;
+            ImGui.CloseCurrentPopup();
+        }
 
-            if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconCopy, "Copy Content"))
-            {
-                ImGui.SetClipboardText(macro.Content);
-            }
+        if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconDelete, "Delete"))
+        {
+            // Store current folder ID to maintain selection
+            string currentFolderId = _selectedFolderId;
             
-            // Add Type selector to the context menu (only for ConfigMacro, not GitMacro)
-            if (macro is ConfigMacro configMacro)
+            // Store the expanded folders state - we'll keep the same state
+            var expandedFoldersCopy = new HashSet<string>(_expandedFolders);
+            
+            macro.Delete();
+            C.Save();
+            
+            // Clear selection if we just deleted the selected macro
+            if (_selectedMacroId == macro.Id)
+                _selectedMacroId = string.Empty;
+                
+            // Restore folder selection if possible
+            if (!string.IsNullOrEmpty(currentFolderId))
+                _selectedFolderId = currentFolderId;
+                
+            // Restore expanded folders state
+            _expandedFolders = expandedFoldersCopy;
+                
+            ImGui.CloseCurrentPopup();
+        }
+        
+        // Add Type selector to the context menu (only for ConfigMacro, not GitMacro)
+        if (macro is ConfigMacro configMacro && !(macro is GitMacro))
+        {
+            ImGui.Separator();
+            
+            if (ImGui.BeginMenu("Type"))
             {
-                if (ImGui.BeginMenu(ImGuiX.GetIconString(FontAwesomeHelper.IconNativeMacro) + " Set Type"))
+                bool isNative = macro.Type == MacroType.Native;
+                bool isLua = macro.Type == MacroType.Lua;
+                
+                if (ImGui.MenuItem("Native", null, isNative))
                 {
-                    bool isNative = macro.Type == MacroType.Native;
-                    bool isLua = macro.Type == MacroType.Lua;
-                    
-                    if (ImGui.MenuItem("Native", null, isNative))
-                    {
-                        configMacro.Type = MacroType.Native;
-                        C.Save();
-                    }
-                    
-                    if (ImGui.MenuItem("Lua", null, isLua))
-                    {
-                        configMacro.Type = MacroType.Lua;
-                        C.Save();
-                    }
-                    
-                    ImGui.EndMenu();
-                }
-            }
-
-            if (ImGui.BeginMenu(ImGuiX.GetIconString(FontAwesomeHelper.IconEdit) + " Actions"))
-            {
-                if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconRename, "Rename"))
-                {
-                    _renameMacroBuffer = macro.Name;
-                    _showRenamePopup = true;
-                    _macroToRename = macro.Id;
-                }
-
-                if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconDelete, "Delete"))
-                {
-                    macro.Delete();
+                    configMacro.Type = MacroType.Native;
                     C.Save();
                 }
-
-                // Add folder move options
-                if (ImGui.BeginMenu(ImGuiX.GetIconString(FontAwesomeHelper.IconFolder) + " Move to folder"))
+                
+                if (ImGui.MenuItem("Lua", null, isLua))
                 {
-                    // Option to move to the default folder
-                    if (ImGui.MenuItem("Default"))
-                    {
-                        MoveMacroToFolder(macro.Id, DEFAULT_FOLDER);
-                    }
-
-                    // Show other available folders
-                    var folders = new List<string>();
-                    foreach (var m in C.Macros)
-                    {
-                        if (!string.IsNullOrEmpty(m.FolderPath) && 
-                            !folders.Contains(m.FolderPath) && 
-                            m.FolderPath != DEFAULT_FOLDER &&
-                            m.FolderPath != "Root")
-                        {
-                            folders.Add(m.FolderPath);
-                        }
-                    }
-                    
-                    foreach (var folder in folders)
-                    {
-                        if (ImGui.MenuItem(folder))
-                        {
-                            MoveMacroToFolder(macro.Id, folder);
-                        }
-                    }
-
-                    ImGui.EndMenu();
+                    configMacro.Type = MacroType.Lua;
+                    C.Save();
                 }
-
+                
                 ImGui.EndMenu();
             }
-
-            ImGui.EndPopup();
         }
+
+        // Move to folder functionality - simplified and more stable
+        ImGui.Separator();
+        
+        if (ImGui.BeginMenu("Move to folder"))
+        {
+            // Show folders in a more organized way
+            ImGui.TextColored(ImGuiColors.DalamudViolet, "Select destination folder:");
+            ImGui.Separator();
+            
+            // Option to move to the default folder
+            bool isInDefault = macro.FolderPath == DEFAULT_FOLDER;
+            if (ImGui.MenuItem(DEFAULT_FOLDER, null, isInDefault))
+            {
+                if (!isInDefault)
+                {
+                    // Store the expanded folders state
+                    var expandedFoldersCopy = new HashSet<string>(_expandedFolders);
+                    
+                    MoveMacroToFolder(macro.Id, DEFAULT_FOLDER);
+                    
+                    // Restore expanded folders state
+                    _expandedFolders = expandedFoldersCopy;
+                    
+                    // Ensure the destination folder is expanded
+                    if (!_expandedFolders.Contains(DEFAULT_FOLDER))
+                        _expandedFolders.Add(DEFAULT_FOLDER);
+                }
+                ImGui.CloseCurrentPopup();
+            }
+
+            // Get all folders for better organization
+            var folders = new List<string>(C.GetFolderPaths());
+            folders.Remove("Root"); // Don't include Root
+            folders.Remove(DEFAULT_FOLDER); // Already listed above
+            folders.Sort(); // Sort alphabetically
+            
+            if (folders.Any())
+            {
+                ImGui.Separator();
+                
+                foreach (var folder in folders)
+                {
+                    if (!string.IsNullOrEmpty(folder))
+                    {
+                        bool isCurrentFolder = macro.FolderPath == folder;
+                        
+                        // Show current folder with checkmark
+                        if (ImGui.MenuItem($"{folder}{(isCurrentFolder ? " (current)" : "")}", null, isCurrentFolder))
+                        {
+                            if (!isCurrentFolder)
+                            {
+                                // Store the expanded folders state
+                                var expandedFoldersCopy = new HashSet<string>(_expandedFolders);
+                                
+                                MoveMacroToFolder(macro.Id, folder);
+                                
+                                // Restore expanded folders state
+                                _expandedFolders = expandedFoldersCopy;
+                                
+                                // Ensure the destination folder is expanded
+                                if (!_expandedFolders.Contains(folder))
+                                    _expandedFolders.Add(folder);
+                            }
+                            ImGui.CloseCurrentPopup();
+                        }
+                    }
+                }
+            }
+            
+            // Option to create a new folder
+            ImGui.Separator();
+            
+            if (ImGui.MenuItem("Create new folder..."))
+            {
+                _newFolderName = "New Folder";
+                _showCreateFolderPopup = true;
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.EndMenu();
+        }
+
+        ImGui.EndPopup();
     }
 
     private void DrawEmptyState()
@@ -1163,6 +1454,7 @@ public class MainWindow : Window
         }
     }
 
+    // Improved MoveMacroToFolder method for better feedback
     private void MoveMacroToFolder(string macroId, string folderPath)
     {
         // Never allow moving to Root directly
@@ -1174,8 +1466,37 @@ public class MainWindow : Window
         var macro = C.GetMacro(macroId);
         if (macro != null && macro is ConfigMacro configMacro)
         {
+            // Don't do anything if it's already in this folder
+            if (configMacro.FolderPath == folderPath)
+                return;
+                
+            // Remember the old folder for notification
+            string oldFolder = configMacro.FolderPath;
+            
+            // Save expanded folders state
+            var expandedFoldersCopy = new HashSet<string>(_expandedFolders);
+            
+            // Update the folder path
             configMacro.FolderPath = folderPath;
             C.Save();
+            
+            // Update selection to reflect the move
+            _selectedFolderId = folderPath;
+            _selectedMacroId = macroId;
+            
+            // Restore expanded folders state
+            _expandedFolders = expandedFoldersCopy;
+            
+            // Ensure the destination folder is expanded
+            if (!_expandedFolders.Contains(folderPath))
+                _expandedFolders.Add(folderPath);
+            
+            // Notify the user
+            Svc.Chat.Print($"Moved macro '{configMacro.Name}' from '{oldFolder}' to '{folderPath}'");
+        }
+        else
+        {
+            Svc.Chat.PrintError($"Could not move macro: Not found or wrong type");
         }
     }
     
@@ -1184,15 +1505,26 @@ public class MainWindow : Window
         // Don't delete the default folder
         if (folderPath == DEFAULT_FOLDER)
         {
+            Svc.Chat.PrintError("Cannot delete the Default folder");
             return;
         }
         
-        // Move all macros in this folder to the default folder
-        foreach (var macro in C.GetMacrosInFolder(folderPath))
+        // Save expanded folders state
+        var expandedFoldersCopy = new HashSet<string>(_expandedFolders);
+        
+        // Get all macros in this folder
+        var macrosInFolder = C.GetMacrosInFolder(folderPath).ToList();
+        int macroCount = macrosInFolder.Count;
+        
+        if (macroCount > 0)
         {
-            if (macro is ConfigMacro configMacro)
+            // Move all macros in this folder to the default folder
+            foreach (var macro in macrosInFolder)
             {
-                configMacro.FolderPath = DEFAULT_FOLDER;
+                if (macro is ConfigMacro configMacro)
+                {
+                    configMacro.FolderPath = DEFAULT_FOLDER;
+                }
             }
         }
         
@@ -1202,6 +1534,26 @@ public class MainWindow : Window
         if (_selectedFolderId == folderPath)
         {
             _selectedFolderId = DEFAULT_FOLDER;
+        }
+        
+        // Restore expanded folders state
+        _expandedFolders = expandedFoldersCopy;
+        
+        // Remove the deleted folder from expanded folders
+        _expandedFolders.Remove(folderPath);
+        
+        // Ensure the default folder is expanded since macros moved there
+        if (macroCount > 0 && !_expandedFolders.Contains(DEFAULT_FOLDER))
+            _expandedFolders.Add(DEFAULT_FOLDER);
+        
+        // Notify the user
+        if (macroCount > 0)
+        {
+            Svc.Chat.Print($"Deleted folder '{folderPath}' and moved {macroCount} macro(s) to Default folder");
+        }
+        else
+        {
+            Svc.Chat.Print($"Deleted empty folder '{folderPath}'");
         }
     }
 }

@@ -17,10 +17,12 @@ namespace SomethingNeedDoing.Gui;
 public class MacroStatusIndicator
 {
     private readonly IMacroScheduler _scheduler;
+    private readonly MacroStatusWindow? _statusWindow;
 
-    public MacroStatusIndicator(IMacroScheduler scheduler)
+    public MacroStatusIndicator(IMacroScheduler scheduler, MacroStatusWindow? statusWindow = null)
     {
         _scheduler = scheduler;
+        _statusWindow = statusWindow;
     }
 
     public void Draw(float width, float height)
@@ -56,11 +58,41 @@ public class MacroStatusIndicator
         var pos = ImGui.GetCursorScreenPos();
         var statusColor = GetStatusColor(runningCount, pausedCount, errorCount);
         
+        // Store original cursor position
+        var originalPos = ImGui.GetCursorPos();
+        
+        // Draw clickable indicator with hover effect
+        bool isHovered = false;
+        
+        // Make a invisible button over the area for interaction
+        ImGui.InvisibleButton("##StatusIndicatorButton", new Vector2(width, height));
+        isHovered = ImGui.IsItemHovered();
+        
+        // If clicked and status window exists, toggle it
+        if (ImGui.IsItemClicked() && _statusWindow != null)
+        {
+            _statusWindow.IsOpen = !_statusWindow.IsOpen;
+            if (_statusWindow.IsOpen)
+            {
+                _statusWindow.BringToFront();
+            }
+        }
+        
+        // Change color on hover
+        if (isHovered)
+        {
+            statusColor = new Vector4(statusColor.X + 0.1f, statusColor.Y + 0.1f, statusColor.Z + 0.1f, statusColor.W);
+        }
+        
+        // Draw the background with the calculated color
         drawList.AddRectFilled(pos, pos + new Vector2(width, height), ImGui.ColorConvertFloat4ToU32(statusColor), 4);
         
         // Get appropriate status icon
         FontAwesomeIcon statusIcon = GetStatusIcon(runningCount, pausedCount, completedCount, errorCount);
         string statusText = GetStatusText(macroCount, runningCount, pausedCount, completedCount, errorCount);
+        
+        // Restore the original cursor position for drawing the content
+        ImGui.SetCursorPos(originalPos);
         
         // Draw the icon and text with proper font handling
         var padding = 5f;
@@ -81,6 +113,26 @@ public class MacroStatusIndicator
         // Draw the text right after the icon
         ImGui.SameLine();
         ImGui.TextColored(new Vector4(1, 1, 1, 1), statusText);
+        
+        // Add a tooltip on hover
+        if (isHovered)
+        {
+            ImGui.BeginTooltip();
+            ImGui.Text("Click to toggle Status Window");
+            if (macroCount > 0)
+            {
+                ImGui.Separator();
+                if (runningCount > 0)
+                    ImGui.Text($"Running: {runningCount}");
+                if (pausedCount > 0)
+                    ImGui.Text($"Paused: {pausedCount}");
+                if (completedCount > 0)
+                    ImGui.Text($"Completed: {completedCount}");
+                if (errorCount > 0)
+                    ImGui.Text($"Errors: {errorCount}");
+            }
+            ImGui.EndTooltip();
+        }
         
         // Restore the original cursor position
         ImGui.SetCursorPos(new Vector2(originalCursorPosX, originalCursorPosY));

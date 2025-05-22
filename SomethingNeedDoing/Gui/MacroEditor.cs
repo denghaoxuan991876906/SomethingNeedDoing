@@ -16,13 +16,14 @@ using System.Threading.Tasks;
 namespace SomethingNeedDoing.Gui;
 
 /// <summary>
-/// Enhanced MacroEditor with IDE-like features and syntax highlighting
+/// Macro editor with IDE-like features
 /// </summary>
 public class MacroEditor
 {
     private readonly IMacroScheduler _scheduler;
     private readonly GitMacroManager _gitManager;
     private readonly MacroMetadataEditor _metadataEditor = new();
+    private readonly MacroStatusWindow? _statusWindow;
     private bool _showVersionHistory = false;
     private List<GitCommitInfo>? _versionHistory;
     
@@ -31,7 +32,7 @@ public class MacroEditor
     private int _tabSize = 4;
     private bool _highlightSyntax = true;
     
-    // Lua keywords and patterns for syntax highlighting
+    // For syntax highlighting (future implementation)
     private static readonly string[] LuaKeywords = new[] { 
         "and", "break", "do", "else", "elseif", "end", "false", "for", 
         "function", "if", "in", "local", "nil", "not", "or", "repeat", 
@@ -42,36 +43,34 @@ public class MacroEditor
     private static readonly Regex StringRegex = new Regex(@"""([^""\\]|\\.)*""|'([^'\\]|\\.)*'", RegexOptions.Compiled);
     private static readonly Regex NumberRegex = new Regex(@"\b\d+(\.\d+)?\b", RegexOptions.Compiled);
 
-    public MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager)
+    public MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, MacroStatusWindow? statusWindow = null)
     {
         _scheduler = scheduler;
         _gitManager = gitManager;
+        _statusWindow = statusWindow;
     }
 
     /// <summary>
-    /// Draw only the metadata editor for a macro without the full editor
+    /// Shows just the metadata editor without the code editor
     /// </summary>
-    /// <param name="macro">The macro to draw settings for</param>
     public void DrawMetadataOnly(IMacro macro)
     {
         if (macro == null) return;
         
-        // Better styled header with macro name and type
+        // Header with macro name
         ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudWhite);
-        // Use standard font but make text larger
-        float fontSize = ImGui.GetFontSize() * 1.2f;
         ImGui.SetWindowFontScale(1.2f);
         ImGui.Text(macro.Name);
         ImGui.SetWindowFontScale(1.0f);
         ImGui.PopStyleColor();
         
-        // Show macro type with appropriate icon
+        // Macro type icon
         ImGui.SameLine();
         string icon = macro is GitMacro ? "📦" : "📄";
         string typeText = macro.Type == MacroType.Lua ? "Lua" : "Native";
         ImGui.TextColored(ImGuiColors.DalamudGrey, $"({icon} {typeText})");
         
-        // Add more metadata if available
+        // Author if available
         if (!string.IsNullOrEmpty(macro.Metadata.Author))
         {
             ImGui.TextColored(ImGuiColors.DalamudGrey, $"by {macro.Metadata.Author}");
@@ -80,7 +79,7 @@ public class MacroEditor
         ImGui.Separator();
         ImGui.Spacing();
         
-        // Draw the metadata editor with some padding
+        // Metadata editor
         ImGui.Indent(5);
         _metadataEditor.Draw(macro);
         ImGui.Unindent(5);
@@ -90,90 +89,95 @@ public class MacroEditor
     {
         if (macro == null) return;
 
-        // Add title bar with macro name and type selector
         DrawMacroHeader(macro);
-
-        // Editor toolbar with run controls and settings
         DrawEditorToolbar(macro);
-
-        // Add a separator to distinguish controls from content
         ImGui.Separator();
 
-        // Get the ENTIRE remaining area for editor
-        float reserveHeight = 0;
-
-        // Reserve space for separator and metadata header
-        reserveHeight += ImGui.GetFrameHeightWithSpacing() * 3;
-
-        // Calculate height for editor (all available space minus reserved)
+        // Calculate space for editor
+        float reserveHeight = ImGui.GetFrameHeightWithSpacing() * 2;
         float editorHeight = ImGui.GetContentRegionAvail().Y - reserveHeight;
 
-        // Draw the code editor with proper line numbers
         DrawCodeEditorWithLineNumbers(macro, editorHeight);
-        
-        // Status bar below editor
         DrawStatusBar(macro);
     }
     
     private void DrawMacroHeader(IMacro macro)
     {
-        // Create header with name and type selector
         ImGui.BeginGroup();
-        
-        // Display macro name
-        ImGui.Text("Name: ");
-        ImGui.SameLine();
-        ImGui.TextColored(ImGuiColors.DalamudWhite, macro.Name);
-        
-        // Right-aligned type selector for ConfigMacro (editable)
-        if (macro is ConfigMacro configMacro)
+        DisplayMacroStatus(macro);
+        ImGui.EndGroup();
+    }
+
+    private void DisplayMacroStatus(IMacro macro)
+    {
+        var macroState = _scheduler.GetMacroState(macro.Id);
+        if (macroState == MacroState.Unknown)
+            return;
+            
+        // Status color based on state
+        Vector4 statusColor = macroState switch
         {
-            // Get window width to position type selector
-            float windowWidth = ImGui.GetContentRegionAvail().X;
-            float selectorWidth = 120;
+            MacroState.Running => ImGuiColors.HealerGreen,
+            MacroState.Paused => ImGuiColors.DalamudOrange,
+            MacroState.Error => ImGuiColors.DalamudRed,
+            MacroState.Completed => ImGuiColors.ParsedBlue,
+            _ => ImGuiColors.DalamudGrey
+        };
             
-            ImGui.SameLine(windowWidth - selectorWidth);
-            ImGui.SetNextItemWidth(selectorWidth);
+        // Status icon based on state
+        FontAwesomeIcon statusIcon = macroState switch
+        {
+            MacroState.Running => FontAwesomeIcon.Play,
+            MacroState.Paused => FontAwesomeIcon.Pause,
+            MacroState.Error => FontAwesomeIcon.ExclamationTriangle, 
+            MacroState.Completed => FontAwesomeIcon.CheckCircle,
+            _ => FontAwesomeIcon.Circle
+        };
+        
+        // Position on right side
+        float contentWidth = ImGui.GetContentRegionAvail().X;
+        ImGui.SameLine(contentWidth - 300);
+        
+        // Icon and status text
+        ImGui.PushFont(UiBuilder.IconFont);
+        ImGui.TextColored(statusColor, statusIcon.ToIconString());
+        ImGui.PopFont();
+        
+        ImGui.SameLine(0, 5);
+        ImGui.TextColored(statusColor, macroState.ToString());
+        
+        // Control buttons if running or paused
+        if (macroState is MacroState.Running or MacroState.Paused)
+        {
+            ImGui.SameLine(0, 10);
             
-            // Type selector dropdown
-            int currentType = (int)configMacro.Type;
-            string[] typeOptions = { "Native", "Lua" };
-            
-            ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0.2f, 0.2f, 0.2f, 1.0f));
-            
-            if (ImGui.Combo("##MacroTypeSelector", ref currentType, typeOptions, typeOptions.Length))
+            if (ImGuiX.IconButton(macroState == MacroState.Paused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause, 
+                           macroState == MacroState.Paused ? "Resume" : "Pause"))
             {
-                // Update macro type when changed
-                configMacro.Type = (MacroType)currentType;
-                C.Save();
+                if (macroState == MacroState.Paused)
+                    _scheduler.ResumeMacro(macro.Id);
+                else
+                    _scheduler.PauseMacro(macro.Id);
             }
             
-            ImGui.PopStyleColor();
+            ImGui.SameLine(0, 5);
+            
+            if (ImGuiX.IconButton(FontAwesomeIcon.Stop, "Stop"))
+                _scheduler.StopMacro(macro.Id);
         }
-        else
-        {
-            // For GitMacro, just display the type (not editable)
-            float windowWidth = ImGui.GetContentRegionAvail().X;
-            ImGui.SameLine(windowWidth - 120);
-            ImGui.TextColored(ImGuiColors.DalamudGrey, "Type: GitMacro (Read-only)");
-        }
-        
-        ImGui.EndGroup();
-        ImGui.Separator();
     }
 
     private void DrawEditorToolbar(IMacro macro)
     {
-        // Control buttons with clearer styling and icons
         float buttonWidth = 80;
-        float iconButtonWidth = 30;
         
-        // Run button with green color
+        using var toolbarChild = ImRaii.Child("ToolbarChild", new Vector2(-1, ImGui.GetFrameHeight() * 1.5f), false);
+        
+        // Run button (green)
         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.2f, 0.7f, 0.2f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.8f, 0.3f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.4f, 0.9f, 0.4f, 1.0f));
         
-        // Use direct FontAwesomeIcon values to ensure proper icon display
         if (ImGuiX.IconTextButton(FontAwesomeIcon.PlayCircle, "Run", new Vector2(buttonWidth, 0)))
         {
             _scheduler.StartMacro(macro);
@@ -183,12 +187,11 @@ public class MacroEditor
 
         ImGui.SameLine();
         
-        // Stop button with red color
+        // Stop button (red)
         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.7f, 0.2f, 0.2f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.8f, 0.3f, 0.3f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.9f, 0.4f, 0.4f, 1.0f));
         
-        // Use direct FontAwesomeIcon values to ensure proper icon display
         if (ImGuiX.IconTextButton(FontAwesomeIcon.StopCircle, "Stop", new Vector2(buttonWidth, 0)))
         {
             _scheduler.StopMacro(macro.Id);
@@ -198,12 +201,11 @@ public class MacroEditor
 
         ImGui.SameLine();
         
-        // Copy button with gray color
+        // Copy button (gray)
         ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.4f, 0.4f, 0.4f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.5f, 0.5f, 0.5f, 1.0f));
         
-        // Use direct FontAwesomeIcon values to ensure proper icon display
         if (ImGuiX.IconTextButton(FontAwesomeIcon.Clipboard, "Copy", new Vector2(buttonWidth, 0)))
         {
             ImGui.SetClipboardText(macro.Content);
@@ -211,12 +213,32 @@ public class MacroEditor
         
         ImGui.PopStyleColor(3);
         
-        // Add some spacing
-        ImGui.SameLine(0, 20);
+        // Right-aligned controls
+        float windowWidth = ImGui.GetWindowWidth();
+        ImGui.SameLine(windowWidth - 120);
         
-        // Editor settings toggles
-        ImGui.SameLine();
         ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
+        
+        // Status indicator with running macro count
+        var runningMacros = _scheduler.GetMacros().ToList();
+        int macroCount = runningMacros.Count();
+        
+        Vector4 statusColor = macroCount > 0 ? ImGuiColors.HealerGreen : ImGuiColors.DalamudGrey;
+        FontAwesomeIcon statusIcon = macroCount > 0 ? FontAwesomeIcon.Play : FontAwesomeIcon.Desktop;
+            
+        ImGui.PushStyleColor(ImGuiCol.Text, statusColor);
+        if (ImGuiX.IconButton(statusIcon, macroCount > 0 ? $"{macroCount} running" : "No macros running"))
+        {
+            if (_statusWindow != null)
+            {
+                _statusWindow.IsOpen = !_statusWindow.IsOpen;
+                if (_statusWindow.IsOpen)
+                    _statusWindow.BringToFront();
+            }
+        }
+        ImGui.PopStyleColor();
+        
+        ImGui.SameLine();
         
         // Line numbers toggle
         if (ImGuiX.IconButton(
@@ -231,7 +253,7 @@ public class MacroEditor
         // Syntax highlighting toggle
         if (ImGuiX.IconButton(
             _highlightSyntax ? FontAwesomeHelper.IconCheck : FontAwesomeHelper.IconXmark, 
-            "Toggle Syntax Highlighting"))
+            "Syntax Highlighting (not currently available)"))
         {
             _highlightSyntax = !_highlightSyntax;
         }
@@ -241,44 +263,34 @@ public class MacroEditor
 
     private void DrawCodeEditorWithLineNumbers(IMacro macro, float height)
     {
-        // Container to hold both line numbers and editor
         ImGui.BeginGroup();
         
-        // Calculate line numbers width based on content
+        // Size line numbers panel based on content
         float lineNumberWidth = 40;
         int lines = macro.Content.Split('\n').Length;
         if (lines > 99) lineNumberWidth = 50;
         if (lines > 999) lineNumberWidth = 60;
         
-        // Use monospaced font for everything to ensure alignment
         using var monoFont = ImRaii.PushFont(UiBuilder.MonoFont, true);
-        
-        // Get the actual line height for proper spacing and alignment
         float lineHeight = ImGui.GetTextLineHeight();
-        // Get editor padding to match exactly
         float editorPadding = 5.0f;
         
-        // Draw line numbers panel if enabled
+        // Draw line numbers if enabled
         if (_showLineNumbers)
         {
             ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
             ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
             ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0));
-            // Match padding to text editor for perfect alignment
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, editorPadding));
             
-            // Create scrolling child with exact same size as editor to ensure alignment
             ImGui.BeginChild("LineNumbers", new Vector2(lineNumberWidth, height), true, 
                 ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
             
-            // Draw each line number with proper alignment
-            // Exact calculation to match editor's internal text position
-            float startY = ImGui.GetCursorPosY(); // No need for extra offset with correct padding
+            float startY = ImGui.GetCursorPosY();
             
             for (int i = 0; i < lines; i++)
             {
                 ImGui.SetCursorPosY(startY + (i * lineHeight));
-                // Right-align line numbers with consistent padding
                 float textWidth = ImGui.CalcTextSize($"{i+1}").X;
                 ImGui.SetCursorPosX(lineNumberWidth - textWidth - 6);
                 ImGui.Text($"{i+1}");
@@ -286,26 +298,23 @@ public class MacroEditor
             
             ImGui.EndChild();
             
-            ImGui.PopStyleVar(2); // Pop padding and spacing
+            ImGui.PopStyleVar(2);
             ImGui.PopStyleColor(2);
             ImGui.SameLine(0, 0);
         }
         
-        // Draw editor area
+        // Text editor area
         float editorWidth = ImGui.GetContentRegionAvail().X;
         
-        // Set styles for code editor
         ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0.15f, 0.15f, 0.15f, 1.0f));
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(5, editorPadding));
         
         ImGuiInputTextFlags flags = ImGuiInputTextFlags.AllowTabInput;
         
-        // For editable macros
         if (macro is ConfigMacro configMacro)
         {
             var contents = configMacro.Content;
             
-            // Force editor to take full width and calculated height
             if (ImGui.InputTextMultiline(
                 "##MacroEditor",
                 ref contents,
@@ -319,7 +328,6 @@ public class MacroEditor
         }
         else if (macro is GitMacro gitMacro)
         {
-            // Similar for git macro, but read-only
             var contents = gitMacro.Content;
 
             ImGui.InputTextMultiline(
@@ -331,21 +339,20 @@ public class MacroEditor
         }
         
         ImGui.PopStyleVar();
-        ImGui.PopStyleColor(); // FrameBg
+        ImGui.PopStyleColor();
         
         ImGui.EndGroup();
     }
     
     private void DrawStatusBar(IMacro macro)
     {
-        // Status bar with editor info
         ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
         
         var lines = macro.Content.Split('\n').Length;
         var chars = macro.Content.Length;
         
-        ImGui.Text($"Lines: {lines}  Chars: {chars}  Type: {macro.Type}  Tab Size: {_tabSize}");
+        ImGui.Text($"Name: {macro.Name}  |  Lines: {lines}  |  Chars: {chars}  |  Type: {macro.Type}");
         
         ImGui.PopStyleColor(2);
     }

@@ -31,10 +31,22 @@ public static class ServiceCollectionExtensions
         // UI Services
         services.AddSingleton<RunningMacrosPanel>();
         services.AddSingleton<WindowSystem>();
-        services.AddSingleton<MacroEditor>();
+        services.AddSingleton<MacroStatusWindow>();
         services.AddSingleton<HelpUI>();
-        services.AddSingleton<MainWindow>();
-        services.AddSingleton<RunningMacrosTab>();
+        services.AddSingleton(sp => new MacroEditor(
+            sp.GetRequiredService<IMacroScheduler>(),
+            sp.GetRequiredService<GitMacroManager>(),
+            sp.GetRequiredService<MacroStatusWindow>()
+        ));
+        services.AddSingleton(sp => new MainWindow(
+            sp.GetRequiredService<WindowSystem>(),
+            sp.GetRequiredService<IMacroScheduler>(),
+            sp.GetRequiredService<GitMacroManager>(),
+            sp.GetRequiredService<RunningMacrosPanel>(),
+            sp.GetRequiredService<MacroEditor>(),
+            sp.GetRequiredService<HelpUI>(),
+            sp.GetRequiredService<MacroStatusWindow>()
+        ));
 
         // External Services
         services.AddSingleton<Tippy>();

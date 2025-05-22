@@ -1,4 +1,5 @@
 using Dalamud.Interface;
+using ImGuiNET;
 
 namespace SomethingNeedDoing.Utils;
 
@@ -74,4 +75,25 @@ public static class FontAwesomeHelper
     // Collapsible panels
     public const FontAwesomeIcon IconCollapsedPanel = FontAwesomeIcon.PlusSquare;
     public const FontAwesomeIcon IconExpandedPanel = FontAwesomeIcon.MinusSquare;
+    
+    /// <summary>
+    /// Gets the string representation of a FontAwesome icon with proper font handling
+    /// </summary>
+    /// <param name="icon">The FontAwesome icon to convert</param>
+    /// <returns>The string representation of the icon</returns>
+    public static string GetIconString(FontAwesomeIcon icon)
+    {
+        return icon.ToIconString();
+    }
+    
+    /// <summary>
+    /// Draws a FontAwesome icon by pushing the icon font, drawing the icon, and popping the font
+    /// </summary>
+    /// <param name="icon">The FontAwesome icon to draw</param>
+    public static void DrawIcon(FontAwesomeIcon icon)
+    {
+        ImGui.PushFont(UiBuilder.IconFont);
+        ImGui.TextUnformatted(icon.ToIconString());
+        ImGui.PopFont();
+    }
 }

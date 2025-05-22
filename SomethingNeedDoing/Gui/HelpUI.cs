@@ -36,6 +36,12 @@ public class HelpUI
             DrawGeneralHelp();
             ImGui.EndTabItem();
         }
+        
+        if (ImGui.BeginTabItem("Features"))
+        {
+            DrawFeatures();
+            ImGui.EndTabItem();
+        }
 
         if (ImGui.BeginTabItem("Lua"))
         {
@@ -64,18 +70,6 @@ public class HelpUI
         if (ImGui.BeginTabItem("Conditions"))
         {
             DrawConditions();
-            ImGui.EndTabItem();
-        }
-
-        if (ImGui.BeginTabItem("Git Macros"))
-        {
-            DrawGitMacros();
-            ImGui.EndTabItem();
-        }
-
-        if (ImGui.BeginTabItem("Options"))
-        {
-            DrawOptions();
             ImGui.EndTabItem();
         }
     }
@@ -156,6 +150,105 @@ public class HelpUI
                 ImGui.TextWrapped(description);
                 ImGui.Spacing();
             }
+            
+            ImGui.Unindent(10);
+        }
+    }
+
+    private void DrawFeatures()
+    {
+        ImGui.TextColored(ImGuiColors.DalamudViolet, "Features Guide");
+        ImGui.TextWrapped("This guide explains the main features and components of SomethingNeedDoing.");
+        ImGui.Separator();
+        
+        // Macro Types section
+        if (ImGui.CollapsingHeader("Macro Types", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            ImGui.Indent(10);
+            
+            // ConfigMacro
+            ImGui.TextColored(ImGuiColors.DalamudOrange, "ConfigMacro");
+            ImGui.TextWrapped("The standard editable macro type. You can create and edit these directly in the application.");
+            ImGui.TextWrapped("ConfigMacros include metadata like author, version, and trigger events.");
+            ImGui.Spacing();
+            
+            // GitMacro
+            ImGui.TextColored(ImGuiColors.DalamudOrange, "GitMacro");
+            ImGui.TextWrapped("Macros linked to GitHub repositories. Only the link is editable - content is fetched from GitHub.");
+            ImGui.TextWrapped("GitMacros can be configured to automatically update when the source repository changes.");
+            ImGui.TextWrapped("To create one, copy a GitHub URL and use the New Macro button.");
+            
+            ImGui.Unindent(10);
+        }
+        
+        // Status Monitoring section
+        if (ImGui.CollapsingHeader("Status Monitoring", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            ImGui.Indent(10);
+            
+            ImGui.TextWrapped("The Status Window provides real-time information about running macros.");
+            ImGui.Spacing();
+            
+            ImGui.TextColored(ImGuiColors.DalamudOrange, "Macro States");
+            ImGui.BulletText("Ready: Macro has been loaded but hasn't started running");
+            ImGui.BulletText("Running: Macro is currently executing");
+            ImGui.BulletText("Paused: Macro execution has been temporarily stopped");
+            ImGui.BulletText("Completed: Macro has finished execution");
+            ImGui.BulletText("Failed: Macro encountered an error during execution");
+            ImGui.Spacing();
+            
+            ImGui.TextColored(ImGuiColors.DalamudOrange, "Status Window");
+            ImGui.TextWrapped("The status window can be accessed in several ways:");
+            ImGui.BulletText("Click the status indicator in the editor toolbar");
+            ImGui.BulletText("Use the /sndstatus command");
+            ImGui.BulletText("Toggle between compact and detailed views with the button in the title bar");
+            
+            ImGui.Unindent(10);
+        }
+        
+        // Scheduling and Triggers section
+        if (ImGui.CollapsingHeader("Scheduling and Triggers", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            ImGui.Indent(10);
+            
+            ImGui.TextWrapped("Macros can be scheduled to run automatically based on various game events.");
+            ImGui.Spacing();
+            
+            ImGui.TextColored(ImGuiColors.DalamudOrange, "Trigger Events");
+            ImGui.TextWrapped("Each macro can be configured to trigger on specific events:");
+            ImGui.BulletText("OnLogin: Triggers when you log into the game");
+            ImGui.BulletText("OnLogout: Triggers when you log out of the game");
+            ImGui.BulletText("OnTerritoryChange: Triggers when you change zones");
+            ImGui.BulletText("OnCraftingStart: Triggers when you begin crafting");
+            ImGui.BulletText("OnCraftingEnd: Triggers when crafting completes");
+            ImGui.BulletText("OnAutoRetainerCharacterPostProcess: Triggers after Auto Retainer finishes");
+            ImGui.Spacing();
+            
+            ImGui.TextColored(ImGuiColors.DalamudOrange, "Manual Scheduling");
+            ImGui.TextWrapped("Macros can also be scheduled manually using the command line interface:");
+            ImGui.TextWrapped($"/{P.Aliases[0]} run MyMacro - Run a macro immediately");
+            ImGui.TextWrapped($"/{P.Aliases[0]} run loop 5 MyMacro - Run a macro and loop it 5 times");
+            
+            ImGui.Unindent(10);
+        }
+        
+        // Folder Organization section
+        if (ImGui.CollapsingHeader("Folder Organization", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            ImGui.Indent(10);
+            
+            ImGui.TextWrapped("Macros can be organized into folders for better management.");
+            ImGui.Spacing();
+            
+            ImGui.TextColored(ImGuiColors.DalamudOrange, "Folder Features");
+            ImGui.BulletText("Create folders to group related macros");
+            ImGui.BulletText("Move macros between folders using the context menu");
+            ImGui.BulletText("Collapse/expand folder sections to manage screen space");
+            ImGui.BulletText("Each folder shows a count of contained macros");
+            ImGui.Spacing();
+            
+            ImGui.TextColored(ImGuiColors.DalamudOrange, "Default Folder");
+            ImGui.TextWrapped("A default 'General' folder exists for all macros. If a folder is deleted, its macros move here.");
             
             ImGui.Unindent(10);
         }
@@ -582,240 +675,5 @@ end");
         }
         
         ImGui.Columns(1);
-    }
-
-    private void DrawGitMacros()
-    {
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "Git Macros");
-        ImGui.TextWrapped("Git macros allow you to use macros directly from GitHub repositories. These macros can be automatically updated when changes are made to the source repository.");
-        ImGui.Separator();
-
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "How to Add a Git Macro:");
-        ImGui.Indent(10);
-
-        ImGui.TextWrapped("1. Copy a GitHub URL to your clipboard. Supported formats:");
-        ImGui.Indent(20);
-        ImGui.TextColored(ImGuiColors.DalamudYellow, "• GitHub file URL: https://github.com/username/repo/blob/main/path/to/macro.txt");
-        ImGui.TextColored(ImGuiColors.DalamudYellow, "• GitHub Gist URL: https://gist.github.com/username/gistid");
-        ImGui.TextColored(ImGuiColors.DalamudYellow, "• GitLab file URL: https://gitlab.com/username/repo/blob/main/path/to/macro.txt");
-        ImGui.Unindent(20);
-
-        ImGui.TextWrapped("2. Click the 'New Macro' button in the main interface");
-        ImGui.TextWrapped("3. The URL will be detected automatically and the macro will be imported from GitHub");
-        ImGui.Unindent(10);
-        ImGui.Separator();
-
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "Git Macro Features:");
-        ImGui.Indent(10);
-
-        ImGui.TextWrapped("• Automatic Updates: Git macros can check for updates and automatically download new versions");
-        ImGui.TextWrapped("• Version History: View and restore previous versions of the macro");
-        ImGui.TextWrapped("• Metadata: Git macros can include author information, version details, and documentation");
-        ImGui.Unindent(10);
-        ImGui.Separator();
-
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "Creating Your Own Git Macros:");
-        ImGui.Indent(10);
-        ImGui.TextWrapped("You can create your own Git macros by creating a GitHub repository or Gist. The macro file should contain the macro content in the same format as you would enter in the macro editor.");
-        ImGui.TextWrapped("You can add metadata to your macro by adding comments at the beginning of the file:");
-        
-        ImGui.TextColored(ImGuiColors.DalamudYellow, "// Name: My Awesome Macro");
-        ImGui.TextColored(ImGuiColors.DalamudYellow, "// Description: This macro does something awesome");
-        ImGui.TextColored(ImGuiColors.DalamudYellow, "// Author: YourName");
-        ImGui.TextColored(ImGuiColors.DalamudYellow, "// Version: 1.0");
-        
-        ImGui.Unindent(10);
-        ImGui.Separator();
-
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "Examples:");
-        ImGui.TextWrapped("Here are some examples of community macros you can import:");
-        ImGui.Indent(10);
-
-        var exampleMacros = new[]
-        {
-            ("Basic Crafting Rotation", "https://github.com/example/ffxiv-macros/blob/main/crafting/basic.txt"),
-            ("Expert Recipe", "https://github.com/example/ffxiv-macros/blob/main/crafting/expert.txt"),
-            ("Simple Gathering Macro", "https://gist.github.com/example/123456789abcdef"),
-        };
-
-        foreach (var (name, url) in exampleMacros)
-        {
-            ImGui.TextColored(ImGuiColors.DalamudOrange, name);
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.BeginTooltip();
-                ImGui.Text("Click to copy URL");
-                ImGui.EndTooltip();
-            }
-            
-            if (ImGui.IsItemClicked())
-            {
-                ImGui.SetClipboardText(url);
-                ImGui.SetTooltip("Copied to clipboard!");
-            }
-            
-            ImGui.SameLine();
-            ImGui.TextWrapped(url);
-        }
-        
-        ImGui.Unindent(10);
-    }
-
-    private void DrawOptions()
-    {
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "Options and Settings");
-        ImGui.TextWrapped("These settings control how macros behave in different situations.");
-        ImGui.Separator();
-
-        // Create separate collapsing headers for different categories of settings
-        
-        // General settings section
-        if (ImGui.CollapsingHeader("General Settings", ImGuiTreeNodeFlags.DefaultOpen))
-        {
-            ImGui.Indent(10);
-
-            var craftingSkip = C.CraftSkip;
-            if (ImGui.Checkbox("Enable unsafe actions during crafting", ref craftingSkip))
-            {
-                C.CraftSkip = craftingSkip;
-                C.Save();
-            }
-            
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.BeginTooltip();
-                ImGui.Text("When enabled, allows potentially destructive actions during crafting");
-                ImGui.Text("This might cause issues if actions are used at wrong times");
-                ImGui.EndTooltip();
-            }
-
-            var useCraftLoopTemplate = C.UseCraftLoopTemplate;
-            if (ImGui.Checkbox("Enable automatic updates for Git macros", ref useCraftLoopTemplate))
-            {
-                C.UseCraftLoopTemplate = useCraftLoopTemplate;
-                C.Save();
-            }
-            
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.BeginTooltip();
-                ImGui.Text("When enabled, Git macros will automatically check for updates");
-                ImGui.Text("Updates are applied when macros are loaded");
-                ImGui.EndTooltip();
-            }
-
-            ImGui.Unindent(10);
-        }
-
-        // Native macro options section
-        if (ImGui.CollapsingHeader("Native Macro Options", ImGuiTreeNodeFlags.DefaultOpen))
-        {
-            ImGui.Indent(10);
-
-            var craftSkip = C.CraftSkip;
-            if (ImGui.Checkbox("Skip craft commands when not crafting", ref craftSkip))
-            {
-                C.CraftSkip = craftSkip;
-                C.Save();
-            }
-            
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.BeginTooltip();
-                ImGui.Text("When enabled, crafting commands will be skipped if not in crafting mode");
-                ImGui.Text("Example: /ac \"Muscle Memory\" will be skipped when not crafting");
-                ImGui.EndTooltip();
-            }
-
-            var qualitySkip = C.QualitySkip;
-            if (ImGui.Checkbox("Skip quality actions at max quality", ref qualitySkip))
-            {
-                C.QualitySkip = qualitySkip;
-                C.Save();
-            }
-            
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.BeginTooltip();
-                ImGui.Text("When enabled, quality-increasing actions will be skipped at max quality");
-                ImGui.Text("Example: /ac \"Byregot's Blessing\" will be skipped when at max quality");
-                ImGui.EndTooltip();
-            }
-
-            var loopTotal = C.LoopTotal;
-            if (ImGui.Checkbox("Loop command specifies total iterations", ref loopTotal))
-            {
-                C.LoopTotal = loopTotal;
-                C.Save();
-            }
-            
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.BeginTooltip();
-                ImGui.Text("When enabled, /loop 5 means 'loop a total of 5 times'");
-                ImGui.Text("When disabled, it means 'after executing once, loop 5 more times'");
-                ImGui.EndTooltip();
-            }
-
-            ImGui.Unindent(10);
-        }
-
-        // Lua script options section
-        if (ImGui.CollapsingHeader("Lua Script Options", ImGuiTreeNodeFlags.DefaultOpen))
-        {
-            ImGui.Indent(10);
-
-            ImGui.TextWrapped("Lua require paths (where to look for Lua modules):");
-            ImGui.Separator();
-
-            var paths = C.LuaRequirePaths.ToArray();
-            for (var index = 0; index < paths.Length; index++)
-            {
-                var path = paths[index];
-                
-                if (ImGui.InputText($"Path #{index}", ref path, 200))
-                {
-                    var newPaths = paths.ToList();
-                    newPaths[index] = path;
-                    C.LuaRequirePaths = newPaths.Where(p => !string.IsNullOrWhiteSpace(p)).ToArray();
-                    C.Save();
-                }
-            }
-
-            if (ImGui.Button("Add Path"))
-            {
-                var newPaths = paths.ToList();
-                newPaths.Add(string.Empty);
-                C.LuaRequirePaths = newPaths.ToArray();
-                C.Save();
-            }
-
-            ImGui.Unindent(10);
-        }
-        
-        // Click automation options
-        if (ImGui.CollapsingHeader("Click and UI Automation Options"))
-        {
-            ImGui.Indent(10);
-            
-            ImGui.TextWrapped("These settings control how UI automation behaves.");
-            
-            var stopMacroIfAddonNotFound = C.StopMacroIfAddonNotFound;
-            if (ImGui.Checkbox("Stop macro if UI element is not found", ref stopMacroIfAddonNotFound))
-            {
-                C.StopMacroIfAddonNotFound = stopMacroIfAddonNotFound;
-                C.Save();
-            }
-            
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.BeginTooltip();
-                ImGui.Text("When enabled, macros will stop if a UI element is not found");
-                ImGui.Text("Otherwise, they will skip the command and continue");
-                ImGui.EndTooltip();
-            }
-            
-            ImGui.Unindent(10);
-        }
     }
 }

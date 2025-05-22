@@ -1,6 +1,8 @@
 ﻿using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
+using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
+using SomethingNeedDoing.Framework;
 using SomethingNeedDoing.Framework.Interfaces;
 using System;
 using System.Numerics;
@@ -38,7 +40,7 @@ public class MacroMetadataEditor
         ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0.15f, 0.15f, 0.15f, 0.5f));
         
         // Full width container for metadata content
-        ImGui.BeginChild("MetadataContent", new Vector2(-1, 250), true);
+        using var contentChild = ImRaii.Child("MetadataContent", new Vector2(-1, 250), true);
         
         // Draw the appropriate tab content
         switch (_currentTab)
@@ -53,8 +55,6 @@ public class MacroMetadataEditor
                 DrawTriggersTab(macro);
                 break;
         }
-        
-        ImGui.EndChild();
         
         ImGui.PopStyleColor();
         ImGui.PopStyleVar();
@@ -236,35 +236,169 @@ public class MacroMetadataEditor
     
     private void DrawTriggersTab(IMacro macro)
     {
-        // Header for triggers section - without custom fonts
+        // Header for triggers section
         ImGui.TextColored(ImGuiColors.DalamudViolet, "Trigger Events");
         
         ImGui.Separator();
         ImGui.Spacing();
         
-        // Trigger on Auto Retainer
-        bool arPostProcess = macro.Metadata.TriggerEvents.Contains(TriggerEvent.OnAutoRetainerCharacterPostProcess);
+        // Create a scrollable area for triggers since we have many options
+        using var scrollRegion = ImRaii.Child("TriggersScroll", new Vector2(-1, -1), false);
         
-        if (ImGuiComponents.ToggleButton("##ARPostProcess", ref arPostProcess))
+        // Add a description
+        ImGui.TextWrapped("Select the events that will automatically trigger this macro to run:");
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        
+        // Helper method to add a trigger toggle
+        void AddTriggerToggle(TriggerEvent triggerEvent, string label, string tooltip = "")
         {
-            if (arPostProcess)
-                macro.Metadata.TriggerEvents.Add(TriggerEvent.OnAutoRetainerCharacterPostProcess);
+            bool isEnabled = macro.Metadata.TriggerEvents.Contains(triggerEvent);
+            
+            if (ImGuiComponents.ToggleButton($"##{triggerEvent}", ref isEnabled))
+            {
+                if (isEnabled)
+                    macro.Metadata.TriggerEvents.Add(triggerEvent);
+                else
+                    macro.Metadata.TriggerEvents.Remove(triggerEvent);
+                    
+                C.Save();
+            }
+            
+            ImGui.SameLine();
+            ImGui.Text(label);
+            
+            if (!string.IsNullOrEmpty(tooltip) && ImGui.IsItemHovered())
+                ImGui.SetTooltip(tooltip);
+            
+            ImGui.Spacing();
+        }
+        
+        // Auto Retainer trigger
+        AddTriggerToggle(
+            TriggerEvent.OnAutoRetainerCharacterPostProcess, 
+            "Run after Auto Retainer completes",
+            "Trigger this macro after Auto Retainer finishes processing a character"
+        );
+        
+        // Login trigger
+        AddTriggerToggle(
+            TriggerEvent.OnLogin, 
+            "Run on login",
+            "Trigger this macro when you log into the game"
+        );
+        
+        // Logout trigger
+        AddTriggerToggle(
+            TriggerEvent.OnLogout, 
+            "Run on logout",
+            "Trigger this macro when you log out of the game"
+        );
+        
+        // Territory change trigger
+        AddTriggerToggle(
+            TriggerEvent.OnTerritoryChange, 
+            "Run on zone change",
+            "Trigger this macro when you change zones"
+        );
+        
+        // Combat start trigger
+        AddTriggerToggle(
+            TriggerEvent.OnCombatStart, 
+            "Run when combat starts",
+            "Trigger this macro when you enter combat"
+        );
+        
+        // Combat end trigger
+        AddTriggerToggle(
+            TriggerEvent.OnCombatEnd, 
+            "Run when combat ends",
+            "Trigger this macro when you exit combat"
+        );
+        
+        // Condition change trigger
+        AddTriggerToggle(
+            TriggerEvent.OnConditionChange, 
+            "Run when conditions change",
+            "Trigger this macro when game conditions change (mounted, crafting, etc)"
+        );
+        
+        // Chat message trigger
+        AddTriggerToggle(
+            TriggerEvent.OnChatMessage, 
+            "Run on chat messages",
+            "Trigger this macro when specific chat messages are received"
+        );
+        
+        // Update trigger (warning - this runs every frame)
+        ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudRed);
+        AddTriggerToggle(
+            TriggerEvent.OnUpdate, 
+            "Run every frame (WARNING: Performance impact)",
+            "Triggers on every frame update. Use with caution as this can impact performance."
+        );
+        ImGui.PopStyleColor();
+        
+        // Addon event trigger - more complex, requires additional config
+        if (macro.Metadata.AddonEventConfig == null)
+            macro.Metadata.AddonEventConfig = new AddonEventConfig();
+            
+        bool addonEventEnabled = macro.Metadata.TriggerEvents.Contains(TriggerEvent.OnAddonEvent);
+        
+        if (ImGuiComponents.ToggleButton($"##{TriggerEvent.OnAddonEvent}", ref addonEventEnabled))
+        {
+            if (addonEventEnabled)
+                macro.Metadata.TriggerEvents.Add(TriggerEvent.OnAddonEvent);
             else
-                macro.Metadata.TriggerEvents.Remove(TriggerEvent.OnAutoRetainerCharacterPostProcess);
+                macro.Metadata.TriggerEvents.Remove(TriggerEvent.OnAddonEvent);
                 
             C.Save();
         }
         
         ImGui.SameLine();
-        ImGui.Text("Run after Auto Retainer completes");
+        ImGui.Text("Run on addon events");
         
-        ImGui.Spacing();
-        ImGui.Spacing();
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Trigger this macro when specific game UI elements appear or change");
         
-        // Other triggers could be added here in the future
-        
-        // Help text
-        ImGui.Spacing();
-        ImGui.TextColored(ImGuiColors.DalamudGrey, "Triggers allow macros to run automatically in response to events.");
+        // Show addon event config if enabled
+        if (addonEventEnabled)
+        {
+            ImGui.Indent(20);
+            
+            // Addon name
+            ImGui.Text("Addon Name:");
+            ImGui.SameLine(100);
+            
+            var addonName = macro.Metadata.AddonEventConfig.AddonName ?? string.Empty;
+            ImGui.SetNextItemWidth(150);
+            
+            if (ImGui.InputText("##AddonName", ref addonName, 100))
+            {
+                macro.Metadata.AddonEventConfig.AddonName = addonName;
+                C.Save();
+            }
+            
+            ImGui.SameLine();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("The name of the game UI element to watch (e.g. 'Talk', 'SelectString')");
+            
+            // Event type dropdown
+            ImGui.Text("Event Type:");
+            ImGui.SameLine(100);
+            
+            var eventTypeNames = Enum.GetNames(typeof(MacroAddonEvent));
+            var currentEventIndex = (int)macro.Metadata.AddonEventConfig.EventType;
+            ImGui.SetNextItemWidth(150);
+            
+            if (ImGui.Combo("##EventType", ref currentEventIndex, eventTypeNames, eventTypeNames.Length))
+            {
+                macro.Metadata.AddonEventConfig.EventType = (MacroAddonEvent)currentEventIndex;
+                C.Save();
+            }
+            
+            ImGui.Unindent(20);
+        }
     }
 }
