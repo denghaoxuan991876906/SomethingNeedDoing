@@ -1,6 +1,4 @@
-﻿using NLua;
-
-namespace SomethingNeedDoing.Framework.Interfaces;
+﻿namespace SomethingNeedDoing.Framework.Interfaces;
 /// <summary>
 /// Base interface for all Lua API modules.
 /// </summary>
@@ -14,5 +12,5 @@ public interface ILuaModule
     /// <summary>
     /// Registers this module's functions with the Lua environment.
     /// </summary>
-    void Register(Lua lua);
+    void Register(NLua.Lua lua);
 }

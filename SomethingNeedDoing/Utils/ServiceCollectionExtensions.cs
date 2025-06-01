@@ -7,6 +7,7 @@ using SomethingNeedDoing.NativeMacro;
 using SomethingNeedDoing.LuaMacro;
 using SomethingNeedDoing.Scheduler;
 using SomethingNeedDoing.Managers;
+using SomethingNeedDoing.Documentation;
 
 namespace SomethingNeedDoing.Utils;
 
@@ -26,11 +27,28 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMacroEngine, LayLuaMacroEngine>();
         services.AddSingleton<LuaModuleManager>();
         services.AddSingleton<GitMacroManager>();
+        services.AddSingleton<MacroHierarchyManager>();
+        services.AddSingleton<LuaDocumentation>();
 
         // UI Services
         services.AddSingleton<RunningMacrosPanel>();
-        services.AddSingleton<MacroUI>();
         services.AddSingleton<WindowSystem>();
+        services.AddSingleton<MacroStatusWindow>();
+        services.AddSingleton<HelpUI>();
+        services.AddSingleton(sp => new MacroEditor(
+            sp.GetRequiredService<IMacroScheduler>(),
+            sp.GetRequiredService<GitMacroManager>(),
+            sp.GetRequiredService<MacroStatusWindow>()
+        ));
+        services.AddSingleton(sp => new MainWindow(
+            sp.GetRequiredService<WindowSystem>(),
+            sp.GetRequiredService<IMacroScheduler>(),
+            sp.GetRequiredService<GitMacroManager>(),
+            sp.GetRequiredService<RunningMacrosPanel>(),
+            sp.GetRequiredService<MacroEditor>(),
+            sp.GetRequiredService<HelpUI>(),
+            sp.GetRequiredService<MacroStatusWindow>()
+        ));
 
         // External Services
         services.AddSingleton<Tippy>();

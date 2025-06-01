@@ -1,5 +1,4 @@
-﻿using NLua;
-using SomethingNeedDoing.Framework.Interfaces;
+﻿using SomethingNeedDoing.Framework.Interfaces;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -13,7 +12,7 @@ public abstract class LuaModuleBase : ILuaModule
     public ILuaModule? ParentModule { get; set; }
     public virtual Type? ParentType => null;
 
-    public virtual void Register(Lua lua)
+    public virtual void Register(NLua.Lua lua)
     {
         // Create module table
         var modulePath = GetModulePath();
