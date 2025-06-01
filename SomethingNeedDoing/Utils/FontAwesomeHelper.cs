@@ -1,5 +1,4 @@
 using Dalamud.Interface;
-using ImGuiNET;
 
 namespace SomethingNeedDoing.Utils;
 
@@ -14,7 +13,7 @@ public static class FontAwesomeHelper
     public const FontAwesomeIcon IconNew = FontAwesomeIcon.Plus;
     public const FontAwesomeIcon IconImport = FontAwesomeIcon.FileImport;
     public const FontAwesomeIcon IconExport = FontAwesomeIcon.FileExport;
-    
+
     // Actions
     public const FontAwesomeIcon IconPlay = FontAwesomeIcon.PlayCircle;
     public const FontAwesomeIcon IconStop = FontAwesomeIcon.StopCircle;
@@ -23,19 +22,19 @@ public static class FontAwesomeHelper
     public const FontAwesomeIcon IconRename = FontAwesomeIcon.Pen;
     public const FontAwesomeIcon IconDelete = FontAwesomeIcon.TrashAlt;
     public const FontAwesomeIcon IconCopy = FontAwesomeIcon.Clipboard;
-    
+
     // Macro types
     public const FontAwesomeIcon IconNativeMacro = FontAwesomeIcon.FileCode;
     public const FontAwesomeIcon IconLuaMacro = FontAwesomeIcon.Moon;  // Lua logo is moon-like
     public const FontAwesomeIcon IconGitMacro = FontAwesomeIcon.CodeBranch;
-    
+
     // Status indicators
     public const FontAwesomeIcon IconRunning = FontAwesomeIcon.PlayCircle;
     public const FontAwesomeIcon IconSuccess = FontAwesomeIcon.Check;
     public const FontAwesomeIcon IconError = FontAwesomeIcon.Times;
     public const FontAwesomeIcon IconWarning = FontAwesomeIcon.ExclamationTriangle;
     public const FontAwesomeIcon IconCheck = FontAwesomeIcon.Check;
-    
+
     // Settings and menus
     public const FontAwesomeIcon IconSettings = FontAwesomeIcon.Cog;
     public const FontAwesomeIcon IconHelp = FontAwesomeIcon.QuestionCircle;
@@ -60,7 +59,7 @@ public static class FontAwesomeHelper
     public const FontAwesomeIcon IconSortAsc = FontAwesomeIcon.SortAmountUp;
     public const FontAwesomeIcon IconSortDesc = FontAwesomeIcon.SortAmountDown;
     public const FontAwesomeIcon IconXmark = FontAwesomeIcon.Times;
-    
+
     // Text formatting
     public const FontAwesomeIcon IconIndent = FontAwesomeIcon.Indent;
     public const FontAwesomeIcon IconAlignLeft = FontAwesomeIcon.AlignLeft;
@@ -75,7 +74,7 @@ public static class FontAwesomeHelper
     // Collapsible panels
     public const FontAwesomeIcon IconCollapsedPanel = FontAwesomeIcon.PlusSquare;
     public const FontAwesomeIcon IconExpandedPanel = FontAwesomeIcon.MinusSquare;
-    
+
     /// <summary>
     /// Gets the string representation of a FontAwesome icon with proper font handling
     /// </summary>
@@ -85,7 +84,7 @@ public static class FontAwesomeHelper
     {
         return icon.ToIconString();
     }
-    
+
     /// <summary>
     /// Draws a FontAwesome icon by pushing the icon font, drawing the icon, and popping the font
     /// </summary>

@@ -7,6 +7,7 @@ using SomethingNeedDoing.NativeMacro;
 using SomethingNeedDoing.LuaMacro;
 using SomethingNeedDoing.Scheduler;
 using SomethingNeedDoing.Managers;
+using SomethingNeedDoing.Documentation;
 
 namespace SomethingNeedDoing.Utils;
 
@@ -27,6 +28,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<LuaModuleManager>();
         services.AddSingleton<GitMacroManager>();
         services.AddSingleton<MacroHierarchyManager>();
+        services.AddSingleton<LuaDocumentation>();
 
         // UI Services
         services.AddSingleton<RunningMacrosPanel>();

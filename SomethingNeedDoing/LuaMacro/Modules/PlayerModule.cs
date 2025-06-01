@@ -2,6 +2,7 @@
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using Lumina.Excel.Sheets;
+using SomethingNeedDoing.LuaMacro.Wrappers;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class PlayerModule : LuaModuleBase
@@ -18,37 +19,7 @@ public unsafe class PlayerModule : LuaModuleBase
     [LuaFunction] public uint FishingBait => Ps->FishingBait;
 
     [LuaFunction] public FreeCompanyWrapper FreeCompany => new();
-    public unsafe class FreeCompanyWrapper
-    {
-        private InfoProxyFreeCompany* FreeCompanyProxy => (InfoProxyFreeCompany*)FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->UIModule->GetInfoModule()->GetInfoProxyById(InfoProxyId.FreeCompany);
-
-        [LuaDocs] public FFXIVClientStructs.FFXIV.Client.UI.Agent.GrandCompany GrandCompany => FreeCompanyProxy->GrandCompany;
-        [LuaDocs] public byte Rank => FreeCompanyProxy->Rank;
-        [LuaDocs] public int OnlineMemebers => FreeCompanyProxy->OnlineMembers;
-        [LuaDocs] public int TotalMembers => FreeCompanyProxy->TotalMembers;
-        [LuaDocs] public string Name => FreeCompanyProxy->Name.ToString();
-        [LuaDocs] public ulong Id => FreeCompanyProxy->Id;
-    }
 
     [LuaFunction] public JobWrapper Job => new(Player.JobId);
     [LuaFunction] public JobWrapper GetJob(uint classJobId) => new(classJobId);
-    public class JobWrapper(uint classJobId)
-    {
-        [LuaDocs] public uint Id => classJobId;
-        [LuaDocs] public string Name => GetRow<ClassJob>(Id)?.Name.ToString() ?? string.Empty;
-        [LuaDocs] public string Abbreviation => GetRow<ClassJob>(Id)?.Abbreviation.ToString() ?? string.Empty;
-        [LuaDocs] public bool IsCrafter => Id is >= 8 and <= 15;
-        [LuaDocs] public bool IsGatherer => Id is >= 16 and <= 18;
-        [LuaDocs] public bool IsMeleeDPS => Id is 2 or 4 or 20 or 22 or 29 or 30 or 34 or 39;
-        [LuaDocs] public bool IsRangedDPS => Id is 5 or 23 or 31 or 38;
-        [LuaDocs] public bool IsMagicDPS => Id is 7 or 25 or 26 or 27 or 35;
-        [LuaDocs] public bool IsHealer => Id is 6 or 24 or 28 or 33 or 40;
-        [LuaDocs] public bool IsTank => Id is 3 or 19 or 21 or 32 or 37;
-        [LuaDocs] public bool IsDPS => IsMeleeDPS || IsRangedDPS || IsMagicDPS;
-        [LuaDocs] public bool IsDiscipleOfWar => IsMeleeDPS || IsRangedDPS || IsTank;
-        [LuaDocs] public bool IsDiscipleOfMagic => IsMagicDPS || IsHealer;
-        [LuaDocs] public bool IsBlu => Id is 36;
-        [LuaDocs] public bool IsLimited => IsBlu;
-        [LuaDocs(description: "Current unsynced level")] public int Level => Player.GetUnsyncedLevel((Job)Id);
-    }
 }

@@ -2,14 +2,8 @@
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
-using ImGuiNET;
 using Newtonsoft.Json;
-using SomethingNeedDoing.Utils;
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Numerics;
 
 namespace SomethingNeedDoing.Gui;
 public class MigrationPreviewWindow : Window
@@ -44,13 +38,13 @@ public class MigrationPreviewWindow : Window
     {
         // Call the base implementation first
         base.BringToFront();
-        
+
         // Make sure window is open
         IsOpen = true;
-        
+
         // Force window to foreground by setting focus flag
         Flags |= ImGuiWindowFlags.NoSavedSettings;
-        
+
         // Log that we're trying to bring the window to front
         Svc.Log.Debug("Attempting to bring migration window to front");
     }
@@ -183,27 +177,27 @@ public class MigrationPreviewWindow : Window
     public override void Draw()
     {
         Svc.Log.Debug("MigrationPreviewWindow Draw called");
-        
+
         if (!migrationValid)
         {
             ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudRed);
             ImGui.TextUnformatted("Migration Preview Failed");
             ImGui.PopStyleColor();
-            
+
             using (var errorBox = ImRaii.Child("ErrorBox", new Vector2(400, 100), true))
             {
                 ImGui.TextWrapped(errorMessage);
             }
-            
+
             using (var iconFont = ImRaii.PushFont(UiBuilder.IconFont))
             {
                 if (ImGui.Button($"{FontAwesomeIcon.TimesCircle.ToIconString()} Close"))
                     IsOpen = false;
             }
-                
+
             return;
         }
-        
+
         // Header with summary
         ImGui.TextColored(ImGuiColors.DalamudViolet, "Import Configuration");
         ImGui.TextUnformatted("Review the changes that will be applied to your configuration.");
@@ -219,7 +213,7 @@ public class MigrationPreviewWindow : Window
         if (settingsOpen)
         {
             using var settingsChild = ImRaii.Child("SettingsSection", new Vector2(-1, 150), true);
-            
+
             if (ImGui.Checkbox("Select All Changes", ref selectAllChanges))
             {
                 var keys = changes.Keys.ToList();
@@ -239,13 +233,13 @@ public class MigrationPreviewWindow : Window
                 ImGui.TableSetupColumn("Old Value", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 30);
                 ImGui.TableSetupColumn("New Value", ImGuiTableColumnFlags.WidthStretch);
-                
+
                 ImGui.TableHeadersRow();
-                
+
                 foreach (var (key, (oldValue, newValue, selected)) in changes.Where(c => !c.Key.StartsWith("Macro")))
                 {
                     ImGui.TableNextRow();
-                    
+
                     // Checkbox column
                     ImGui.TableNextColumn();
                     var newSelected = selected;
@@ -253,19 +247,19 @@ public class MigrationPreviewWindow : Window
                     {
                         changes[key] = (oldValue, newValue, newSelected);
                     }
-                    
+
                     // Setting name column
                     ImGui.TableNextColumn();
                     ImGui.TextUnformatted(key);
-                    
+
                     // Old value column
                     ImGui.TableNextColumn();
                     ImGui.TextColored(ImGuiColors.DalamudRed, oldValue);
-                    
+
                     // Arrow column
                     ImGui.TableNextColumn();
                     ImGui.TextUnformatted("→");
-                    
+
                     // New value column
                     ImGui.TableNextColumn();
                     ImGui.TextColored(ImGuiColors.HealerGreen, newValue);
@@ -282,7 +276,7 @@ public class MigrationPreviewWindow : Window
         if (newMacrosOpen)
         {
             using var newMacrosChild = ImRaii.Child("NewMacrosSection", new Vector2(-1, 200), true);
-            
+
             if (ImGui.Checkbox("Select All New Macros", ref selectAllNewMacros))
             {
                 var keys = newMacros.Keys.ToList();
@@ -301,27 +295,27 @@ public class MigrationPreviewWindow : Window
                 ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 80);
                 ImGui.TableSetupColumn("Path", ImGuiTableColumnFlags.WidthStretch);
-                
+
                 ImGui.TableHeadersRow();
-                
+
                 foreach (var (name, (macro, selected)) in newMacros)
                 {
                     ImGui.TableNextRow();
-                    
+
                     // Checkbox column
                     ImGui.TableNextColumn();
                     var newSelected = selected;
                     if (ImGui.Checkbox($"##new{name}", ref newSelected))
                         newMacros[name] = (macro, newSelected);
-                    
+
                     // Name column
                     ImGui.TableNextColumn();
                     ImGui.TextUnformatted(name);
-                    
+
                     // Type column
                     ImGui.TableNextColumn();
                     ImGui.TextUnformatted(macro.Type.ToString());
-                    
+
                     // Path column
                     ImGui.TableNextColumn();
                     ImGui.TextUnformatted(macro.FolderPath);
@@ -338,7 +332,7 @@ public class MigrationPreviewWindow : Window
         if (removedMacrosOpen)
         {
             using var removedMacrosChild = ImRaii.Child("RemovedMacrosSection", new Vector2(-1, 200), true);
-            
+
             if (ImGui.Checkbox("Select All Removed Macros", ref selectAllRemovedMacros))
             {
                 var keys = removedMacros.Keys.ToList();
@@ -357,13 +351,13 @@ public class MigrationPreviewWindow : Window
                 ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed, 80);
                 ImGui.TableSetupColumn("Path", ImGuiTableColumnFlags.WidthStretch);
-                
+
                 ImGui.TableHeadersRow();
-                
+
                 foreach (var (name, (macro, selected)) in removedMacros)
                 {
                     ImGui.TableNextRow();
-                    
+
                     // Checkbox column
                     ImGui.TableNextColumn();
                     var newSelected = selected;
@@ -371,15 +365,15 @@ public class MigrationPreviewWindow : Window
                     {
                         removedMacros[name] = (macro, newSelected);
                     }
-                    
+
                     // Name column
                     ImGui.TableNextColumn();
                     ImGui.TextUnformatted(name);
-                    
+
                     // Type column
                     ImGui.TableNextColumn();
                     ImGui.TextUnformatted(macro.Type.ToString());
-                    
+
                     // Path column
                     ImGui.TableNextColumn();
                     ImGui.TextUnformatted(macro.FolderPath);
@@ -389,15 +383,15 @@ public class MigrationPreviewWindow : Window
 
         ImGui.Separator();
         ImGui.Spacing();
-        
+
         // Action buttons
         float buttonWidth = 200;
         float windowWidth = ImGui.GetWindowWidth();
         float buttonsWidth = buttonWidth * 2 + ImGui.GetStyle().ItemSpacing.X;
         float startPos = (windowWidth - buttonsWidth) / 2;
-        
+
         ImGui.SetCursorPosX(startPos);
-        
+
         using (var iconFont = ImRaii.PushFont(UiBuilder.IconFont))
         {
             if (ImGui.Button($"{FontAwesomeIcon.PlayCircle.ToIconString()} Apply Selected Changes", new Vector2(buttonWidth, 0)))
@@ -406,9 +400,9 @@ public class MigrationPreviewWindow : Window
                 IsOpen = false;
             }
         }
-        
+
         ImGui.SameLine();
-        
+
         using (var iconFont = ImRaii.PushFont(UiBuilder.IconFont))
         {
             if (ImGui.Button($"{FontAwesomeIcon.TimesCircle.ToIconString()} Cancel", new Vector2(buttonWidth, 0)))

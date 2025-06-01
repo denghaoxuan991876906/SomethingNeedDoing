@@ -1,5 +1,6 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using SomethingNeedDoing.LuaMacro.Wrappers;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;
 /// <summary>
@@ -13,26 +14,8 @@ public unsafe class ActionsModule : LuaModuleBase
     [LuaFunction] public void ExecuteAction(uint actionID, ActionType actionType = ActionType.Action) => ActionManager.Instance()->UseAction(actionType, actionID);
     [LuaFunction] public void ExecuteGeneralAction(uint actionID) => ActionManager.Instance()->UseAction(ActionType.GeneralAction, actionID);
     [LuaFunction] public void Teleport(uint aetheryteId) => Telepo.Instance()->Teleport(aetheryteId, 0);
+    [LuaFunction] public void CancelCast() => UIState.Instance()->Hotbar.CancelCast();
 
     [LuaFunction] public LimitBreakWrapper LimitBreak => new();
-    public class LimitBreakWrapper
-    {
-        [LuaDocs] public ushort CurrentUnits => UIState.Instance()->LimitBreakController.CurrentUnits;
-        [LuaDocs] public uint BarUnits => UIState.Instance()->LimitBreakController.BarUnits;
-        [LuaDocs] public byte BarCount => UIState.Instance()->LimitBreakController.BarCount;
-    }
-
     [LuaFunction] public ActionWrapper GetActionInfo(uint actionId) => new(actionId);
-    public class ActionWrapper(uint actionId)
-    {
-        private ActionManager* Am => ActionManager.Instance();
-
-        [LuaDocs] public uint AdjustedActionId => Am->GetAdjustedActionId(actionId);
-        [LuaDocs] public float RecastTimeElapsed => Am->GetRecastTimeElapsed(ActionType.Action, AdjustedActionId);
-        [LuaDocs] public float RealRecastTimeElapsed => Am->GetRecastTimeElapsed(ActionType.Action, actionId);
-        [LuaDocs] public float RecastTime => Am->GetRecastTime(ActionType.Action, AdjustedActionId);
-        [LuaDocs] public float RealRecastTime => Am->GetRecastTime(ActionType.Action, actionId);
-        [LuaDocs] public float SpellCooldown => Math.Abs(RecastTime - RecastTimeElapsed);
-        [LuaDocs] public float RealSpellCooldown => Math.Abs(RealRecastTime - RealRecastTimeElapsed);
-    }
 }

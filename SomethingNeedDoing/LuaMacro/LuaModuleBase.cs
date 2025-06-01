@@ -1,5 +1,4 @@
-﻿using NLua;
-using SomethingNeedDoing.Framework.Interfaces;
+﻿using SomethingNeedDoing.Framework.Interfaces;
 using System.Linq.Expressions;
 using System.Reflection;
 

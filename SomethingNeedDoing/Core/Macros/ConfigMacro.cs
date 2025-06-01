@@ -1,5 +1,4 @@
 ﻿using SomethingNeedDoing.Framework.Interfaces;
-using SomethingNeedDoing.Utils;
 
 namespace SomethingNeedDoing.Framework;
 /// <summary>
@@ -26,7 +25,7 @@ public class ConfigMacro : MacroBase
     /// Gets or sets the folder path of the macro.
     /// </summary>
     public string FolderPath { get; set; } = string.Empty;
-    
+
     /// <inheritdoc/>
     public override void Delete()
     {

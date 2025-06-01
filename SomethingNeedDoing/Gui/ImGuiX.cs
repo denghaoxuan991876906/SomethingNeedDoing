@@ -1,10 +1,4 @@
 using Dalamud.Interface;
-using ImGuiNET;
-using System.Numerics;
-using SomethingNeedDoing.Utils;
-using ECommons;
-using Dalamud.Interface.Utility;
-using System;
 
 namespace SomethingNeedDoing.Gui;
 
@@ -21,7 +15,7 @@ internal static class ImGuiX
         ImGui.PushFont(UiBuilder.IconFont);
         var result = ImGui.Button($"{icon.ToIconString()}##{icon.ToIconString()}-{tooltip}");
         ImGui.PopFont();
-        
+
         // Show tooltip if hovered
         if (tooltip != null)
             TextTooltip(tooltip);
@@ -67,43 +61,43 @@ internal static class ImGuiX
     {
         // The most basic and reliable approach
         string id = $"##Button_{icon}_{text}";
-        
+
         // Start a group so all components are treated as one item
         ImGui.BeginGroup();
-        
+
         // Create a button with just an ID
         bool result = size.HasValue
             ? ImGui.Button(id, size.Value)
             : ImGui.Button(id);
-            
+
         // Get position for drawing the icon and text
         float buttonX = ImGui.GetItemRectMin().X;
         float buttonY = ImGui.GetItemRectMin().Y;
         float buttonWidth = ImGui.GetItemRectSize().X;
         float buttonHeight = ImGui.GetItemRectSize().Y;
-        
+
         // Center content vertically
         float offsetY = (buttonHeight - ImGui.GetTextLineHeight()) * 0.5f;
-        
+
         // Draw at a fixed position, not affected by cursor
         ImGui.SetCursorScreenPos(new Vector2(buttonX + 10, buttonY + offsetY));
-        
+
         // Draw icon with icon font
         ImGui.PushFont(UiBuilder.IconFont);
         ImGui.Text(icon.ToIconString());
         ImGui.PopFont();
-        
+
         // Get the width of the icon
         ImGui.PushFont(UiBuilder.IconFont);
         float iconWidth = ImGui.CalcTextSize(icon.ToIconString()).X;
         ImGui.PopFont();
-        
+
         // Draw the text with proper spacing
         ImGui.SetCursorScreenPos(new Vector2(buttonX + 10 + iconWidth + 5, buttonY + offsetY));
         ImGui.Text(text);
-        
+
         ImGui.EndGroup();
-        
+
         return result;
     }
 
@@ -130,10 +124,10 @@ internal static class ImGuiX
     {
         // Create a unique ID for this menu item
         string menuId = $"##Menu_{icon}_{label}";
-        
+
         // Use simple approach: create a MenuItem with just an ID, then overlay text
         bool result = ImGui.MenuItem(menuId, string.Empty, selected, enabled);
-        
+
         // Only draw the icon and text if we should be rendering them
         // (this prevents drawing when the menu is closed)
         if (ImGui.IsItemVisible())
@@ -142,28 +136,28 @@ internal static class ImGuiX
             float itemX = ImGui.GetItemRectMin().X;
             float itemY = ImGui.GetItemRectMin().Y;
             float itemHeight = ImGui.GetItemRectSize().Y;
-            
+
             // Backup cursor position
             Vector2 cursorPos = ImGui.GetCursorPos();
-            
+
             // Center content vertically
             float offsetY = (itemHeight - ImGui.GetTextLineHeight()) * 0.5f;
-            
+
             // Draw icon with icon font - position at start of item
             ImGui.SetCursorScreenPos(new Vector2(itemX + 5, itemY + offsetY));
             ImGui.PushFont(UiBuilder.IconFont);
             ImGui.Text(icon.ToIconString());
             float iconWidth = ImGui.CalcTextSize(icon.ToIconString()).X;
             ImGui.PopFont();
-            
+
             // Draw the label after the icon
             ImGui.SetCursorScreenPos(new Vector2(itemX + 10 + iconWidth, itemY + offsetY));
             ImGui.Text(label);
-            
+
             // Restore cursor position
             ImGui.SetCursorPos(cursorPos);
         }
-        
+
         return result;
     }
 
@@ -178,4 +172,4 @@ internal static class ImGuiX
         // as this is just getting the string representation
         return icon.ToIconString();
     }
-} 
+}

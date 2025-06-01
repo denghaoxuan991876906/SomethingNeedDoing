@@ -1,31 +1,23 @@
+using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
-using Dalamud.Game.Command;
 using ECommons;
 using ECommons.Configuration;
-using ECommons.SimpleGui;
 using Microsoft.Extensions.DependencyInjection;
 using SomethingNeedDoing.Framework.Interfaces;
 using SomethingNeedDoing.Gui;
-using ImGuiNET;
-using Dalamud.Interface;
-using System.Numerics;
-using SomethingNeedDoing.Utils;
-using System.Threading.Tasks;
-using System.IO;
 
 namespace SomethingNeedDoing;
 
 public sealed class Plugin : IDalamudPlugin
 {
-    internal string Name => "Something Need Doing (Expanded Edition)";
+    public string Name => Svc.PluginInterface.InternalName;
     internal string Prefix => "SND";
     internal string[] Aliases => ["/snd", "/pcraft"];
 
     internal static Plugin P { get; private set; } = null!;
-    internal static Config C => P._config;
+    internal static Config C { get; private set; } = null!;
 
-    private readonly Config _config = null!;
     private const string Command = "/somethingneeddoing";
     private readonly ServiceProvider _serviceProvider;
     private readonly WindowSystem _windowSystem;
@@ -40,12 +32,9 @@ public sealed class Plugin : IDalamudPlugin
         ECommonsMain.Init(pluginInterface, this, Module.ObjectFunctions, Module.DalamudReflector);
 
         EzConfig.DefaultSerializationFactory = new ConfigFactory();
-        EzConfig.Migrate<Config>();
-        _config = EzConfig.Init<Config>();
-        //_config.Migrate(_config);
-        //_config.ValidateMigration();
+        C = EzConfig.Init<Config>();
         EzConfig.Save();
-        
+
         // Set up dependency injection
         var services = new ServiceCollection();
         services.AddSomethingNeedDoingServices();
@@ -56,7 +45,7 @@ public sealed class Plugin : IDalamudPlugin
         _macroScheduler = _serviceProvider.GetRequiredService<IMacroScheduler>();
         _mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         _macroStatusWindow = _serviceProvider.GetRequiredService<MacroStatusWindow>();
-        
+
         // Initialize UI
         _windowSystem.AddWindow(_mainWindow);
         _windowSystem.AddWindow(_macroStatusWindow);
@@ -65,26 +54,13 @@ public sealed class Plugin : IDalamudPlugin
         Svc.Framework.RunOnFrameworkThread(() =>
         {
             Svc.PluginInterface.UiBuilder.Draw += CheckFontsOnFirstDraw;
-            Svc.PluginInterface.UiBuilder.Draw += DrawDevBarEntry;
             Svc.PluginInterface.UiBuilder.Draw += _windowSystem.Draw;
             Svc.PluginInterface.UiBuilder.OpenConfigUi += ToggleMainWindow;
             EzCmd.Add(Command, OnChatCommand, "Open a window to edit various settings.", displayOrder: int.MaxValue);
             Aliases.ToList().ForEach(a => EzCmd.Add(a, OnChatCommand, $"{Command} Alias"));
         });
 
-        // Set up commands
-        Svc.Commands.AddHandler(Command, new CommandInfo(OnCommand)
-        {
-            HelpMessage = "Opens the Something Need Doing UI",
-            ShowInHelp = true
-        });
-        
-        // Add additional command for status window
-        Svc.Commands.AddHandler("/sndstatus", new CommandInfo(ToggleStatusWindow)
-        {
-            HelpMessage = "Toggle the macro status window",
-            ShowInHelp = true
-        });
+        EzCmd.Add("/sndstatus", ToggleStatusWindow, "Toggle the macro status window");
     }
 
     private void CheckFontsOnFirstDraw()
@@ -94,10 +70,10 @@ public sealed class Plugin : IDalamudPlugin
 
         // Unregister this handler after first draw
         Svc.PluginInterface.UiBuilder.Draw -= CheckFontsOnFirstDraw;
-        
+
         // Check if IconFont is properly loaded
         bool isFontValid = UiBuilder.IconFont.IsLoaded();
-        
+
         if (!isFontValid)
         {
             Svc.Chat.PrintError("[SomethingNeedDoing] WARNING: FontAwesome icon font is not loaded properly.");
@@ -107,7 +83,7 @@ public sealed class Plugin : IDalamudPlugin
         else
         {
             Svc.Chat.Print("[SomethingNeedDoing] FontAwesome icon font loaded successfully.");
-            
+
             // Check first time run and show tutorial
             if (!C.HasCompletedTutorial)
             {
@@ -118,31 +94,17 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    private void DrawDevBarEntry()
-    {
-        if (Svc.PluginInterface.IsDevMenuOpen && ImGui.BeginMainMenuBar())
-        {
-            if (ImGui.MenuItem("SND Excel"))
-            {
-                if (ImGui.GetIO().KeyShift)
-                    EzConfigGui.Toggle();
-            }
-            ImGui.EndMainMenuBar();
-        }
-    }
-    
     private void ToggleMainWindow()
     {
         _mainWindow.IsOpen = !_mainWindow.IsOpen;
     }
 
     public void Dispose()
-    {        
+    {
         Svc.PluginInterface.UiBuilder.Draw -= CheckFontsOnFirstDraw;
         Svc.PluginInterface.UiBuilder.Draw -= _windowSystem.Draw;
         Svc.PluginInterface.UiBuilder.OpenConfigUi -= ToggleMainWindow;
         _windowSystem.RemoveAllWindows();
-        Svc.PluginInterface.UiBuilder.Draw -= DrawDevBarEntry;
         _serviceProvider.Dispose();
         ECommonsMain.Dispose();
     }
@@ -193,24 +155,11 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    private void OnCommand(string command, string args)
-    {
-        var argParts = args.ToLowerInvariant().Split(' ');
-        
-        if (args == "drgn")
-        {
-            Svc.Chat.Print("Mrraaz...");
-            return;
-        }
-        
-        _mainWindow.IsOpen = true;
-    }
-    
     private void ToggleStatusWindow(string command, string args)
     {
         // Toggle status window visibility
         _macroStatusWindow.IsOpen = !_macroStatusWindow.IsOpen;
-        
+
         // If we're opening it, bring it to front
         if (_macroStatusWindow.IsOpen)
             _macroStatusWindow.BringToFront();

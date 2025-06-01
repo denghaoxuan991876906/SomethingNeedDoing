@@ -1,13 +1,8 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
-using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
 using SomethingNeedDoing.Framework.Interfaces;
 using SomethingNeedDoing.Scheduler;
-using SomethingNeedDoing.Utils;
-using System.Numerics;
-using System.Linq;
 
 namespace SomethingNeedDoing.Gui;
 
@@ -29,7 +24,7 @@ public class RunningMacrosPanel
         if (!panel) return;
 
         // Header with collapse button
-        if (ImGuiX.IconTextButton(_isCollapsed ? FontAwesomeIcon.AngleDown : FontAwesomeIcon.AngleUp, 
+        if (ImGuiX.IconTextButton(_isCollapsed ? FontAwesomeIcon.AngleDown : FontAwesomeIcon.AngleUp,
                                  _isCollapsed ? "Running Macros" : "Running Macros"))
             _isCollapsed = !_isCollapsed;
 
@@ -93,11 +88,11 @@ public class RunningMacrosPanel
         // Macro name and status
         ImGui.Text($"{macro.Name} [{macro.State}]");
         ImGui.SameLine(ImGui.GetWindowWidth() - 200);
-        
+
         // Control buttons
         var state = _scheduler.GetMacroState(macro.Id);
         if (ImGuiX.IconTextButton(
-            state == MacroState.Paused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause, 
+            state == MacroState.Paused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause,
             state == MacroState.Paused ? "Resume" : "Pause"))
         {
             if (state == MacroState.Paused)
@@ -105,11 +100,11 @@ public class RunningMacrosPanel
             else
                 _scheduler.PauseMacro(macro.Id);
         }
-        
+
         ImGui.SameLine();
         if (ImGuiX.IconTextButton(FontAwesomeIcon.Stop, "Stop"))
             _scheduler.StopMacro(macro.Id);
-            
+
         ImGui.SameLine();
         if (ImGuiX.IconTextButton(FontAwesomeIcon.Ban, "Disable"))
         {
@@ -127,7 +122,7 @@ public class RunningMacrosPanel
             var center = ImGui.GetContentRegionAvail() / 2;
 
             // Display the desktop icon properly
-            ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2(center.X, center.Y - 30)); 
+            ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2(center.X, center.Y - 30));
             ImGui.PushFont(UiBuilder.IconFont);
             var iconText = FontAwesomeIcon.Desktop.ToIconString();
             var iconSize = ImGui.CalcTextSize(iconText);
@@ -146,7 +141,7 @@ public class RunningMacrosPanel
         var topLevelMacros = runningMacros
             .Where(m => !m.Id.Contains("_") || !runningMacros.Any(p => m.Id.StartsWith(p.Id + "_")))
             .ToList();
-            
+
         // Draw detailed info for each top-level macro and its children
         foreach (var macro in topLevelMacros)
         {
@@ -156,17 +151,17 @@ public class RunningMacrosPanel
             if (isOpen)
             {
                 ImGui.Indent(20.0f);
-                
+
                 // Draw details for this macro
                 DrawDetailedMacroInfo(macro);
-                
+
                 // Draw child macros
                 var children = _hierarchyManager.GetChildMacros(macro.Id);
                 if (children.Count > 0)
                 {
                     ImGui.Separator();
                     ImGui.TextColored(ImGuiColors.DalamudViolet, "Child Macros:");
-                    
+
                     foreach (var child in children)
                     {
                         // Only show children that are currently running
@@ -174,7 +169,7 @@ public class RunningMacrosPanel
                         {
                             string childStatusText = GetStatusText(child.State);
                             bool childOpen = ImGui.CollapsingHeader($"{childStatusText} {child.Name}##child_{child.Id}");
-                            
+
                             if (childOpen)
                             {
                                 ImGui.Indent(20.0f);
@@ -184,7 +179,7 @@ public class RunningMacrosPanel
                         }
                     }
                 }
-                
+
                 ImGui.Unindent(20.0f);
             }
         }
@@ -200,7 +195,7 @@ public class RunningMacrosPanel
         ImGui.TextColored(ImGuiColors.DalamudViolet, "Type:");
         ImGui.SameLine();
         ImGui.Text(macro.Type.ToString());
-        
+
         if (macro.Metadata.CraftingLoop)
         {
             ImGui.TextColored(ImGuiColors.DalamudViolet, "Loop:");
@@ -213,15 +208,15 @@ public class RunningMacrosPanel
 
         // Control buttons with proper FontAwesome icons
         var state = _scheduler.GetMacroState(macro.Id);
-        
+
         // Define fixed button sizes to prevent expansion
         float buttonWidth = 110;
-        
+
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(5, 0));
-        
+
         if (ImGuiX.IconTextButton(
-            state == MacroState.Paused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause, 
-            state == MacroState.Paused ? "Resume" : "Pause", 
+            state == MacroState.Paused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause,
+            state == MacroState.Paused ? "Resume" : "Pause",
             new Vector2(buttonWidth, 0)))
         {
             if (state == MacroState.Paused)
@@ -235,14 +230,14 @@ public class RunningMacrosPanel
         {
             _scheduler.StopMacro(macro.Id);
         }
-        
+
         ImGui.SameLine();
         if (ImGuiX.IconTextButton(FontAwesomeIcon.Ban, "Disable", new Vector2(80, 0)))
         {
             macro.Metadata.TriggerEvents.Clear();
             C.Save();
         }
-        
+
         ImGui.PopStyleVar();
     }
 
@@ -256,7 +251,7 @@ public class RunningMacrosPanel
             MacroState.Error => FontAwesomeIcon.ExclamationTriangle,
             _ => FontAwesomeIcon.Circle
         };
-        
+
         ImGui.PushFont(UiBuilder.IconFont);
         string iconText = icon.ToIconString();
         ImGui.PopFont();

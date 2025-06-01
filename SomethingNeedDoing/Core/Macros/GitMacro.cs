@@ -72,7 +72,7 @@ public class GitMacro : MacroBase
     /// Gets or sets the version history of this macro.
     /// </summary>
     public List<GitCommitInfo> VersionHistory { get; set; } = [];
-    
+
     /// <inheritdoc/>
     public override void Delete()
     {

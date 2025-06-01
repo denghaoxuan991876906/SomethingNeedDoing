@@ -42,7 +42,7 @@ public interface IMacro
     /// Gets the metadata for the macro.
     /// </summary>
     MacroMetadata Metadata { get; }
-    
+
     /// <summary>
     /// Deletes this macro from storage.
     /// </summary>

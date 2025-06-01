@@ -6,7 +6,6 @@ using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Github;
 using SomethingNeedDoing.Framework.Interfaces;
 using SomethingNeedDoing.Managers;
-using SomethingNeedDoing.Utils;
 using System.Threading.Tasks;
 using System.IO;
 
@@ -42,9 +41,9 @@ public class MacroUI : Window
     {
         // Create a toolbar with improved import options
         using var toolbarStyle = ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(8, 4));
-        
+
         // Toolbar is now empty since we moved both buttons
-        
+
         toolbarStyle.Pop();
 
         // Draw the running macros panel at the top
@@ -73,25 +72,25 @@ public class MacroUI : Window
 
         // Add Folders header with buttons
         ImGui.Separator();
-        
+
         // HEADER ROW WITH BUTTONS - complete redesign
-        
+
         // First create a row to contain everything
         ImGui.BeginGroup();
-        
+
         // 1. Draw the FOLDERS text with violet color
         ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudViolet);
         ImGui.Text("FOLDERS");
         ImGui.PopStyleColor();
-        
+
         // 2. Calculate spacing to place buttons on the same line
         float headerWidth = ImGui.CalcTextSize("FOLDERS").X;
         ImGui.SameLine(headerWidth + 10);
-        
+
         // 3. Draw the buttons - use explicit styling and positioning
         float buttonSize = ImGui.GetFrameHeight() * 0.8f;
         Vector2 buttonDims = new Vector2(buttonSize, buttonSize);
-        
+
         // New Folder button
         ImGui.PushFont(UiBuilder.IconFont);
         if (ImGui.Button($"{FontAwesomeIcon.FolderPlus.ToIconString()}##NewFolder", buttonDims))
@@ -132,10 +131,10 @@ public class MacroUI : Window
             selectedMacroId = string.Empty;
             Svc.Chat.Print($"Created new folder: {newPath}");
         }
-        
+
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip("Create a new folder");
-        
+
         // New Macro button
         ImGui.SameLine(0, 5);
         if (ImGui.Button($"{FontAwesomeIcon.FileMedical.ToIconString()}##NewMacro", buttonDims))
@@ -177,14 +176,14 @@ public class MacroUI : Window
                 Svc.Chat.Print("Added new empty macro");
             }
         }
-        
+
         ImGui.PopFont();
-        
+
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip("Create a new macro (uses clipboard content if available)");
-            
+
         ImGui.EndGroup();
-        
+
         // Folder tree with drag and drop - now in a child window with explicit size
         ImGui.BeginChild("FolderTree", new Vector2(-1, -1), true);
         DrawFolderTree();
@@ -251,13 +250,13 @@ public class MacroUI : Window
 
         // Replace the "macros in root folder" section with macro settings UI
         ImGui.Separator();
-        
+
         // Draw macro settings here
         if (ImGui.CollapsingHeader("Macro Settings", ImGuiTreeNodeFlags.DefaultOpen))
         {
             // Use a child window for better styling
             using var settingsChild = ImRaii.Child("SettingsPanel", new Vector2(-1, 250), true);
-            
+
             // Check if a macro is selected to show macro-specific settings
             if (!string.IsNullOrEmpty(selectedMacroId))
             {

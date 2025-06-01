@@ -1,6 +1,4 @@
-﻿using NLua;
-
-namespace SomethingNeedDoing.Framework.Interfaces;
+﻿namespace SomethingNeedDoing.Framework.Interfaces;
 /// <summary>
 /// Base interface for all Lua API modules.
 /// </summary>
