@@ -498,10 +498,10 @@ end");
         var validKeys = Svc.KeyState.GetValidVirtualKeys().ToHashSet();
 
         // Create a more organized layout with columns
-        int columns = 3;
+        var columns = 3;
         ImGui.Columns(columns, "VirtualKeysColumns", false);
 
-        int counter = 0;
+        var counter = 0;
 
         // Display each key with active state
         foreach (var key in Enum.GetValues<VirtualKey>())
@@ -556,11 +556,11 @@ end");
         ImGui.TextWrapped("(Green conditions are currently active)");
 
         // Create a more organized layout with columns
-        int columns = 3;
+        var columns = 3;
         ImGui.Columns(columns, "ConditionsColumns", false);
 
-        int counter = 0;
-        int totalConditions = Enum.GetValues<ConditionFlag>().Length;
+        var counter = 0;
+        var totalConditions = Enum.GetValues<ConditionFlag>().Length;
 
         // Display all game condition flags
         foreach (var condition in Enum.GetValues<ConditionFlag>())

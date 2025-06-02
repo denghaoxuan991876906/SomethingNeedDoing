@@ -23,7 +23,7 @@ public class GitMacroManager : IDisposable
         }
     };
     private readonly string _cacheDirectory;
-    private readonly ConcurrentDictionary<string, GitMacro> _gitMacros = [];
+    private readonly ConcurrentDictionary<string, ConfigMacro> _gitMacros = [];
 
     /// <summary>
     /// Event raised when a macro is updated.
@@ -52,7 +52,7 @@ public class GitMacroManager : IDisposable
     /// </summary>
     public void UpdateAllMacros()
     {
-        foreach (var macro in C.GitMacros)
+        foreach (var macro in C.Macros)
         {
             _gitMacros[macro.Id] = macro;
             _ = CheckForUpdates(macro); // Fire and forget, let it run async
@@ -66,18 +66,21 @@ public class GitMacroManager : IDisposable
     /// <param name="filePath">The file path within the repository.</param>
     /// <param name="branch">The branch name.</param>
     /// <returns>The created Git macro.</returns>
-    public async Task<GitMacro> AddGitMacro(string repositoryUrl, string filePath, string branch = "main")
+    public async Task<ConfigMacro> AddGitMacro(string repositoryUrl, string filePath, string branch = "main")
     {
-        var macro = new GitMacro
+        var macro = new ConfigMacro
         {
-            RepositoryUrl = repositoryUrl,
-            FilePath = filePath,
-            Branch = branch
+            GitInfo =
+            {
+                RepositoryUrl = repositoryUrl,
+                FilePath = filePath,
+                Branch = branch
+            }
         };
 
         await UpdateMacro(macro);
         _gitMacros[macro.Id] = macro;
-        C.GitMacros.Add(macro);
+        C.Macros.Add(macro);
         C.Save();
 
         return macro;
@@ -88,10 +91,12 @@ public class GitMacroManager : IDisposable
     /// </summary>
     /// <param name="macro">The macro to check.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task CheckForUpdates(GitMacro macro)
+    public async Task CheckForUpdates(ConfigMacro macro)
     {
         try
         {
+            if (macro.GitInfo.RepositoryUrl.IsNullOrEmpty()) return;
+
             // Store current trigger events
             var triggerEvents = macro.Metadata.TriggerEvents.ToList();
 
@@ -120,12 +125,12 @@ public class GitMacroManager : IDisposable
     /// </summary>
     /// <param name="macro">The macro to get version history for.</param>
     /// <returns>A list of commit information.</returns>
-    public async Task<List<GitCommitInfo>> GetVersionHistory(GitMacro macro)
+    public async Task<List<GitCommitInfo>> GetVersionHistory(ConfigMacro macro)
     {
         try
         {
             var response = await _httpClient.GetAsync(
-                $"{macro.RepositoryUrl}/commits?path={macro.FilePath}&sha={macro.Branch}");
+                $"{macro.GitInfo.RepositoryUrl}/commits?path={macro.GitInfo.FilePath}&sha={macro.GitInfo.Branch}");
 
             if (!response.IsSuccessStatusCode)
                 throw new Exception($"Failed to get version history: {response.StatusCode}");
@@ -148,7 +153,7 @@ public class GitMacroManager : IDisposable
     /// <param name="macro">The macro to downgrade.</param>
     /// <param name="commitHash">The commit hash to downgrade to.</param>
     /// <returns>True if the downgrade was successful.</returns>
-    public async Task<bool> DowngradeToVersion(GitMacro macro, string commitHash)
+    public async Task<bool> DowngradeToVersion(ConfigMacro macro, string commitHash)
     {
         try
         {
@@ -170,7 +175,7 @@ public class GitMacroManager : IDisposable
     /// <param name="macro">The macro to update.</param>
     /// <param name="commitHash">The commit hash to update to.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task UpdateToCommit(GitMacro macro, string commitHash)
+    public async Task UpdateToCommit(ConfigMacro macro, string commitHash)
     {
         try
         {
@@ -189,9 +194,9 @@ public class GitMacroManager : IDisposable
     /// </summary>
     /// <param name="macro">The macro to get the commit hash for.</param>
     /// <returns>The latest commit hash.</returns>
-    private async Task<string> GetLatestCommitHash(GitMacro macro)
+    private async Task<string> GetLatestCommitHash(ConfigMacro macro)
     {
-        var (ownerAndRepo, branch) = GetOwnerAndRepo(macro.RepositoryUrl);
+        var (ownerAndRepo, branch) = GetOwnerAndRepo(macro.GitInfo.RepositoryUrl);
         Svc.Log.Debug($"Getting latest commit for {ownerAndRepo} on branch {branch}");
 
         // First try to get the default branch
@@ -243,27 +248,27 @@ public class GitMacroManager : IDisposable
     /// <param name="macro">The macro to download.</param>
     /// <param name="commitHash">The commit hash to download from.</param>
     /// <returns>The file content.</returns>
-    private async Task<string> DownloadFile(GitMacro macro, string commitHash)
+    private async Task<string> DownloadFile(ConfigMacro macro, string commitHash)
     {
-        Svc.Log.Debug($"Original file path: {macro.FilePath}");
-        Svc.Log.Debug($"Original repository URL: {macro.RepositoryUrl}");
+        Svc.Log.Debug($"Original file path: {macro.GitInfo.FilePath}");
+        Svc.Log.Debug($"Original repository URL: {macro.GitInfo.RepositoryUrl}");
 
-        string filePath = macro.FilePath;
+        var filePath = macro.GitInfo.FilePath;
 
         // Clean up the file path - remove any blob/branch/ prefix if it exists
         if (filePath.StartsWith("blob/"))
         {
-            filePath = filePath.Substring(filePath.IndexOf('/', 5) + 1);
+            filePath = filePath[(filePath.IndexOf('/', 5) + 1)..];
             Svc.Log.Debug($"Cleaned up file path from blob prefix: {filePath}");
         }
         // If no file path is provided, try to extract it from the URL
-        else if (string.IsNullOrEmpty(filePath) && macro.RepositoryUrl.Contains("/blob/"))
+        else if (string.IsNullOrEmpty(filePath) && macro.GitInfo.RepositoryUrl.Contains("/blob/"))
         {
-            var parts = macro.RepositoryUrl.Split(new[] { "/blob/" }, StringSplitOptions.None);
+            var parts = macro.GitInfo.RepositoryUrl.Split(["/blob/"], StringSplitOptions.None);
             if (parts.Length != 2)
             {
-                Svc.Log.Error($"Invalid repository URL format: {macro.RepositoryUrl}");
-                throw new ArgumentException($"Invalid repository URL format: {macro.RepositoryUrl}");
+                Svc.Log.Error($"Invalid repository URL format: {macro.GitInfo.RepositoryUrl}");
+                throw new ArgumentException($"Invalid repository URL format: {macro.GitInfo.RepositoryUrl}");
             }
 
             var afterBlob = parts[1];
@@ -283,7 +288,7 @@ public class GitMacroManager : IDisposable
             throw new ArgumentException("No file path provided and could not extract from URL");
         }
 
-        var (ownerAndRepo, _) = GetOwnerAndRepo(macro.RepositoryUrl);
+        var (ownerAndRepo, _) = GetOwnerAndRepo(macro.GitInfo.RepositoryUrl);
         var apiUrl = $"https://api.github.com/repos/{ownerAndRepo}/contents/{filePath}?ref={commitHash}";
         Svc.Log.Debug($"Downloading file from: {apiUrl}");
 
@@ -370,15 +375,16 @@ public class GitMacroManager : IDisposable
     /// <param name="macro">The macro to update.</param>
     /// <param name="specificCommit">The specific commit to update to.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    private async Task UpdateMacro(GitMacro macro, string? specificCommit = null)
+    private async Task UpdateMacro(ConfigMacro macro, string? specificCommit = null)
     {
+        if (macro.GitInfo.RepositoryUrl.IsNullOrEmpty()) return;
         try
         {
             // Get the latest commit hash
             var commitHash = specificCommit ?? await GetLatestCommitHash(macro);
 
             // If the commit hash hasn't changed and we have a cached version, use that
-            if (commitHash == macro.CommitHash && File.Exists(GetCachedFilePath(macro)))
+            if (commitHash == macro.GitInfo.CommitHash && File.Exists(GetCachedFilePath(macro)))
             {
                 macro.Content = await File.ReadAllTextAsync(GetCachedFilePath(macro));
                 return;
@@ -391,9 +397,9 @@ public class GitMacroManager : IDisposable
             // Parse metadata and update macro
             var metadata = GitMacroMetadataParser.ParseMetadata(content);
             macro.Content = content;
-            macro.CommitHash = commitHash;
+            macro.GitInfo.CommitHash = commitHash;
             macro.Metadata = metadata;
-            macro.LastUpdateCheck = DateTime.Now;
+            macro.GitInfo.LastUpdateCheck = DateTime.Now;
 
             // Update dependencies if any
             await UpdateDependencies(macro);
@@ -410,18 +416,21 @@ public class GitMacroManager : IDisposable
     /// </summary>
     /// <param name="macro">The macro to update dependencies for.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    private async Task UpdateDependencies(GitMacro macro)
+    private async Task UpdateDependencies(ConfigMacro macro)
     {
         foreach (var dependency in macro.Metadata.Dependencies)
         {
             if (dependency.Type == DependencyType.GitMacro)
             {
                 var gitDependency = (GitMacroDependency)dependency;
-                var depMacro = new GitMacro
+                var depMacro = new ConfigMacro
                 {
-                    RepositoryUrl = gitDependency.RepositoryUrl,
-                    FilePath = gitDependency.FilePath,
-                    Branch = gitDependency.Branch
+                    GitInfo =
+                    {
+                        RepositoryUrl = gitDependency.RepositoryUrl,
+                        FilePath = gitDependency.FilePath,
+                        Branch = gitDependency.Branch
+                    }
                 };
 
                 await UpdateMacro(depMacro);
@@ -435,9 +444,9 @@ public class GitMacroManager : IDisposable
         }
     }
 
-    private string GetCachedFilePath(GitMacro macro)
+    private string GetCachedFilePath(ConfigMacro macro)
     {
-        var fileName = $"{macro.Id}_{macro.CommitHash}.txt";
+        var fileName = $"{macro.Id}_{macro.GitInfo.CommitHash}.txt";
         return Path.Combine(_cacheDirectory, fileName);
     }
 

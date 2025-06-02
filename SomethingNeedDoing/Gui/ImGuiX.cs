@@ -60,24 +60,24 @@ internal static class ImGuiX
     public static bool IconTextButton(FontAwesomeIcon icon, string text, Vector2? size = null)
     {
         // The most basic and reliable approach
-        string id = $"##Button_{icon}_{text}";
+        var id = $"##Button_{icon}_{text}";
 
         // Start a group so all components are treated as one item
         ImGui.BeginGroup();
 
         // Create a button with just an ID
-        bool result = size.HasValue
+        var result = size.HasValue
             ? ImGui.Button(id, size.Value)
             : ImGui.Button(id);
 
         // Get position for drawing the icon and text
-        float buttonX = ImGui.GetItemRectMin().X;
-        float buttonY = ImGui.GetItemRectMin().Y;
-        float buttonWidth = ImGui.GetItemRectSize().X;
-        float buttonHeight = ImGui.GetItemRectSize().Y;
+        var buttonX = ImGui.GetItemRectMin().X;
+        var buttonY = ImGui.GetItemRectMin().Y;
+        var buttonWidth = ImGui.GetItemRectSize().X;
+        var buttonHeight = ImGui.GetItemRectSize().Y;
 
         // Center content vertically
-        float offsetY = (buttonHeight - ImGui.GetTextLineHeight()) * 0.5f;
+        var offsetY = (buttonHeight - ImGui.GetTextLineHeight()) * 0.5f;
 
         // Draw at a fixed position, not affected by cursor
         ImGui.SetCursorScreenPos(new Vector2(buttonX + 10, buttonY + offsetY));
@@ -89,7 +89,7 @@ internal static class ImGuiX
 
         // Get the width of the icon
         ImGui.PushFont(UiBuilder.IconFont);
-        float iconWidth = ImGui.CalcTextSize(icon.ToIconString()).X;
+        var iconWidth = ImGui.CalcTextSize(icon.ToIconString()).X;
         ImGui.PopFont();
 
         // Draw the text with proper spacing
@@ -123,31 +123,31 @@ internal static class ImGuiX
     public static bool IconMenuItem(FontAwesomeIcon icon, string label, bool selected = false, bool enabled = true)
     {
         // Create a unique ID for this menu item
-        string menuId = $"##Menu_{icon}_{label}";
+        var menuId = $"##Menu_{icon}_{label}";
 
         // Use simple approach: create a MenuItem with just an ID, then overlay text
-        bool result = ImGui.MenuItem(menuId, string.Empty, selected, enabled);
+        var result = ImGui.MenuItem(menuId, string.Empty, selected, enabled);
 
         // Only draw the icon and text if we should be rendering them
         // (this prevents drawing when the menu is closed)
         if (ImGui.IsItemVisible())
         {
             // Get position for drawing
-            float itemX = ImGui.GetItemRectMin().X;
-            float itemY = ImGui.GetItemRectMin().Y;
-            float itemHeight = ImGui.GetItemRectSize().Y;
+            var itemX = ImGui.GetItemRectMin().X;
+            var itemY = ImGui.GetItemRectMin().Y;
+            var itemHeight = ImGui.GetItemRectSize().Y;
 
             // Backup cursor position
-            Vector2 cursorPos = ImGui.GetCursorPos();
+            var cursorPos = ImGui.GetCursorPos();
 
             // Center content vertically
-            float offsetY = (itemHeight - ImGui.GetTextLineHeight()) * 0.5f;
+            var offsetY = (itemHeight - ImGui.GetTextLineHeight()) * 0.5f;
 
             // Draw icon with icon font - position at start of item
             ImGui.SetCursorScreenPos(new Vector2(itemX + 5, itemY + offsetY));
             ImGui.PushFont(UiBuilder.IconFont);
             ImGui.Text(icon.ToIconString());
-            float iconWidth = ImGui.CalcTextSize(icon.ToIconString()).X;
+            var iconWidth = ImGui.CalcTextSize(icon.ToIconString()).X;
             ImGui.PopFont();
 
             // Draw the label after the icon

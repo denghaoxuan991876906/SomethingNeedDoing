@@ -14,16 +14,9 @@ public class Config : IEzConfig
     public int Version { get; set; } = 2;
 
     #region General Settings
-    public bool LockWindow { get; set; }
-    public bool DisableMonospaced { get; set; }
     public XivChatType ChatType { get; set; } = XivChatType.Debug;
     public XivChatType ErrorChatType { get; set; } = XivChatType.Urgent;
-    #endregion
-
-    #region Macro Settings
-    public List<ConfigMacro> Macros { get; set; } = [];
-    public string DefaultFileName { get; set; } = "UntitledMacro";
-    public string DefaultFileExtension { get; set; } = ".txt";
+    public bool HasCompletedTutorial { get; set; } = false;
     #endregion
 
     #region Crafting Settings
@@ -53,237 +46,23 @@ public class Config : IEzConfig
     public int BeepCount { get; set; } = 3;
     #endregion
 
-    #region Targeting
-    public bool UseSNDTargeting { get; set; } = true;
-    #endregion
-
-    #region AutoRetainer Integration
-    public ConfigMacro? ARCharacterPostProcessMacro { get; set; }
-    public List<ulong> ARCharacterPostProcessExcludedCharacters { get; set; } = [];
-    #endregion
-
     #region Error Conditions
     public bool StopMacroIfActionTimeout { get; set; } = true;
     public bool StopMacroIfItemNotFound { get; set; } = true;
     public bool StopMacroIfCantUseItem { get; set; } = true;
     public bool StopMacroIfTargetNotFound { get; set; } = true;
     public bool StopMacroIfAddonNotFound { get; set; } = true;
-    public bool StopMacroIfAddonNotVisible { get; set; } = true;
+    #endregion
+
+    #region AutoRetainer Integration
+    public List<ulong> ARCharacterPostProcessExcludedCharacters { get; set; } = [];
     #endregion
 
     #region Lua Settings
     public string[] LuaRequirePaths { get; set; } = [];
-    public bool UseMacroFileSystem { get; set; }
     #endregion
 
-    #region Git Macro Settings
-    public List<GitMacro> GitMacros { get; set; } = [];
-    #endregion
-
-    public bool HasCompletedTutorial { get; set; } = false;
-
-    /// <summary>
-    /// Migrates configuration from an older version.
-    /// </summary>
-    public void Migrate(dynamic oldConfig)
-    {
-        try
-        {
-            // Migrate from version 1
-            if (oldConfig.Version == 1)
-            {
-                // Log the old config structure for debugging
-                Svc.Log.Info($"Old config type: {oldConfig.GetType().Name}");
-                foreach (var prop in oldConfig.GetType().GetProperties())
-                {
-                    Svc.Log.Info($"Property: {prop.Name} = {prop.GetValue(oldConfig)}");
-                }
-
-                // Migrate general settings
-                LockWindow = oldConfig.LockWindow;
-                DisableMonospaced = oldConfig.DisableMonospaced;
-                ChatType = oldConfig.ChatType;
-                ErrorChatType = oldConfig.ErrorChatType;
-
-                // Migrate macros from old tree structure
-                if (oldConfig.RootFolder != null)
-                {
-                    MigrateMacrosFromOldStructure(oldConfig.RootFolder);
-                }
-
-                // Migrate other settings
-                CraftSkip = oldConfig.CraftSkip;
-                SmartWait = oldConfig.SmartWait;
-                QualitySkip = oldConfig.QualitySkip;
-                LoopTotal = oldConfig.LoopTotal;
-                LoopEcho = oldConfig.LoopEcho;
-                UseCraftLoopTemplate = oldConfig.UseCraftLoopTemplate;
-                CraftLoopTemplate = oldConfig.CraftLoopTemplate;
-                CraftLoopFromRecipeNote = oldConfig.CraftLoopFromRecipeNote;
-                CraftLoopMaxWait = oldConfig.CraftLoopMaxWait;
-                CraftLoopEcho = oldConfig.CraftLoopEcho;
-
-                // Migrate AR settings if they exist
-                if (oldConfig.ARCharacterPostProcessMacro is { } arMacro)
-                {
-                    // Find the macro by name in our new structure
-                    var migratedMacro = GetMacroByName(arMacro.Name);
-                    if (migratedMacro != null)
-                    {
-                        migratedMacro.Metadata.RunDuringARPostProcess = true;
-                    }
-                }
-
-                ARCharacterPostProcessExcludedCharacters = new List<ulong>(oldConfig.ARCharacterPostProcessExcludedCharacters);
-
-                // Migrate error settings
-                MaxTimeoutRetries = oldConfig.MaxTimeoutRetries;
-                NoisyErrors = oldConfig.NoisyErrors;
-                BeepFrequency = oldConfig.BeepFrequency;
-                BeepDuration = oldConfig.BeepDuration;
-                BeepCount = oldConfig.BeepCount;
-
-                // Migrate stop conditions
-                StopMacroIfActionTimeout = oldConfig.StopMacroIfActionTimeout;
-                StopMacroIfItemNotFound = oldConfig.StopMacroIfItemNotFound;
-                StopMacroIfCantUseItem = oldConfig.StopMacroIfCantUseItem;
-                StopMacroIfTargetNotFound = oldConfig.StopMacroIfTargetNotFound;
-                StopMacroIfAddonNotFound = oldConfig.StopMacroIfAddonNotFound;
-                StopMacroIfAddonNotVisible = oldConfig.StopMacroIfAddonNotVisible;
-
-                // Migrate Lua settings
-                LuaRequirePaths = oldConfig.LuaRequirePaths;
-                UseMacroFileSystem = oldConfig.UseMacroFileSystem;
-
-                // Log migration results
-                Svc.Log.Info($"Migration completed. Total macros migrated: {Macros.Count}");
-                foreach (var macro in Macros)
-                {
-                    Svc.Log.Info($"Migrated macro: {macro.Name} in {macro.FolderPath}");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Svc.Log.Error(ex, "Failed to migrate configuration");
-        }
-    }
-
-    private void MigrateMacrosFromOldStructure(dynamic rootFolder)
-    {
-        // First, determine the root folder name
-        string? rootFolderName;
-        try
-        {
-            if (rootFolder.Name != null)
-            {
-                rootFolderName = rootFolder.Name.ToString();
-                Svc.Log.Info($"Root folder name: {rootFolderName}");
-            }
-            else
-            {
-                Svc.Log.Warning("Root folder has no name, using default");
-                rootFolderName = "Root";
-            }
-        }
-        catch (Exception ex)
-        {
-            Svc.Log.Error(ex, "Error determining root folder name");
-            rootFolderName = "Root";
-        }
-
-        void TraverseFolderStructure(dynamic folder, string currentPath, bool isRoot = false)
-        {
-            if (folder == null) return;
-
-            // Log the current folder for debugging
-            Svc.Log.Info($"Traversing folder: {currentPath}");
-
-            try
-            {
-                // Get the Children property safely
-                var children = folder.Children;
-                if (children == null)
-                {
-                    Svc.Log.Warning($"No Children property found in folder: {currentPath}");
-                    return;
-                }
-
-                foreach (dynamic node in children)
-                {
-                    try
-                    {
-                        // Check if this is a macro node by looking for Contents property
-                        if (node.Contents != null)
-                        {
-                            // This is a macro node
-                            var macro = new ConfigMacro
-                            {
-                                Name = node.Name ?? "Unknown",
-                                Type = node.Language?.ToString() == "1" ? MacroType.Lua : MacroType.Native,
-                                Content = node.Contents.ToString(),
-                                FolderPath = isRoot ? "/" : currentPath,
-                                Metadata = new MacroMetadata
-                                {
-                                    LastModified = DateTime.Now,
-                                    CraftingLoop = node.CraftingLoop ?? false,
-                                    CraftLoopCount = node.CraftLoopCount ?? 0,
-                                    TriggerEvents = node.isPostProcess ? [TriggerEvent.OnAutoRetainerCharacterPostProcess] : [],
-                                }
-                            };
-
-                            Svc.Log.Info($"Adding macro: {macro.Name} in {macro.FolderPath}");
-                            Macros.Add(macro);
-                        }
-                        else if (node.Name != null)
-                        {
-                            // This is a folder node
-                            var folderName = node.Name.ToString();
-
-                            // If this is the root folder's children, use "/" as the path
-                            if (isRoot)
-                            {
-                                TraverseFolderStructure(node, "/");
-                            }
-                            else
-                            {
-                                // For other folders, build the path normally
-                                var newPath = Path.Combine(currentPath, folderName).Replace('\\', '/');
-                                TraverseFolderStructure(node, newPath);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Svc.Log.Error(ex, $"Error processing node in folder {currentPath}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Svc.Log.Error(ex, $"Error traversing folder {currentPath}");
-            }
-        }
-
-        try
-        {
-            // Start with the root folder, marking it as the root
-            TraverseFolderStructure(rootFolder, rootFolderName, true);
-            Svc.Log.Info($"Migration completed. Total macros migrated: {Macros.Count}");
-        }
-        catch (Exception ex)
-        {
-            Svc.Log.Error(ex, "Failed to traverse folder structure");
-        }
-    }
-
-    public void ValidateMigration()
-    {
-        Svc.Log.Info($"Configuration version: {Version}");
-        Svc.Log.Info($"Total macros: {Macros.Count}");
-        foreach (var macro in Macros)
-            Svc.Log.Info($"Macro: {macro.Name} in {macro.FolderPath}");
-    }
+    public List<ConfigMacro> Macros { get; set; } = [];
 
     public void Save() => EzConfig.Save();
 
@@ -300,14 +79,7 @@ public class Config : IEzConfig
     /// <summary>
     /// Moves a macro to a different folder.
     /// </summary>
-    public void MoveMacro(string macroId, string newFolderPath)
-    {
-        var macro = Macros.FirstOrDefault(m => m.Id == macroId);
-        if (macro != null)
-        {
-            macro.FolderPath = newFolderPath;
-        }
-    }
+    public void MoveMacro(string macroId, string newFolderPath) => Macros.FirstOrDefault(m => m.Id == macroId)?.FolderPath = newFolderPath;
 
     /// <summary>
     /// Deletes a macro.
@@ -515,7 +287,7 @@ public class Config : IEzConfig
 
 public class ConfigFactory : ISerializationFactory
 {
-    public string DefaultConfigFileName => "SomethingNeedDoing.json";
+    public string DefaultConfigFileName => "ezSomethingNeedDoing.json";
 
     public bool IsBinary => false;
 

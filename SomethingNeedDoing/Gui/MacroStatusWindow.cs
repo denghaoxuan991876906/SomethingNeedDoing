@@ -47,7 +47,7 @@ public class MacroStatusWindow : Window
     public override void Draw()
     {
         // Draw mode toggle button in title bar (more compact)
-        float windowWidth = ImGui.GetWindowWidth();
+        var windowWidth = ImGui.GetWindowWidth();
 
         // Position closer to the right edge
         ImGui.SetCursorPos(new Vector2(windowWidth - 40, 2));
@@ -90,11 +90,11 @@ public class MacroStatusWindow : Window
 
         // Filter to show only top-level macros
         var topLevelMacros = runningMacros
-            .Where(m => !m.Id.Contains("_") || !runningMacros.Any(p => m.Id.StartsWith(p.Id + "_")))
+            .Where(m => !m.Id.Contains('_') || !runningMacros.Any(p => m.Id.StartsWith(p.Id + "_")))
             .ToList();
 
         // Create a more compact table
-        ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit;
+        var tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit;
         if (ImGui.BeginTable("CompactMacroStatus", 3, tableFlags))
         {
             // Setup columns with more compact widths
@@ -153,7 +153,7 @@ public class MacroStatusWindow : Window
         {
             // Control buttons
             var state = _scheduler.GetMacroState(macro.Id);
-            float smallButtonSize = ImGui.GetFrameHeight() * 0.8f;
+            var smallButtonSize = ImGui.GetFrameHeight() * 0.8f;
 
             // Set a smaller button style
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2, 2));
@@ -225,14 +225,14 @@ public class MacroStatusWindow : Window
 
         // Filter to show only top-level macros
         var topLevelMacros = runningMacros
-            .Where(m => !m.Id.Contains("_") || !runningMacros.Any(p => m.Id.StartsWith(p.Id + "_")))
+            .Where(m => !m.Id.Contains('_') || !runningMacros.Any(p => m.Id.StartsWith(p.Id + "_")))
             .ToList();
 
         // Draw detailed info for each top-level macro
         foreach (var macro in topLevelMacros)
         {
-            string statusText = GetStatusText(macro.State);
-            bool isOpen = ImGui.CollapsingHeader($"{statusText} {macro.Name}", ImGuiTreeNodeFlags.DefaultOpen);
+            var statusText = GetStatusText(macro.State);
+            var isOpen = ImGui.CollapsingHeader($"{statusText} {macro.Name}", ImGuiTreeNodeFlags.DefaultOpen);
 
             if (isOpen)
             {
@@ -253,8 +253,8 @@ public class MacroStatusWindow : Window
                         // Only show children that are currently running
                         if (runningMacros.Any(m => m.Id == child.Id))
                         {
-                            string childStatusText = GetStatusText(child.State);
-                            bool childOpen = ImGui.CollapsingHeader($"{childStatusText} {child.Name}##child_{child.Id}",
+                            var childStatusText = GetStatusText(child.State);
+                            var childOpen = ImGui.CollapsingHeader($"{childStatusText} {child.Name}##child_{child.Id}",
                                 ImGuiTreeNodeFlags.DefaultOpen);
 
                             if (childOpen)
@@ -277,7 +277,7 @@ public class MacroStatusWindow : Window
     {
         // More compact layout with grid alignment
         float labelWidth = 50;
-        float lineHeight = ImGui.GetTextLineHeight() + 2;
+        var lineHeight = ImGui.GetTextLineHeight() + 2;
 
         // Use a single row for status info
         ImGui.BeginGroup();
@@ -287,7 +287,7 @@ public class MacroStatusWindow : Window
         ImGui.SameLine(labelWidth);
 
         // Show status with appropriate color
-        Vector4 statusColor = macro.State switch
+        var statusColor = macro.State switch
         {
             MacroState.Running => ImGuiColors.HealerGreen,
             MacroState.Paused => ImGuiColors.DalamudOrange,
@@ -361,7 +361,7 @@ public class MacroStatusWindow : Window
 
     private string GetStatusText(MacroState state)
     {
-        FontAwesomeIcon icon = state switch
+        var icon = state switch
         {
             MacroState.Completed => FontAwesomeIcon.CheckCircle,
             MacroState.Running => FontAwesomeIcon.Play,
@@ -371,7 +371,7 @@ public class MacroStatusWindow : Window
         };
 
         ImGui.PushFont(UiBuilder.IconFont);
-        string iconText = icon.ToIconString();
+        var iconText = icon.ToIconString();
         ImGui.PopFont();
         return iconText;
     }
@@ -379,11 +379,11 @@ public class MacroStatusWindow : Window
     private void DrawAnimatedStatusIcon(MacroState state)
     {
         // Use animation for Running state
-        bool shouldAnimate = state == MacroState.Running;
-        float pulse = shouldAnimate ? 0.5f + 0.5f * MathF.Sin(_elapsedSeconds * 3.0f) : 1.0f;
+        var shouldAnimate = state == MacroState.Running;
+        var pulse = shouldAnimate ? 0.5f + 0.5f * MathF.Sin(_elapsedSeconds * 3.0f) : 1.0f;
 
         // Set color based on state
-        Vector4 color = state switch
+        var color = state switch
         {
             MacroState.Running => new Vector4(0.0f, 1.0f, 0.0f, pulse),
             MacroState.Paused => new Vector4(1.0f, 0.65f, 0.0f, 1.0f),

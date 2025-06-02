@@ -74,13 +74,13 @@ public class RunningMacrosTab : Window
     private void DrawMacroNode(IMacro macro)
     {
         var children = _hierarchyManager.GetChildMacros(macro.Id);
-        bool hasChildren = children.Any();
+        var hasChildren = children.Any();
 
-        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags.None;
+        var flags = ImGuiTreeNodeFlags.None;
         if (!hasChildren)
             flags |= ImGuiTreeNodeFlags.Leaf;
 
-        bool isOpen = ImGui.TreeNodeEx($"{macro.Name} ({macro.State})", flags);
+        var isOpen = ImGui.TreeNodeEx($"{macro.Name} ({macro.State})", flags);
 
         if (isOpen)
         {

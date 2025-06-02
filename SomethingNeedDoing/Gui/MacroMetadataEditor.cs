@@ -60,8 +60,8 @@ public class MacroMetadataEditor
     private void DrawMetadataTabs()
     {
         float tabWidth = 100;
-        float windowWidth = ImGui.GetContentRegionAvail().X;
-        float startPos = (windowWidth - (tabWidth * 3)) / 2; // Center the tabs
+        var windowWidth = ImGui.GetContentRegionAvail().X;
+        var startPos = (windowWidth - (tabWidth * 3)) / 2; // Center the tabs
 
         ImGui.SetCursorPosX(startPos);
 
@@ -109,7 +109,7 @@ public class MacroMetadataEditor
         // Draw with better spacing and layout
         float labelWidth = 100;
         float spacing = 10;
-        float inputWidth = ImGui.GetContentRegionAvail().X - labelWidth - spacing - 20;
+        var inputWidth = ImGui.GetContentRegionAvail().X - labelWidth - spacing - 20;
 
         // Author field with nicer styling
         ImGui.AlignTextToFramePadding();
@@ -120,7 +120,7 @@ public class MacroMetadataEditor
         ImGui.SetNextItemWidth(inputWidth);
 
         ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0.2f, 0.2f, 0.2f, 1.0f));
-        bool authorChanged = ImGui.InputText("##Author", ref author, 100);
+        var authorChanged = ImGui.InputText("##Author", ref author, 100);
         ImGui.PopStyleColor();
 
         if (authorChanged)
@@ -140,7 +140,7 @@ public class MacroMetadataEditor
         ImGui.SetNextItemWidth(inputWidth);
 
         ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0.2f, 0.2f, 0.2f, 1.0f));
-        bool versionChanged = ImGui.InputText("##Version", ref version, 50);
+        var versionChanged = ImGui.InputText("##Version", ref version, 50);
         ImGui.PopStyleColor();
 
         if (versionChanged)
@@ -160,7 +160,7 @@ public class MacroMetadataEditor
         var description = macro.Metadata.Description ?? string.Empty;
 
         ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0.2f, 0.2f, 0.2f, 1.0f));
-        bool descChanged = ImGui.InputTextMultiline("##Description", ref description, 1000, new Vector2(-1, 100));
+        var descChanged = ImGui.InputTextMultiline("##Description", ref description, 1000, new Vector2(-1, 100));
         ImGui.PopStyleColor();
 
         if (descChanged)
@@ -251,7 +251,7 @@ public class MacroMetadataEditor
         // Helper method to add a trigger toggle
         void AddTriggerToggle(TriggerEvent triggerEvent, string label, string tooltip = "")
         {
-            bool isEnabled = macro.Metadata.TriggerEvents.Contains(triggerEvent);
+            var isEnabled = macro.Metadata.TriggerEvents.Contains(triggerEvent);
 
             if (ImGuiComponents.ToggleButton($"##{triggerEvent}", ref isEnabled))
             {
@@ -341,7 +341,7 @@ public class MacroMetadataEditor
         if (macro.Metadata.AddonEventConfig == null)
             macro.Metadata.AddonEventConfig = new AddonEventConfig();
 
-        bool addonEventEnabled = macro.Metadata.TriggerEvents.Contains(TriggerEvent.OnAddonEvent);
+        var addonEventEnabled = macro.Metadata.TriggerEvents.Contains(TriggerEvent.OnAddonEvent);
 
         if (ImGuiComponents.ToggleButton($"##{TriggerEvent.OnAddonEvent}", ref addonEventEnabled))
         {

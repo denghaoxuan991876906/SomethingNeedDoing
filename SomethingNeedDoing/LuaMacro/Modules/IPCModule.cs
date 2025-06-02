@@ -73,7 +73,7 @@ public class IPCModule : LuaModuleBase
     /// <summary>
     /// Gets all available IPC plugins
     /// </summary>
-    private string[] GetAvailablePlugins() => _ipcInstances.Values.Where(ipc => ipc.IsInstalled).Select(ipc => ipc.Name).ToArray();
+    private string[] GetAvailablePlugins() => [.. _ipcInstances.Values.Where(ipc => ipc.IsInstalled).Select(ipc => ipc.Name)];
 
     /// <summary>
     /// Gets an IPC instance by name

@@ -4,7 +4,12 @@ using SomethingNeedDoing.Framework.Interfaces;
 namespace SomethingNeedDoing.Utils;
 public static class ConfigMacroExtensions
 {
-    public static void Rename(this ConfigMacro macro, string newName) => macro.Name = newName;
+    public static void Rename(this ConfigMacro macro, string newName)
+    {
+        macro.Name = newName;
+        C.Save();
+    }
+
     public static void Duplicate(this ConfigMacro macro, string? newName = null)
     {
         var duplicate = new ConfigMacro

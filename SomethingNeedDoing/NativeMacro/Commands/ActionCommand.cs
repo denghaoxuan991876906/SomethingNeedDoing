@@ -62,7 +62,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
             if (UnsafeModifier is null)
                 Svc.Condition.ConditionChange += OnConditionChange;
 
-            Chat.Instance.SendMessage(CommandText);
+            Chat.SendMessage(CommandText);
         });
 
         if (UnsafeModifier is null)

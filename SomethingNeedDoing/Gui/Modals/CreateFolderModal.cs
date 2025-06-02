@@ -1,0 +1,81 @@
+﻿using Dalamud.Interface.Utility.Raii;
+
+namespace SomethingNeedDoing.Gui.Modals;
+public static class CreateFolderModal
+{
+    private static Vector2 Size = new(400, 200);
+    private static bool IsOpen = false;
+
+    private static string _newFolderName = "New Folder";
+
+    public static void Open()
+    {
+        IsOpen = true;
+        _newFolderName = "New Macro";
+    }
+
+    public static void Close()
+    {
+        IsOpen = false;
+        ImGui.CloseCurrentPopup();
+    }
+
+    public static void DrawModal()
+    {
+        if (!IsOpen) return;
+
+        ImGui.OpenPopup($"Create New Folder##{nameof(CreateFolderModal)}");
+
+        ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+        ImGui.SetNextWindowSize(Size);
+
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, new Vector2(15, 15));
+        using var popup = ImRaii.PopupModal($"Create New Macro##{nameof(CreateFolderModal)}", ref IsOpen, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoTitleBar);
+        if (!popup) return;
+
+        ImGuiX.Icon(FontAwesomeHelper.IconFolder);
+        ImGui.SameLine();
+        ImGui.Text("Create New Folder");
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("Name:");
+        ImGui.SameLine();
+        ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
+        ImGui.InputText("##FolderName", ref _newFolderName, 100);
+        ImGui.PopItemWidth();
+
+        ImGui.Spacing();
+        ImGui.Spacing();
+
+        ImGuiUtils.CenteredButtons(("Create", () =>
+        {
+            var folderExists = false;
+            foreach (var macro in C.Macros)
+            {
+                if (macro.FolderPath == _newFolderName)
+                {
+                    folderExists = true;
+                    break;
+                }
+            }
+
+            if (!folderExists && !string.IsNullOrWhiteSpace(_newFolderName))
+            {
+                // Create a dummy macro in the folder to ensure it exists
+                var dummyMacro = new ConfigMacro
+                {
+                    Name = $"{_newFolderName} Template",
+                    Content = "// Add your macro commands here",
+                    Type = MacroType.Native,
+                    FolderPath = _newFolderName
+                };
+
+                C.Macros.Add(dummyMacro);
+                Close();
+            }
+        }
+        ), ("Cancel", Close));
+    }
+}

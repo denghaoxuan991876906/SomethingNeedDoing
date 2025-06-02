@@ -72,7 +72,7 @@ public sealed class Plugin : IDalamudPlugin
         Svc.PluginInterface.UiBuilder.Draw -= CheckFontsOnFirstDraw;
 
         // Check if IconFont is properly loaded
-        bool isFontValid = UiBuilder.IconFont.IsLoaded();
+        var isFontValid = UiBuilder.IconFont.IsLoaded();
 
         if (!isFontValid)
         {

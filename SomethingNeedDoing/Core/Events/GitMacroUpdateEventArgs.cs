@@ -8,12 +8,12 @@ namespace SomethingNeedDoing.Core.Events;
 /// </remarks>
 /// <param name="macro">The macro that was updated.</param>
 /// <param name="error">The error that occurred during the update, if any.</param>
-public class GitMacroUpdateEventArgs(GitMacro macro, Exception? error = null) : EventArgs
+public class GitMacroUpdateEventArgs(ConfigMacro macro, Exception? error = null) : EventArgs
 {
     /// <summary>
     /// Gets the macro that was updated.
     /// </summary>
-    public GitMacro Macro { get; } = macro;
+    public ConfigMacro Macro { get; } = macro;
 
     /// <summary>
     /// Gets the error that occurred during the update, if any.

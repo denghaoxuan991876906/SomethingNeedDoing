@@ -6,17 +6,9 @@ using SomethingNeedDoing.Scheduler;
 
 namespace SomethingNeedDoing.Gui;
 
-public class RunningMacrosPanel
+public class RunningMacrosPanel(IMacroScheduler scheduler, MacroHierarchyManager hierarchyManager)
 {
-    private readonly IMacroScheduler _scheduler;
-    private readonly MacroHierarchyManager _hierarchyManager;
     private static bool _isCollapsed = false;
-
-    public RunningMacrosPanel(IMacroScheduler scheduler, MacroHierarchyManager hierarchyManager)
-    {
-        _scheduler = scheduler;
-        _hierarchyManager = hierarchyManager;
-    }
 
     public void Draw()
     {
@@ -33,13 +25,12 @@ public class RunningMacrosPanel
         ImGui.Separator();
 
         // Get all running macros
-        var runningMacros = _scheduler.GetMacros().ToList();
-        if (runningMacros.Any())
+        if (scheduler.GetMacros().ToList() is { Count: > 0 } runningMacros)
         {
             // Filter out temporary macros that have parents in the list
             // We'll draw those as child elements
             var topLevelMacros = runningMacros
-                .Where(m => !m.Id.Contains("_") || !runningMacros.Any(p => m.Id.StartsWith(p.Id + "_")))
+                .Where(m => !m.Id.Contains('_') || !runningMacros.Any(p => m.Id.StartsWith(p.Id + "_")))
                 .ToList();
 
             foreach (var macro in topLevelMacros)
@@ -56,7 +47,7 @@ public class RunningMacrosPanel
     private void DrawMacroWithChildren(IMacro macro, List<IMacro> allMacros, int depth)
     {
         // Get indent based on depth
-        float indentSize = 20.0f * depth;
+        var indentSize = 20.0f * depth;
         if (depth > 0)
             ImGui.Indent(indentSize);
 
@@ -64,7 +55,7 @@ public class RunningMacrosPanel
         DrawMacroControl(macro);
 
         // Get children for this macro
-        var children = _hierarchyManager.GetChildMacros(macro.Id);
+        var children = hierarchyManager.GetChildMacros(macro.Id);
         if (children.Count > 0)
         {
             foreach (var child in children)
@@ -90,20 +81,20 @@ public class RunningMacrosPanel
         ImGui.SameLine(ImGui.GetWindowWidth() - 200);
 
         // Control buttons
-        var state = _scheduler.GetMacroState(macro.Id);
+        var state = scheduler.GetMacroState(macro.Id);
         if (ImGuiX.IconTextButton(
             state == MacroState.Paused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause,
             state == MacroState.Paused ? "Resume" : "Pause"))
         {
             if (state == MacroState.Paused)
-                _scheduler.ResumeMacro(macro.Id);
+                scheduler.ResumeMacro(macro.Id);
             else
-                _scheduler.PauseMacro(macro.Id);
+                scheduler.PauseMacro(macro.Id);
         }
 
         ImGui.SameLine();
         if (ImGuiX.IconTextButton(FontAwesomeIcon.Stop, "Stop"))
-            _scheduler.StopMacro(macro.Id);
+            scheduler.StopMacro(macro.Id);
 
         ImGui.SameLine();
         if (ImGuiX.IconTextButton(FontAwesomeIcon.Ban, "Disable"))
@@ -116,7 +107,7 @@ public class RunningMacrosPanel
     public void DrawDetailed()
     {
         // Get all running macros
-        var runningMacros = _scheduler.GetMacros().ToList();
+        var runningMacros = scheduler.GetMacros().ToList();
         if (!runningMacros.Any())
         {
             var center = ImGui.GetContentRegionAvail() / 2;
@@ -139,14 +130,14 @@ public class RunningMacrosPanel
 
         // Filter out temporary macros that have parents in the list
         var topLevelMacros = runningMacros
-            .Where(m => !m.Id.Contains("_") || !runningMacros.Any(p => m.Id.StartsWith(p.Id + "_")))
+            .Where(m => !m.Id.Contains('_') || !runningMacros.Any(p => m.Id.StartsWith(p.Id + "_")))
             .ToList();
 
         // Draw detailed info for each top-level macro and its children
         foreach (var macro in topLevelMacros)
         {
-            string statusText = GetStatusText(macro.State);
-            bool isOpen = ImGui.CollapsingHeader($"{statusText} {macro.Name}");
+            var statusText = GetStatusText(macro.State);
+            var isOpen = ImGui.CollapsingHeader($"{statusText} {macro.Name}");
 
             if (isOpen)
             {
@@ -156,7 +147,7 @@ public class RunningMacrosPanel
                 DrawDetailedMacroInfo(macro);
 
                 // Draw child macros
-                var children = _hierarchyManager.GetChildMacros(macro.Id);
+                var children = hierarchyManager.GetChildMacros(macro.Id);
                 if (children.Count > 0)
                 {
                     ImGui.Separator();
@@ -167,8 +158,8 @@ public class RunningMacrosPanel
                         // Only show children that are currently running
                         if (runningMacros.Any(m => m.Id == child.Id))
                         {
-                            string childStatusText = GetStatusText(child.State);
-                            bool childOpen = ImGui.CollapsingHeader($"{childStatusText} {child.Name}##child_{child.Id}");
+                            var childStatusText = GetStatusText(child.State);
+                            var childOpen = ImGui.CollapsingHeader($"{childStatusText} {child.Name}##child_{child.Id}");
 
                             if (childOpen)
                             {
@@ -207,7 +198,7 @@ public class RunningMacrosPanel
         ImGui.Separator();
 
         // Control buttons with proper FontAwesome icons
-        var state = _scheduler.GetMacroState(macro.Id);
+        var state = scheduler.GetMacroState(macro.Id);
 
         // Define fixed button sizes to prevent expansion
         float buttonWidth = 110;
@@ -220,15 +211,15 @@ public class RunningMacrosPanel
             new Vector2(buttonWidth, 0)))
         {
             if (state == MacroState.Paused)
-                _scheduler.ResumeMacro(macro.Id);
+                scheduler.ResumeMacro(macro.Id);
             else
-                _scheduler.PauseMacro(macro.Id);
+                scheduler.PauseMacro(macro.Id);
         }
 
         ImGui.SameLine();
         if (ImGuiX.IconTextButton(FontAwesomeIcon.Stop, "Stop", new Vector2(80, 0)))
         {
-            _scheduler.StopMacro(macro.Id);
+            scheduler.StopMacro(macro.Id);
         }
 
         ImGui.SameLine();
@@ -243,7 +234,7 @@ public class RunningMacrosPanel
 
     private string GetStatusText(MacroState state)
     {
-        FontAwesomeIcon icon = state switch
+        var icon = state switch
         {
             MacroState.Completed => FontAwesomeIcon.CheckCircle,
             MacroState.Running => FontAwesomeIcon.Play,
@@ -253,7 +244,7 @@ public class RunningMacrosPanel
         };
 
         ImGui.PushFont(UiBuilder.IconFont);
-        string iconText = icon.ToIconString();
+        var iconText = icon.ToIconString();
         ImGui.PopFont();
         return iconText;
     }

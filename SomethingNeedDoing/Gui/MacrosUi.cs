@@ -84,12 +84,12 @@ public class MacroUI : Window
         ImGui.PopStyleColor();
 
         // 2. Calculate spacing to place buttons on the same line
-        float headerWidth = ImGui.CalcTextSize("FOLDERS").X;
+        var headerWidth = ImGui.CalcTextSize("FOLDERS").X;
         ImGui.SameLine(headerWidth + 10);
 
         // 3. Draw the buttons - use explicit styling and positioning
-        float buttonSize = ImGui.GetFrameHeight() * 0.8f;
-        Vector2 buttonDims = new Vector2(buttonSize, buttonSize);
+        var buttonSize = ImGui.GetFrameHeight() * 0.8f;
+        var buttonDims = new Vector2(buttonSize, buttonSize);
 
         // New Folder button
         ImGui.PushFont(UiBuilder.IconFont);
@@ -107,8 +107,8 @@ public class MacroUI : Window
             }
 
             // Ensure the name is unique
-            int suffix = 1;
-            string basePath = newPath;
+            var suffix = 1;
+            var basePath = newPath;
             while (C.GetMacrosInFolder(newPath).Any() || C.GetSubfolders(newPath).Any())
             {
                 newPath = $"{basePath} {suffix}";
@@ -220,10 +220,9 @@ public class MacroUI : Window
                     foreach (var macro in macros)
                     {
                         var macroIndent = new string(' ', (depth + 1) * 2);
-                        var prefix = macro is GitMacro ? "📦 " : "";
 
                         // Macro node
-                        if (ImGui.Selectable($"{macroIndent} {prefix}{macro.Name}", macro.Id == selectedMacroId))
+                        if (ImGui.Selectable($"{macroIndent} {macro.Name}", macro.Id == selectedMacroId))
                         {
                             selectedMacroId = macro.Id;
                             selectedFolderPath = path;
@@ -350,7 +349,7 @@ public class MacroUI : Window
         }
 
         // Git-specific controls
-        if (macro is GitMacro gitMacro)
+        if (macro is ConfigMacro { IsGitMacro: true } gitMacro)
         {
             ImGui.Separator();
 
@@ -368,7 +367,7 @@ public class MacroUI : Window
             }
             ImGui.SameLine();
 
-            if (gitMacro.HasUpdate)
+            if (gitMacro.GitInfo.HasUpdate)
             {
                 if (ImGui.Button("Update Available"))
                 {
@@ -392,7 +391,7 @@ public class MacroUI : Window
         }
     }
 
-    private async Task LoadVersionHistory(GitMacro macro)
+    private async Task LoadVersionHistory(ConfigMacro macro)
     {
         versionHistory = await _gitManager.GetVersionHistory(macro);
     }

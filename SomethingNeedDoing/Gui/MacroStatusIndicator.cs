@@ -22,11 +22,11 @@ public class MacroStatusIndicator
     public void Draw(float width, float height)
     {
         var runningMacros = _scheduler.GetMacros();
-        int macroCount = runningMacros.Count();
-        int runningCount = 0;
-        int pausedCount = 0;
-        int completedCount = 0;
-        int errorCount = 0;
+        var macroCount = runningMacros.Count();
+        var runningCount = 0;
+        var pausedCount = 0;
+        var completedCount = 0;
+        var errorCount = 0;
 
         foreach (var macro in runningMacros)
         {
@@ -56,7 +56,7 @@ public class MacroStatusIndicator
         var originalPos = ImGui.GetCursorPos();
 
         // Draw clickable indicator with hover effect
-        bool isHovered = false;
+        var isHovered = false;
 
         // Make a invisible button over the area for interaction
         ImGui.InvisibleButton("##StatusIndicatorButton", new Vector2(width, height));
@@ -82,16 +82,16 @@ public class MacroStatusIndicator
         drawList.AddRectFilled(pos, pos + new Vector2(width, height), ImGui.ColorConvertFloat4ToU32(statusColor), 4);
 
         // Get appropriate status icon
-        FontAwesomeIcon statusIcon = GetStatusIcon(runningCount, pausedCount, completedCount, errorCount);
-        string statusText = GetStatusText(macroCount, runningCount, pausedCount, completedCount, errorCount);
+        var statusIcon = GetStatusIcon(runningCount, pausedCount, completedCount, errorCount);
+        var statusText = GetStatusText(macroCount, runningCount, pausedCount, completedCount, errorCount);
 
         // Restore the original cursor position for drawing the content
         ImGui.SetCursorPos(originalPos);
 
         // Draw the icon and text with proper font handling
         var padding = 5f;
-        float originalCursorPosX = ImGui.GetCursorPosX();
-        float originalCursorPosY = ImGui.GetCursorPosY();
+        var originalCursorPosX = ImGui.GetCursorPosX();
+        var originalCursorPosY = ImGui.GetCursorPosY();
 
         // Create a temporary position for positioning the icon and text
         ImGui.SetCursorScreenPos(new Vector2(pos.X + padding, pos.Y + (height - ImGui.GetTextLineHeight()) / 2));
@@ -102,7 +102,7 @@ public class MacroStatusIndicator
         ImGui.PopFont();
 
         // Get the width of the icon to position the text
-        float iconWidth = ImGui.GetItemRectSize().X;
+        var iconWidth = ImGui.GetItemRectSize().X;
 
         // Draw the text right after the icon
         ImGui.SameLine();

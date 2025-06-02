@@ -29,7 +29,7 @@ public class MacroParser
         RegexOptions.Compiled | RegexOptions.IgnoreCase
     );
 
-    public List<IMacroCommand> Parse(string text, IMacroScheduler scheduler) => text.Split('\n').Select(line => ParseLine(line, scheduler)).ToList();
+    public List<IMacroCommand> Parse(string text, IMacroScheduler scheduler) => [.. text.Split('\n').Select(line => ParseLine(line, scheduler))];
 
     /// <summary>
     /// Parses a command line and returns the appropriate command.
