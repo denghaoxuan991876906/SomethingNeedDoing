@@ -1,7 +1,7 @@
 ﻿using Dalamud.Game.Addon.Lifecycle;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 
-namespace SomethingNeedDoing.Framework;
+namespace SomethingNeedDoing.Core;
 /// <summary>
 /// Represents metadata for a macro.
 /// </summary>

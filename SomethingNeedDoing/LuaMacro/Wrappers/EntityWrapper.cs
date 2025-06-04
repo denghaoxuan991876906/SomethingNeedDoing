@@ -3,9 +3,10 @@ using Dalamud.Game.ClientState.Party;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using Lumina.Excel.Sheets;
+using SomethingNeedDoing.Core.Interfaces;
 
 namespace SomethingNeedDoing.LuaMacro.Wrappers;
-public unsafe class EntityWrapper
+public unsafe class EntityWrapper : IWrapper
 {
     public EntityWrapper(GameObject* obj) => _obj = obj;
     public EntityWrapper(nint obj) => _obj = (GameObject*)obj;

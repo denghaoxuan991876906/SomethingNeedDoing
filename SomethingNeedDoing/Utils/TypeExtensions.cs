@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using SomethingNeedDoing.Core.Interfaces;
+using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.Utils;
 /// <summary>
@@ -78,5 +79,19 @@ public static class TypeExtensions
                typeDef == typeof(ValueTuple<,,,,,>) ||
                typeDef == typeof(ValueTuple<,,,,,,>) ||
                typeDef == typeof(ValueTuple<,,,,,,,>);
+    }
+
+    public static bool IsWrapper(this Type type)
+    {
+        if (type == null) return false;
+
+        if (typeof(IWrapper).IsAssignableFrom(type))
+            return true;
+
+        // For properties/methods that return wrapper types
+        if (type.IsClass)
+            if (Type.GetType($"{nameof(SomethingNeedDoing.LuaMacro.Wrappers)}.{type.Name}, SomethingNeedDoing") is { } wrapper && typeof(IWrapper).IsAssignableFrom(wrapper))
+                return true;
+        return false;
     }
 }

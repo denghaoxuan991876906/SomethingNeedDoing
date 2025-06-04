@@ -1,4 +1,4 @@
-﻿namespace SomethingNeedDoing.Framework;
+﻿namespace SomethingNeedDoing.Core;
 /// <summary>
 /// Defines the type of macro.
 /// </summary>

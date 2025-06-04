@@ -8,7 +8,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.NativeMacro;
 using SomethingNeedDoing.LuaMacro;

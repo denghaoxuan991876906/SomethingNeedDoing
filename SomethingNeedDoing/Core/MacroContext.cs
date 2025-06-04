@@ -1,7 +1,7 @@
-﻿using SomethingNeedDoing.Framework.Interfaces;
+﻿using SomethingNeedDoing.Core.Interfaces;
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.Framework;
+namespace SomethingNeedDoing.Core;
 /// <summary>
 /// Provides context for macro execution.
 /// </summary>

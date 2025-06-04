@@ -2,7 +2,7 @@
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using SomethingNeedDoing.Core.Github;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Managers;
 using System.Text.RegularExpressions;
 
@@ -33,9 +33,20 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
     private static readonly Regex StringRegex = new Regex(@"""([^""\\]|\\.)*""|'([^'\\]|\\.)*'", RegexOptions.Compiled);
     private static readonly Regex NumberRegex = new Regex(@"\b\d+(\.\d+)?\b", RegexOptions.Compiled);
 
-    public void Draw(IMacro macro)
+    public void Draw(IMacro? macro)
     {
-        if (macro == null) return;
+        using var child = ImRaii.Child("RightPanel", new Vector2(0, -1), false);
+        if (!child) return;
+        if (macro == null)
+        {
+            var center = ImGui.GetContentRegionAvail() / 2;
+            var text = "Select a macro or create a new one";
+            var textSize = ImGui.CalcTextSize(text);
+
+            ImGui.SetCursorPos(ImGui.GetCursorPos() + center - textSize / 2);
+            ImGui.TextColored(ImGuiColors.DalamudGrey, text);
+            return;
+        }
 
         DrawMacroHeader(macro);
         DrawEditorToolbar(macro);
@@ -99,7 +110,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         {
             ImGui.SameLine(0, 10);
 
-            if (ImGuiX.IconButton(macroState == MacroState.Paused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause,
+            if (ImGuiUtils.IconButton(macroState == MacroState.Paused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause,
                            macroState == MacroState.Paused ? "Resume" : "Pause"))
             {
                 if (macroState == MacroState.Paused)
@@ -110,7 +121,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
 
             ImGui.SameLine(0, 5);
 
-            if (ImGuiX.IconButton(FontAwesomeIcon.Stop, "Stop"))
+            if (ImGuiUtils.IconButton(FontAwesomeIcon.Stop, "Stop"))
                 scheduler.StopMacro(macro.Id);
         }
     }
@@ -175,7 +186,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         var statusIcon = macroCount > 0 ? FontAwesomeIcon.Play : FontAwesomeIcon.Desktop;
 
         ImGui.PushStyleColor(ImGuiCol.Text, statusColor);
-        if (ImGuiX.IconButton(statusIcon, macroCount > 0 ? $"{macroCount} running" : "No macros running"))
+        if (ImGuiUtils.IconButton(statusIcon, macroCount > 0 ? $"{macroCount} running" : "No macros running"))
         {
             if (statusWindow != null)
             {
@@ -189,7 +200,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         ImGui.SameLine();
 
         // Line numbers toggle
-        if (ImGuiX.IconButton(
+        if (ImGuiUtils.IconButton(
             _showLineNumbers ? FontAwesomeHelper.IconSortAsc : FontAwesomeHelper.IconSortDesc,
             "Toggle Line Numbers"))
         {
@@ -199,7 +210,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         ImGui.SameLine();
 
         // Syntax highlighting toggle
-        if (ImGuiX.IconButton(
+        if (ImGuiUtils.IconButton(
             _highlightSyntax ? FontAwesomeHelper.IconCheck : FontAwesomeHelper.IconXmark,
             "Syntax Highlighting (not currently available)"))
         {

@@ -1,6 +1,6 @@
 ﻿using NLua;
 using SomethingNeedDoing.Documentation;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro.Modules;
 
 namespace SomethingNeedDoing.LuaMacro;
@@ -10,14 +10,21 @@ namespace SomethingNeedDoing.LuaMacro;
 public class LuaModuleManager
 {
     private readonly List<ILuaModule> _modules = [];
-    private readonly LuaDocumentation _documentation = new();
+    private readonly LuaDocumentation _documentation;
 
-    public LuaModuleManager()
+    public LuaModuleManager(LuaDocumentation documentation)
     {
+        _documentation = documentation;
         RegisterModule(new ActionsModule());
         RegisterModule(new InstancesModule());
+        RegisterModule(new EntityModule());
         RegisterModule(new IPCModule());
         RegisterModule(new ExcelModule());
+        RegisterModule(new AddonModule());
+        RegisterModule(new PlayerModule());
+        RegisterModule(new InstancedContentModule());
+        RegisterModule(new QuestsModule());
+        RegisterModule(new SystemModule());
         //RegisterModule(new FateModule());
     }
 

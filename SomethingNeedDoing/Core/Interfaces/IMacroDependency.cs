@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.Framework.Interfaces;
+namespace SomethingNeedDoing.Core.Interfaces;
 
 /// <summary>
 /// Interface for macro dependencies that can be implemented by different dependency types.

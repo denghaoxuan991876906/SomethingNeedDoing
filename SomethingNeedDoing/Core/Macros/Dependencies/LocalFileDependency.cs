@@ -1,8 +1,8 @@
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.Framework;
+namespace SomethingNeedDoing.Core;
 
 /// <summary>
 /// Represents a dependency on a local file.

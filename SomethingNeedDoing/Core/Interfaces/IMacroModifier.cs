@@ -1,4 +1,4 @@
-﻿namespace SomethingNeedDoing.Framework.Interfaces;
+﻿namespace SomethingNeedDoing.Core.Interfaces;
 /// <summary>
 /// Base interface for all macro command modifiers.
 /// </summary>

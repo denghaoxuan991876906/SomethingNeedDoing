@@ -1,4 +1,4 @@
-﻿namespace SomethingNeedDoing.Framework;
+﻿namespace SomethingNeedDoing.Core;
 public class MacroException : InvalidOperationException
 {
     /// <summary>

@@ -1,4 +1,4 @@
-﻿using SomethingNeedDoing.Framework.Interfaces;
+﻿using SomethingNeedDoing.Core.Interfaces;
 using System.Text.RegularExpressions;
 
 namespace SomethingNeedDoing.NativeMacro.Modifiers;

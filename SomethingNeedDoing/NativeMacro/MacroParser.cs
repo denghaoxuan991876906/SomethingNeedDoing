@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Dalamud.Game.ClientState.Keys;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.NativeMacro.Commands;
 using SomethingNeedDoing.NativeMacro.Modifiers;
 

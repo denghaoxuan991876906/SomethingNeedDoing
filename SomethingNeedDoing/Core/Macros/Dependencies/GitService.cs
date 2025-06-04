@@ -1,9 +1,9 @@
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.Framework;
+namespace SomethingNeedDoing.Core;
 
 /// <summary>
 /// Implementation of the Git service using the GitHub API.

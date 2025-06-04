@@ -1,7 +1,4 @@
-﻿using ECommons.ExcelServices;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using FFXIVClientStructs.FFXIV.Client.UI.Info;
-using Lumina.Excel.Sheets;
+﻿using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using SomethingNeedDoing.LuaMacro.Wrappers;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;

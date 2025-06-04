@@ -1,7 +1,7 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Scheduler;
 
 namespace SomethingNeedDoing.Gui;

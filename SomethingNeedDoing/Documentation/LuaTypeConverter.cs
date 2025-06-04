@@ -1,4 +1,6 @@
-﻿namespace SomethingNeedDoing.Documentation;
+﻿using SomethingNeedDoing.Core.Interfaces;
+
+namespace SomethingNeedDoing.Documentation;
 /// <summary>
 /// Converts C# types to <see cref="LuaTypeInfo"/>.
 /// </summary>
@@ -32,8 +34,12 @@ public class LuaTypeConverter
         if (type.IsList())
         {
             var elementType = type.GetGenericArguments()[0];
-            return new LuaTypeInfo("table", "Array of values", [GetLuaType(elementType)]);
+            var elementTypeInfo = GetLuaType(elementType);
+            return new LuaTypeInfo("table", $"Array of {elementTypeInfo.TypeName}", [elementTypeInfo]);
         }
+
+        if (type.IsWrapper())
+            return new LuaTypeInfo(type.Name, $"Wrapper for {type.Name.Replace("Wrapper", "")}");
 
         if (type.IsTuple())
         {

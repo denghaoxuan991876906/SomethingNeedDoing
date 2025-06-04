@@ -1,8 +1,9 @@
 ﻿using ECommons.ExcelServices;
 using Lumina.Excel.Sheets;
+using SomethingNeedDoing.Core.Interfaces;
 
 namespace SomethingNeedDoing.LuaMacro.Wrappers;
-public class JobWrapper(uint classJobId)
+public class JobWrapper(uint classJobId) : IWrapper
 {
     [LuaDocs] public uint Id => classJobId;
     [LuaDocs] public string Name => GetRow<ClassJob>(Id)?.Name.ToString() ?? string.Empty;

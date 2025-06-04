@@ -1,6 +1,6 @@
 ﻿using Lumina.Excel.Sheets;
 
-namespace SomethingNeedDoing.Framework.Exceptions;
+namespace SomethingNeedDoing.Core.Exceptions;
 /// <summary>
 /// Exception thrown when a macro needs to pause but not treat it as an error.
 /// </summary>

@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.Framework.Interfaces;
+namespace SomethingNeedDoing.Core.Interfaces;
 
 /// <summary>
 /// Interface for Git operations.

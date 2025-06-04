@@ -1,5 +1,5 @@
 ﻿using Dalamud.Interface.Utility.Raii;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 
 namespace SomethingNeedDoing.Gui.Modals;
 public static class RenameModal

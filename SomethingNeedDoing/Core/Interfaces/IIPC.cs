@@ -1,6 +1,6 @@
 using ECommons.EzIpcManager;
 
-namespace SomethingNeedDoing.Framework.Interfaces;
+namespace SomethingNeedDoing.Core.Interfaces;
 
 /// <summary>
 /// Interface for all IPC classes to implement.

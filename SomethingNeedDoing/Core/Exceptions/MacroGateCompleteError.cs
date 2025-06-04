@@ -1,4 +1,4 @@
-﻿namespace SomethingNeedDoing.Framework.Exceptions;
+﻿namespace SomethingNeedDoing.Core.Exceptions;
 /// <summary>
 /// Exception thrown when a macro gate command completes.
 /// </summary>

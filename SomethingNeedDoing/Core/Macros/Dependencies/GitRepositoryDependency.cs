@@ -1,7 +1,7 @@
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.Framework;
+namespace SomethingNeedDoing.Core;
 
 /// <summary>
 /// Represents a dependency on a Git repository.

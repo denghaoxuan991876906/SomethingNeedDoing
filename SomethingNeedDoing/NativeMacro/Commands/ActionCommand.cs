@@ -22,7 +22,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
 
         void OnConditionChange(ConditionFlag flag, bool value)
         {
-            if (flag == ConditionFlag.Crafting40 && !value)
+            if (flag == ConditionFlag.ExecutingCraftingAction && !value)
                 craftingComplete.TrySetResult(true);
         }
 

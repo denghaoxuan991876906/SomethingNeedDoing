@@ -1,7 +1,8 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.Game;
+using SomethingNeedDoing.Core.Interfaces;
 
 namespace SomethingNeedDoing.LuaMacro.Wrappers;
-public unsafe class ActionWrapper(uint actionId)
+public unsafe class ActionWrapper(uint actionId) : IWrapper
 {
     private ActionManager* Am => ActionManager.Instance();
 

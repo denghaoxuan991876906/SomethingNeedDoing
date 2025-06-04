@@ -1,6 +1,6 @@
-﻿using SomethingNeedDoing.Framework.Interfaces;
+﻿using SomethingNeedDoing.Core.Interfaces;
 
-namespace SomethingNeedDoing.Framework;
+namespace SomethingNeedDoing.Core;
 /// <summary>
 /// Represents a macro that is stored in the config.
 /// </summary>

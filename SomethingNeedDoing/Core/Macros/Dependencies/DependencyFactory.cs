@@ -1,7 +1,7 @@
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 using System.Net.Http;
 
-namespace SomethingNeedDoing.Framework;
+namespace SomethingNeedDoing.Core;
 
 /// <summary>
 /// Factory for creating dependencies.

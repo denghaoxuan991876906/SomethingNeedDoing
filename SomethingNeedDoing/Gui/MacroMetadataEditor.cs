@@ -2,7 +2,7 @@
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 
 namespace SomethingNeedDoing.Gui;
 

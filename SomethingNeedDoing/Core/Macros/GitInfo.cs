@@ -1,6 +1,6 @@
 using SomethingNeedDoing.Core.Github;
 
-namespace SomethingNeedDoing.Framework;
+namespace SomethingNeedDoing.Core;
 
 /// <summary>
 /// Contains information about a macro's Git repository source.

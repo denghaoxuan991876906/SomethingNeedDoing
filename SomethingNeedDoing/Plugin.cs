@@ -4,7 +4,7 @@ using Dalamud.Plugin;
 using ECommons;
 using ECommons.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Gui;
 
 namespace SomethingNeedDoing;

@@ -1,7 +1,8 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.UI.Info;
+using SomethingNeedDoing.Core.Interfaces;
 
 namespace SomethingNeedDoing.LuaMacro.Wrappers;
-public unsafe class FreeCompanyWrapper
+public unsafe class FreeCompanyWrapper : IWrapper
 {
     private InfoProxyFreeCompany* FreeCompanyProxy => (InfoProxyFreeCompany*)FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->UIModule->GetInfoModule()->GetInfoProxyById(InfoProxyId.FreeCompany);
 

@@ -1,7 +1,7 @@
 ﻿using SomethingNeedDoing.Core.Events;
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.Framework.Interfaces;
+namespace SomethingNeedDoing.Core.Interfaces;
 /// <summary>
 /// Interface for macro scheduling and control.
 /// This is the central coordinator for all macro operations.

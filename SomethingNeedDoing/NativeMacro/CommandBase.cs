@@ -1,4 +1,4 @@
-﻿using SomethingNeedDoing.Framework.Interfaces;
+﻿using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.NativeMacro.Modifiers;
 using System.Threading;
 using System.Threading.Tasks;

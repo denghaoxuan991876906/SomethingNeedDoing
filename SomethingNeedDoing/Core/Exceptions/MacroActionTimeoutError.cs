@@ -1,4 +1,4 @@
-﻿namespace SomethingNeedDoing.Framework;
+﻿namespace SomethingNeedDoing.Core;
 /// <summary>
 /// Exception thrown when a macro command times out.
 /// </summary>

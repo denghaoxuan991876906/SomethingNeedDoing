@@ -1,5 +1,5 @@
 using NLua;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 using System.Reflection;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;

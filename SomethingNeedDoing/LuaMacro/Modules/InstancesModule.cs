@@ -1,6 +1,7 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
+using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro.Wrappers;
 using static FFXIVClientStructs.FFXIV.Client.UI.Info.InfoProxyCommonList.CharacterData;
 
@@ -10,7 +11,7 @@ public unsafe class InstancesModule : LuaModuleBase
     public override string ModuleName => "Instances";
 
     [LuaFunction] public DutyFinderWrapper DutyFinder => new();
-    public unsafe class DutyFinderWrapper
+    public unsafe class DutyFinderWrapper : IWrapper
     {
         [LuaDocs] public void OpenRouletteDuty(byte contentRouletteID) => AgentContentsFinder.Instance()->OpenRouletteDuty(contentRouletteID);
         [LuaDocs] public void OpenRegularDuty(uint contentsFinderCondition) => AgentContentsFinder.Instance()->OpenRegularDuty(contentsFinderCondition);
@@ -24,7 +25,7 @@ public unsafe class InstancesModule : LuaModuleBase
     }
 
     [LuaFunction] public FriendsListWrapper FriendsList => new();
-    public class FriendsListWrapper
+    public class FriendsListWrapper : IWrapper
     {
         public List<FriendWrapper> Friends
         {
@@ -40,7 +41,7 @@ public unsafe class InstancesModule : LuaModuleBase
         public FriendWrapper? GetFriendByName(string name) => Friends.FirstOrDefault(f => f.Name == name);
     }
 
-    public class FriendWrapper(InfoProxyCommonList.CharacterData data)
+    public class FriendWrapper(InfoProxyCommonList.CharacterData data) : IWrapper
     {
         public string Name => data.NameString;
         public ulong ContentId => data.ContentId;

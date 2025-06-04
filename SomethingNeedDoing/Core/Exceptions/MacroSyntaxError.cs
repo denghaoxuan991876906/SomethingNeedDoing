@@ -1,4 +1,4 @@
-﻿namespace SomethingNeedDoing.Framework.Exceptions;
+﻿namespace SomethingNeedDoing.Core.Exceptions;
 /// <summary>
 /// Exception thrown when macro syntax is invalid.
 /// </summary>

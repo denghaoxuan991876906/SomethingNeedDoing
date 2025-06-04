@@ -1,5 +1,5 @@
 ﻿using SomethingNeedDoing.Core.Events;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 
 namespace SomethingNeedDoing.Utils;
 public static class ConfigMacroExtensions

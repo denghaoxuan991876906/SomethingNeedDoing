@@ -4,22 +4,17 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using ECommons.ImGuiMethods;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Gui.Modals;
 using SomethingNeedDoing.Gui.Tabs;
-using SomethingNeedDoing.Managers;
 
 namespace SomethingNeedDoing.Gui;
 
 public class MainWindow : Window
 {
-    private readonly RunningMacrosPanel _runningPanel;
     private readonly MacroEditor _macroEditor;
-    private readonly HelpUI _helpUI;
-    private readonly WindowSystem _ws;
+    private readonly HelpTab _helpTab;
     private readonly IMacroScheduler _scheduler;
-    private readonly GitMacroManager _gitManager;
-    private readonly MacroStatusWindow _statusWindow;
 
     // Macro selection
     private string _selectedMacroId = string.Empty;
@@ -47,16 +42,11 @@ public class MainWindow : Window
     // UI state
     private bool _isFolderSectionCollapsed = false;
 
-    public MainWindow(WindowSystem ws, IMacroScheduler scheduler, GitMacroManager gitManager, RunningMacrosPanel runningPanel, MacroEditor macroEditor, HelpUI helpUI, MacroStatusWindow statusWindow)
-        : base("Something Need Doing", ImGuiWindowFlags.NoScrollbar)
+    public MainWindow(IMacroScheduler scheduler, MacroEditor macroEditor, HelpTab helpTab) : base("Something Need Doing", ImGuiWindowFlags.NoScrollbar)
     {
-        _ws = ws;
         _scheduler = scheduler;
-        _gitManager = gitManager;
-        _runningPanel = runningPanel;
         _macroEditor = macroEditor;
-        _helpUI = helpUI;
-        _statusWindow = statusWindow;
+        _helpTab = helpTab;
 
         Size = new Vector2(1000, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
@@ -80,7 +70,7 @@ public class MainWindow : Window
 
         using (var tab = ImRaii.TabItem("Help"))
             if (tab)
-                _helpUI.Draw();
+                _helpTab.Draw();
 
         using (var tab = ImRaii.TabItem("Settings"))
             if (tab)
@@ -89,282 +79,206 @@ public class MainWindow : Window
 
     private void DrawMacrosTab()
     {
-        // Get UI scale
-        var scale = ImGuiHelpers.GlobalScale;
-
-        // Calculate scaled widths
-        var minWidth = _minLeftPanelWidth * scale;
-        var maxWidth = _maxLeftPanelWidth * scale;
-        var leftPanelWidth = _leftPanelWidth * scale;
-        var windowPadding = ImGui.GetStyle().WindowPadding.X * 2;
-
-        // Start resizable two-column layout
-        ImGui.BeginTable("MainLayout", 2, ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.Resizable);
-
-        // Setup columns
-        ImGui.TableSetupColumn("Tree", ImGuiTableColumnFlags.WidthFixed, leftPanelWidth);
+        using var table = ImRaii.Table("Main", 2, ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.Resizable);
+        if (!table) return;
+        ImGui.TableSetupColumn("Tree", ImGuiTableColumnFlags.WidthFixed, _leftPanelWidth * ImGuiHelpers.GlobalScale);
         ImGui.TableSetupColumn("Editor", ImGuiTableColumnFlags.WidthStretch);
 
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
 
-        // Search box
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##Search", "Search Folders & Macros...", ref _searchText, 100);
 
         ImGui.Separator();
 
-        // Folders and macros panel
-        ImGui.BeginChild("LeftPanel", new Vector2(0, -1), true);
-        DrawFolderMacroTree();
-        ImGui.EndChild();
+        DrawMacroPanel();
 
         // Store user's panel resizing
         if (ImGui.TableGetColumnFlags(0).HasFlag(ImGuiTableColumnFlags.WidthFixed))
         {
-            var currentWidth = ImGui.GetColumnWidth(0) / scale;
+            var currentWidth = ImGui.GetColumnWidth(0) / ImGuiHelpers.GlobalScale;
             currentWidth = Math.Clamp(currentWidth, _minLeftPanelWidth, _maxLeftPanelWidth);
 
             if (Math.Abs(_leftPanelWidth - currentWidth) > 1f)
-            {
                 _leftPanelWidth = currentWidth;
-            }
         }
 
         // Editor panel
         ImGui.TableNextColumn();
-        ImGui.BeginChild("RightPanel", new Vector2(0, -1), false);
-
-        var selectedMacro = GetSelectedMacro();
-        if (selectedMacro != null)
-        {
-            _macroEditor.Draw(selectedMacro);
-        }
-        else
-        {
-            DrawEmptyState();
-        }
-
-        ImGui.EndChild();
-        ImGui.EndTable();
+        _macroEditor.Draw(C.GetMacro(_selectedMacroId));
     }
 
-    private void DrawFolderMacroTree()
+    private void DrawMacroPanel()
     {
-        // Section for folder/macro tree with better visual hierarchy
-        ImGui.PushStyleColor(ImGuiCol.Header, new Vector4(0.3f, 0.3f, 0.4f, 0.7f));
-        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, new Vector4(0.4f, 0.4f, 0.5f, 0.8f));
+        using var child = ImRaii.Child("MacroTreePanel", new(0, -1), true);
+        if (!child) return;
 
-        // If there's no search, display the hierarchical tree
+        using var _ = ImRaii.PushColor(ImGuiCol.Header, new Vector4(0.3f, 0.3f, 0.4f, 0.7f)).Push(ImGuiCol.HeaderHovered, new Vector4(0.4f, 0.4f, 0.5f, 0.8f));
+
         if (string.IsNullOrEmpty(_searchText))
-        {
-            // FOLDERS SECTION HEADER WITH COLLAPSE TOGGLE
-            ImGui.BeginGroup();
+            DrawMacroTree();
+        else
+            DrawSearchResults();
+    }
 
-            // Draw the FOLDERS text with violet color
+    private void DrawMacroTree()
+    {
+        using (ImRaii.Group())
+        {
             ImGui.TextColored(ImGuiColors.DalamudViolet, "FOLDERS");
 
-            // Add buttons next to the FOLDERS text
             var textWidth = ImGui.CalcTextSize("FOLDERS").X;
             ImGui.SameLine(textWidth + 15);
 
             if (ImGuiUtils.IconButton(_isFolderSectionCollapsed ? FontAwesomeIcon.AngleDown : FontAwesomeIcon.AngleUp, _isFolderSectionCollapsed ? "Expand folder tree" : "Collapse folder tree"))
                 _isFolderSectionCollapsed ^= true;
 
-            // New Macro button - with consistent size
             ImGui.SameLine(0, 5);
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(4, 4)); // Consistent padding
+            using var _ = ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
 
             if (ImGuiUtils.IconButton(FontAwesomeIcon.FileAlt, "Create a new macro"))
                 CreateMacroModal.Open();
 
-            // New Folder button - with consistent size
             ImGui.SameLine(0, 5);
 
             if (ImGuiUtils.IconButton(FontAwesomeIcon.FolderPlus, "Create a new folder"))
                 CreateFolderModal.Open();
+        }
 
-            ImGui.PopStyleVar();
+        if (!_isFolderSectionCollapsed)
+        {
+            using var child = ImRaii.Child("FolderTree", new(-1, ImGui.GetContentRegionAvail().Y * 0.6f), false);
 
-            ImGui.EndGroup();
+            ImGuiEx.Text(ImGuiColors.DalamudYellow, UiBuilder.IconFont, FontAwesomeIcon.Search.ToIconString());
+            ImGui.SameLine();
 
-            // Only show folder tree if not collapsed
-            if (!_isFolderSectionCollapsed)
+            if (ImGui.TreeNodeEx($"Show All Macros ({C.Macros.Count})##root", _selectedFolderId == "Root" ? ImGuiTreeNodeFlags.Selected : ImGuiTreeNodeFlags.None))
             {
-                // Make a scrollable area for the folder tree to maximize available space
-                ImGui.BeginChild("FolderTreeArea", new Vector2(-1, ImGui.GetContentRegionAvail().Y * 0.6f), false);
-
-                // Root/All Macros node - make it clearer
-                var isRootSelected = _selectedFolderId == "Root";
-                var rootCount = C.Macros.Count; // Total macro count
-
-                using (var iconFont = ImRaii.PushFont(UiBuilder.IconFont))
+                ImGuiEx.Tooltip("View macros from all folders");
+                if (ImGui.IsItemClicked())
                 {
-                    ImGui.TextColored(ImGuiColors.DalamudYellow, FontAwesomeIcon.Search.ToIconString());
+                    _selectedFolderId = "Root";
+                    _selectedMacroId = string.Empty; // Clear macro selection
                 }
-                ImGui.SameLine();
 
-                if (ImGui.TreeNodeEx($"Show All Macros ({rootCount})##root",
-                    isRootSelected ? ImGuiTreeNodeFlags.Selected : ImGuiTreeNodeFlags.None))
+                ImGui.TreePop();
+            }
+
+            var allFolders = new HashSet<string>(C.GetFolderPaths());
+
+            if (!allFolders.Contains(_selectedFolderId) && _selectedFolderId != "Root")
+                allFolders.Add(_selectedFolderId);
+
+            foreach (var folderPath in allFolders)
+            {
+                if (folderPath != "Root" && !string.IsNullOrEmpty(folderPath))
                 {
-                    if (ImGui.IsItemHovered())
-                        ImGui.SetTooltip("View macros from all folders");
+                    var isSelected = _selectedFolderId == folderPath;
+                    var folderCount = C.GetMacroCount(folderPath);
+
+                    var flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.SpanAvailWidth;
+                    if (isSelected) flags |= ImGuiTreeNodeFlags.Selected;
+
+                    if (_expandedFolders.Contains(folderPath))
+                        flags |= ImGuiTreeNodeFlags.DefaultOpen;
+
+                    ImGuiX.Icon(FontAwesomeHelper.IconFolder);
+                    ImGui.SameLine();
+
+                    var folderOpen = ImGui.TreeNodeEx($"{folderPath} ({folderCount})##folder_{folderPath}", flags);
+
+                    if (folderOpen && !_expandedFolders.Contains(folderPath))
+                        _expandedFolders.Add(folderPath);
+                    else if (!folderOpen && _expandedFolders.Contains(folderPath))
+                        _expandedFolders.Remove(folderPath);
 
                     if (ImGui.IsItemClicked())
                     {
-                        _selectedFolderId = "Root";
-                        _selectedMacroId = string.Empty; // Clear macro selection
+                        _selectedFolderId = folderPath;
+                        _selectedMacroId = string.Empty;
                     }
 
-                    // Root is just a view, no sub-items
-                    ImGui.TreePop();
-                }
-
-                // Get all real folders
-                var allFolders = new HashSet<string>(C.GetFolderPaths());
-
-                // Ensure our selected folder exists in the set
-                if (!allFolders.Contains(_selectedFolderId) && _selectedFolderId != "Root")
-                {
-                    allFolders.Add(_selectedFolderId);
-                }
-
-                // Display all folders as tree nodes
-                foreach (var folderPath in allFolders)
-                {
-                    if (folderPath != "Root" && !string.IsNullOrEmpty(folderPath))
+                    if (ImGui.BeginPopupContextItem())
                     {
-                        var isSelected = _selectedFolderId == folderPath;
-                        var folderCount = C.GetMacroCount(folderPath);
+                        ImGui.TextColored(ImGuiColors.DalamudViolet, $"Folder: {folderPath}");
+                        ImGui.Separator();
 
-                        // Check if this folder should be expanded based on our tracking
-                        var flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.SpanAvailWidth;
-                        if (isSelected) flags |= ImGuiTreeNodeFlags.Selected;
-
-                        // Add DefaultOpen flag if this folder is in our tracked expanded folders set
-                        if (_expandedFolders.Contains(folderPath))
-                            flags |= ImGuiTreeNodeFlags.DefaultOpen;
-
-                        ImGuiX.Icon(FontAwesomeHelper.IconFolder);
-                        ImGui.SameLine();
-
-                        var folderOpen = ImGui.TreeNodeEx($"{folderPath} ({folderCount})##folder_{folderPath}", flags);
-
-                        // Update our expanded folders tracking
-                        if (folderOpen && !_expandedFolders.Contains(folderPath))
-                            _expandedFolders.Add(folderPath);
-                        else if (!folderOpen && _expandedFolders.Contains(folderPath))
-                            _expandedFolders.Remove(folderPath);
-
-                        if (ImGui.IsItemClicked())
+                        if (folderPath != DEFAULT_FOLDER)
                         {
-                            _selectedFolderId = folderPath;
-                            _selectedMacroId = string.Empty; // Clear macro selection
-                        }
-
-                        // Context menu for folder operations - simplified
-                        if (ImGui.BeginPopupContextItem())
-                        {
-                            // Show a more readable header
-                            ImGui.TextColored(ImGuiColors.DalamudViolet, $"Folder: {folderPath}");
-                            ImGui.Separator();
-
-                            // Only show relevant operations
-                            if (folderPath != DEFAULT_FOLDER) // Don't allow deleting the default folder
+                            if (ImGui.MenuItem("Delete Folder"))
                             {
-                                if (ImGui.MenuItem("Delete Folder"))
-                                {
-                                    DeleteFolder(folderPath);
-                                    ImGui.CloseCurrentPopup();
-                                }
-
-                                if (ImGui.IsItemHovered())
-                                {
-                                    ImGui.SetTooltip("Delete this folder and move all macros to Default folder");
-                                }
+                                DeleteFolder(folderPath);
+                                ImGui.CloseCurrentPopup();
                             }
 
-                            ImGui.EndPopup();
+                            ImGuiEx.Tooltip("Delete this folder and move all macros to Default folder");
                         }
 
-                        // If folder is open, show macros within this folder
-                        if (folderOpen)
-                        {
-                            // Add indent for macros in the folder
-                            ImGui.Indent(10);
-
-                            // List macros in this folder
-                            foreach (var macro in C.GetMacrosInFolder(folderPath).ToList())
-                                DrawMacroTreeNode(macro, false);
-
-                            ImGui.Unindent(10);
-                            ImGui.TreePop();
-                        }
+                        ImGui.EndPopup();
                     }
-                }
 
-                ImGui.EndChild(); // End FolderTreeArea
-            }
-
-            // Separator between folders and macro settings
-            ImGui.Separator();
-
-            DrawMacroSettings();
-        }
-        else
-        {
-            // SEARCH RESULTS
-            ImGui.TextColored(ImGuiColors.DalamudViolet, "SEARCH RESULTS");
-
-            // Show matching folders first
-            var allFolders = new HashSet<string>(C.GetFolderPaths());
-            var foundAnyFolders = false;
-
-            // Show folders that match the search
-            foreach (var folderPath in allFolders)
-            {
-                if ((folderPath == "Root" && "All Macros".Contains(_searchText, StringComparison.OrdinalIgnoreCase)) ||
-                    (folderPath != "Root" && !string.IsNullOrEmpty(folderPath) &&
-                     folderPath.Contains(_searchText, StringComparison.OrdinalIgnoreCase)))
-                {
-                    foundAnyFolders = true;
-
-                    var displayName = folderPath == "Root" ? "All Macros" : folderPath;
-                    var folderCount = folderPath == "Root" ? C.Macros.Count : C.GetMacroCount(folderPath);
-
-                    // Display folder as selectable
-                    var isSelected = _selectedFolderId == folderPath;
-                    if (ImGui.Selectable($"📁 {displayName} ({folderCount})", isSelected))
+                    if (folderOpen)
                     {
-                        _selectedFolderId = folderPath;
-                        _selectedMacroId = string.Empty; // Clear macro selection
+                        ImGui.Indent(10);
+
+                        foreach (var macro in C.GetMacrosInFolder(folderPath).ToList())
+                            DrawMacroTreeNode(macro, false);
+
+                        ImGui.Unindent(10);
+                        ImGui.TreePop();
                     }
                 }
             }
+        }
 
-            // Show a separator between folders and macros if we found any folders
-            if (foundAnyFolders)
+        ImGui.Separator();
+        DrawMacroSettings();
+    }
+
+    private void DrawSearchResults()
+    {
+        ImGui.TextColored(ImGuiColors.DalamudViolet, "SEARCH RESULTS");
+
+        var allFolders = new HashSet<string>(C.GetFolderPaths());
+        var foundAnyFolders = false;
+
+        foreach (var folderPath in allFolders)
+        {
+            if ((folderPath == "Root" && "All Macros".Contains(_searchText, StringComparison.OrdinalIgnoreCase)) ||
+                (folderPath != "Root" && !string.IsNullOrEmpty(folderPath) &&
+                 folderPath.Contains(_searchText, StringComparison.OrdinalIgnoreCase)))
             {
-                ImGui.Separator();
-                ImGui.TextColored(ImGuiColors.DalamudViolet, "MATCHING MACROS");
-            }
+                foundAnyFolders = true;
 
-            // Show matching macros
-            var foundAnyMacros = false;
+                var displayName = folderPath == "Root" ? "All Macros" : folderPath;
+                var folderCount = folderPath == "Root" ? C.Macros.Count : C.GetMacroCount(folderPath);
 
-            foreach (var macro in C.SearchMacros(_searchText).ToList())
-            {
-                foundAnyMacros = true;
-                DrawMacroTreeNode(macro, true);
-            }
-
-            if (!foundAnyFolders && !foundAnyMacros)
-            {
-                ImGui.TextColored(ImGuiColors.DalamudGrey, "No matching folders or macros");
+                var isSelected = _selectedFolderId == folderPath;
+                if (ImGui.Selectable($"📁 {displayName} ({folderCount})", isSelected))
+                {
+                    _selectedFolderId = folderPath;
+                    _selectedMacroId = string.Empty;
+                }
             }
         }
 
-        ImGui.PopStyleColor(2); // Pop the folder tree header colors
+        if (foundAnyFolders)
+        {
+            ImGui.Separator();
+            ImGui.TextColored(ImGuiColors.DalamudViolet, "MATCHING MACROS");
+        }
+
+        var foundAnyMacros = false;
+
+        foreach (var macro in C.SearchMacros(_searchText).ToList())
+        {
+            foundAnyMacros = true;
+            DrawMacroTreeNode(macro, true);
+        }
+
+        if (!foundAnyFolders && !foundAnyMacros)
+            ImGui.TextColored(ImGuiColors.DalamudGrey, "No matching folders or macros");
     }
 
     private void DrawMacroSettings()
@@ -374,9 +288,9 @@ public class MainWindow : Window
         if (ImGui.CollapsingHeader("MACRO SETTINGS", ImGuiTreeNodeFlags.DefaultOpen))
         {
             using var child = ImRaii.Child("SettingsChild", new(-1, ImGui.GetContentRegionAvail().Y), false);
+            if (!child) return;
 
-            var selectedMacro = GetSelectedMacro();
-            if (selectedMacro != null)
+            if (GetSelectedMacro() is { } selectedMacro)
             {
                 ImGui.Spacing();
 
@@ -479,50 +393,32 @@ public class MainWindow : Window
 
     private void DrawMacroTreeNode(ConfigMacro macro, bool showFolder)
     {
-        // Get icon based on macro type
         FontAwesomeIcon icon;
         if (macro.IsGitMacro)
             icon = FontAwesomeHelper.IconGitMacro;
         else
             icon = macro.Type == MacroType.Lua ? FontAwesomeHelper.IconLuaMacro : FontAwesomeHelper.IconNativeMacro;
 
-        // Show icon
         ImGuiX.Icon(icon);
         ImGui.SameLine();
 
-        // Build display name
         var displayName = showFolder ? $"{macro.Name} [{macro.FolderPath}]" : macro.Name;
-
-        // Macro type indicator
         var typeIndicator = macro.Type == MacroType.Lua ? " (Lua)" : "";
         displayName += typeIndicator;
 
-        // Set selection state
         var isSelected = macro.Id == _selectedMacroId;
-
-        // Create selectable item
-        if (isSelected)
+        using (ImRaii.PushColor(ImGuiCol.Header, ImGuiColors.ParsedPurple, isSelected))
         {
-            ImGui.PushStyleColor(ImGuiCol.Header, ImGuiColors.ParsedPurple);
-        }
-
-        if (ImGui.Selectable(displayName, isSelected))
-        {
-            _selectedMacroId = macro.Id;
-
-            // When selecting a macro from search or All Macros view, also switch to its folder
-            if (showFolder)
+            if (ImGui.Selectable(displayName, isSelected))
             {
-                _selectedFolderId = macro.FolderPath;
+                _selectedMacroId = macro.Id;
+
+                // When selecting a macro from search or All Macros view, also switch to its folder
+                if (showFolder)
+                    _selectedFolderId = macro.FolderPath;
             }
         }
 
-        if (isSelected)
-        {
-            ImGui.PopStyleColor();
-        }
-
-        // Move context menu handling to a separate method to avoid ImGui state issues
         HandleMacroContextMenu(macro);
     }
 
@@ -681,16 +577,6 @@ public class MainWindow : Window
         ImGui.EndPopup();
     }
 
-    private void DrawEmptyState()
-    {
-        var center = ImGui.GetContentRegionAvail() / 2;
-        var text = "Select a macro or create a new one";
-        var textSize = ImGui.CalcTextSize(text);
-
-        ImGui.SetCursorPos(ImGui.GetCursorPos() + center - textSize / 2);
-        ImGui.TextColored(ImGuiColors.DalamudGrey, text);
-    }
-
     private IMacro? GetSelectedMacro()
     {
         foreach (var macro in C.Macros)
@@ -706,9 +592,7 @@ public class MainWindow : Window
     {
         // Never allow moving to Root directly
         if (folderPath == "Root")
-        {
             folderPath = DEFAULT_FOLDER;
-        }
 
         if (C.GetMacro(macroId) is ConfigMacro configMacro)
         {

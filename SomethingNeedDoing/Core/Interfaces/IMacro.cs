@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.Framework.Interfaces;
+namespace SomethingNeedDoing.Core.Interfaces;
 /// <summary>
 /// Represents a macro that can be executed by the macro engine.
 /// </summary>

@@ -1,5 +1,5 @@
 using ECommons.EzIpcManager;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 
 namespace SomethingNeedDoing.External;
 public class AutoDuty : IPC

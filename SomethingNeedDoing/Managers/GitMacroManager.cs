@@ -1,6 +1,6 @@
 using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Github;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Http;

@@ -1,6 +1,6 @@
 ﻿using Dalamud.Interface.Colors;
 using Dalamud.Interface;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 
 namespace SomethingNeedDoing.Gui;
 
@@ -8,20 +8,11 @@ namespace SomethingNeedDoing.Gui;
 /// A compact status indicator that can be embedded in the titlebar or other small spaces
 /// to show macro execution status
 /// </summary>
-public class MacroStatusIndicator
+public class MacroStatusIndicator(IMacroScheduler scheduler, MacroStatusWindow? statusWindow = null)
 {
-    private readonly IMacroScheduler _scheduler;
-    private readonly MacroStatusWindow? _statusWindow;
-
-    public MacroStatusIndicator(IMacroScheduler scheduler, MacroStatusWindow? statusWindow = null)
-    {
-        _scheduler = scheduler;
-        _statusWindow = statusWindow;
-    }
-
     public void Draw(float width, float height)
     {
-        var runningMacros = _scheduler.GetMacros();
+        var runningMacros = scheduler.GetMacros();
         var macroCount = runningMacros.Count();
         var runningCount = 0;
         var pausedCount = 0;
@@ -63,12 +54,12 @@ public class MacroStatusIndicator
         isHovered = ImGui.IsItemHovered();
 
         // If clicked and status window exists, toggle it
-        if (ImGui.IsItemClicked() && _statusWindow != null)
+        if (ImGui.IsItemClicked() && statusWindow != null)
         {
-            _statusWindow.IsOpen = !_statusWindow.IsOpen;
-            if (_statusWindow.IsOpen)
+            statusWindow.IsOpen = !statusWindow.IsOpen;
+            if (statusWindow.IsOpen)
             {
-                _statusWindow.BringToFront();
+                statusWindow.BringToFront();
             }
         }
 

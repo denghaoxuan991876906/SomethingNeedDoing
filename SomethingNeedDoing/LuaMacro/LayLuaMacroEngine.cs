@@ -3,7 +3,7 @@ using Dalamud.Plugin.Services;
 using Laylua;
 using Laylua.Marshaling;
 using SomethingNeedDoing.Core.Events;
-using SomethingNeedDoing.Framework.Interfaces;
+using SomethingNeedDoing.Core.Interfaces;
 using System.Threading;
 using System.Threading.Tasks;
 
