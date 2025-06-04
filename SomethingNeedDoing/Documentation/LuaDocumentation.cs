@@ -44,7 +44,8 @@ public class LuaDocumentation
                         description,
                         returnType,
                         parameters,
-                        attr.Examples
+                        attr.Examples,
+                        true
                     ));
                     break;
 
@@ -58,7 +59,8 @@ public class LuaDocumentation
                         propertyDescription,
                         propertyType,
                         [],
-                        attr.Examples
+                        attr.Examples,
+                        false
                     ));
                     break;
 
@@ -72,7 +74,8 @@ public class LuaDocumentation
                         fieldDescription,
                         fieldType,
                         [],
-                        attr.Examples
+                        attr.Examples,
+                        false
                     ));
                     break;
             }

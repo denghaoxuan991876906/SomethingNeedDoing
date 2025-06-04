@@ -1,12 +1,10 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Colors;
-using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Documentation;
 using System.Reflection;
-using System.Security.Cryptography.Xml;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 public class HelpLuaTab(LuaDocumentation luaDocs)
@@ -31,19 +29,22 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                 {
                     using var functionId = ImRaii.PushId(function.FunctionName);
 
-                    var signature = function.Parameters.Count > 0 ? $"{function.FunctionName}({string.Join(", ", function.Parameters.Select(p => p.Name))})" : function.FunctionName;
-                    var isMethod = function.Parameters.Count > 0 || function.FunctionName.Contains('(');
+                    var isMethod = function.IsMethod;
                     var isProperty = !isMethod && function.FunctionName.Contains('.');
                     var isField = !isMethod && !isProperty;
 
-                    if (isMethod)
-                        ImGui.TextColored(ImGuiColors.DalamudGrey, "Method:");
-                    else if (isProperty)
-                        ImGui.TextColored(ImGuiColors.DalamudGrey, "Property:");
-                    else
-                        ImGui.TextColored(ImGuiColors.DalamudGrey, "Field:");
+                    // display with types but don't copy types
+                    var displaySignature = isMethod
+                        ? $"{function.FunctionName}({string.Join(", ", function.Parameters.Select(p => $"{p.Name}: {p.Type}"))})"
+                        : function.FunctionName;
+                    var copySignature = isMethod
+                        ? $"{function.FunctionName}({string.Join(", ", function.Parameters.Select(p => p.Name))})"
+                        : function.FunctionName;
 
-                    ImGuiEx.TextCopy(ImGuiColors.DalamudViolet, signature);
+                    if (isMethod)
+                        FunctionText(function.FunctionName, function.Parameters);
+                    else
+                        ImGuiEx.TextCopy(ImGuiColors.DalamudViolet, displaySignature, copySignature);
 
                     if (function.ReturnType.TypeName != "void")
                     {
@@ -51,32 +52,13 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                         ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {function.ReturnType}");
                     }
 
-                    if (!string.IsNullOrEmpty(function.Description))
-                        ImGui.TextWrapped(function.Description);
-
-                    if (function.Parameters.Count > 0)
-                    {
-                        ImGui.TextColored(ImGuiColors.DalamudGrey, "Parameters:");
-                        ImGui.Indent();
-                        foreach (var param in function.Parameters)
-                        {
-                            ImGui.TextColored(ImGuiColors.DalamudOrange, param.Name);
-                            if (param.Description != null)
-                            {
-                                ImGui.SameLine();
-                                ImGui.TextWrapped($"- {param.Description}");
-                            }
-                        }
-                        ImGui.Unindent();
-                    }
-
                     if (function.ReturnType.TypeName.EndsWith("Wrapper"))
-                        DrawWrapperProperties(function.ReturnType.TypeName, $"{function.FunctionName}_return_{index}", signature);
+                        DrawWrapperProperties(function.ReturnType.TypeName, $"{function.FunctionName}_return_{index}", copySignature);
                     else if (function.ReturnType.TypeName == "table" && function.ReturnType.GenericArguments?.Count > 0)
                     {
                         var elementType = function.ReturnType.GenericArguments[0];
                         if (elementType.TypeName.EndsWith("Wrapper"))
-                            DrawWrapperProperties(elementType.TypeName, $"{function.FunctionName}_return_{index}", signature);
+                            DrawWrapperProperties(elementType.TypeName, $"{function.FunctionName}_return_{index}", copySignature);
                     }
 
                     if (function.Examples is { Length: > 0 } examples)
@@ -96,6 +78,32 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                 }
             }
         }
+    }
+
+    private void FunctionText(string functionName, List<(string Name, LuaTypeInfo Type, string? Description)> parameters)
+    {
+        ImGui.TextColored(ImGuiColors.DalamudViolet, functionName);
+        ImGui.SameLine(0, 0);
+        ImGui.TextUnformatted("(");
+        ImGui.SameLine(0, 0);
+
+        for (var i = 0; i < parameters.Count; i++)
+        {
+            var (name, type, _) = parameters[i];
+            ImGui.TextColored(ImGuiColors.DalamudOrange, type.ToString());
+            ImGui.SameLine();
+            ImGui.TextUnformatted(name);
+
+            if (i < parameters.Count - 1)
+            {
+                ImGui.SameLine(0, 0);
+                ImGui.Text(", ");
+                ImGui.SameLine(0, 0);
+            }
+        }
+
+        ImGui.SameLine(0, 0);
+        ImGui.Text(")");
     }
 
     private void DrawWrapperProperties(string wrapperTypeName, string id, string parentChain = "")
@@ -160,11 +168,17 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                 {
                     var docs = method.GetCustomAttributes(typeof(LuaDocsAttribute), true).Cast<LuaDocsAttribute>().FirstOrDefault();
 
+                    // display with types but don't copy types
                     var parameters = method.GetParameters();
-                    var methodSignature = parameters.Length > 0 ? $"{method.Name}({string.Join(", ", parameters.Select(p => p.Name))})" : method.Name;
-                    var fullChain = string.IsNullOrEmpty(parentChain) ? methodSignature : $"{parentChain}:{methodSignature}";
+                    var displaySignature = parameters.Length > 0
+                        ? $"{method.Name}({string.Join(", ", parameters.Select(p => $"{p.Name}: {LuaTypeConverter.GetLuaType(p.ParameterType)}"))})"
+                        : method.Name;
+                    var copySignature = parameters.Length > 0
+                        ? $"{method.Name}({string.Join(", ", parameters.Select(p => p.Name))})"
+                        : method.Name;
 
-                    ImGuiEx.TextCopy(ImGuiColors.DalamudOrange, methodSignature, fullChain);
+                    var fullChain = string.IsNullOrEmpty(parentChain) ? copySignature : $"{parentChain}:{copySignature}";
+                    ImGuiEx.TextCopy(ImGuiColors.DalamudOrange, displaySignature, fullChain);
                     ImGui.SameLine();
                     ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {LuaTypeConverter.GetLuaType(method.ReturnType)}");
 
