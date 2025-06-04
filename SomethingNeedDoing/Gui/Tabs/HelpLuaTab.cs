@@ -1,9 +1,12 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility.Raii;
+using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Documentation;
 using System.Reflection;
+using System.Security.Cryptography.Xml;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 public class HelpLuaTab(LuaDocumentation luaDocs)
@@ -28,10 +31,7 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                 {
                     using var functionId = ImRaii.PushId(function.FunctionName);
 
-                    var signature = function.Parameters.Count > 0
-                        ? $"{function.FunctionName}({string.Join(", ", function.Parameters.Select(p => p.Name))})"
-                        : function.FunctionName;
-
+                    var signature = function.Parameters.Count > 0 ? $"{function.FunctionName}({string.Join(", ", function.Parameters.Select(p => p.Name))})" : function.FunctionName;
                     var isMethod = function.Parameters.Count > 0 || function.FunctionName.Contains('(');
                     var isProperty = !isMethod && function.FunctionName.Contains('.');
                     var isField = !isMethod && !isProperty;
@@ -43,7 +43,7 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                     else
                         ImGui.TextColored(ImGuiColors.DalamudGrey, "Field:");
 
-                    ImGui.TextColored(ImGuiColors.DalamudViolet, signature);
+                    ImGuiEx.TextCopy(ImGuiColors.DalamudViolet, signature);
 
                     if (function.ReturnType.TypeName != "void")
                     {
@@ -71,12 +71,12 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                     }
 
                     if (function.ReturnType.TypeName.EndsWith("Wrapper"))
-                        DrawWrapperProperties(function.ReturnType.TypeName, $"{function.FunctionName}_return_{index}");
+                        DrawWrapperProperties(function.ReturnType.TypeName, $"{function.FunctionName}_return_{index}", signature);
                     else if (function.ReturnType.TypeName == "table" && function.ReturnType.GenericArguments?.Count > 0)
                     {
                         var elementType = function.ReturnType.GenericArguments[0];
                         if (elementType.TypeName.EndsWith("Wrapper"))
-                            DrawWrapperProperties(elementType.TypeName, $"{function.FunctionName}_return_{index}");
+                            DrawWrapperProperties(elementType.TypeName, $"{function.FunctionName}_return_{index}", signature);
                     }
 
                     if (function.Examples is { Length: > 0 } examples)
@@ -98,7 +98,7 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
         }
     }
 
-    private void DrawWrapperProperties(string wrapperTypeName, string id)
+    private void DrawWrapperProperties(string wrapperTypeName, string id, string parentChain = "")
     {
         var wrapperType = typeof(HelpLuaTab).Assembly.GetTypes()
             .FirstOrDefault(t => t.Name == wrapperTypeName && typeof(IWrapper).IsAssignableFrom(t));
@@ -129,8 +129,9 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                 foreach (var (prop, index) in wrapperProperties.WithIndex())
                 {
                     var docs = prop.GetCustomAttributes(typeof(LuaDocsAttribute), true).Cast<LuaDocsAttribute>().FirstOrDefault();
+                    var fullChain = string.IsNullOrEmpty(parentChain) ? prop.Name : $"{parentChain}.{prop.Name}";
 
-                    ImGui.TextColored(ImGuiColors.DalamudOrange, prop.Name);
+                    ImGuiEx.TextCopy(ImGuiColors.DalamudOrange, prop.Name, fullChain);
                     ImGui.SameLine();
                     ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {LuaTypeConverter.GetLuaType(prop.PropertyType)}");
 
@@ -138,12 +139,12 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                         ImGui.TextWrapped(docs.Description);
 
                     if (prop.PropertyType.Name.EndsWith("Wrapper"))
-                        DrawWrapperProperties(prop.PropertyType.Name, $"{id}_prop_{index}");
+                        DrawWrapperProperties(prop.PropertyType.Name, $"{id}_prop_{index}", fullChain);
                     else if (prop.PropertyType.IsList())
                     {
                         var elementType = prop.PropertyType.GetGenericArguments()[0];
                         if (elementType.Name.EndsWith("Wrapper"))
-                            DrawWrapperProperties(elementType.Name, $"{id}_prop_{index}");
+                            DrawWrapperProperties(elementType.Name, $"{id}_prop_{index}", fullChain);
                     }
                 }
             }
@@ -160,11 +161,10 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                     var docs = method.GetCustomAttributes(typeof(LuaDocsAttribute), true).Cast<LuaDocsAttribute>().FirstOrDefault();
 
                     var parameters = method.GetParameters();
-                    var methodSignature = parameters.Length > 0
-                        ? $"{method.Name}({string.Join(", ", parameters.Select(p => p.Name))})"
-                        : method.Name;
+                    var methodSignature = parameters.Length > 0 ? $"{method.Name}({string.Join(", ", parameters.Select(p => p.Name))})" : method.Name;
+                    var fullChain = string.IsNullOrEmpty(parentChain) ? methodSignature : $"{parentChain}:{methodSignature}";
 
-                    ImGui.TextColored(ImGuiColors.DalamudOrange, methodSignature);
+                    ImGuiEx.TextCopy(ImGuiColors.DalamudOrange, methodSignature, fullChain);
                     ImGui.SameLine();
                     ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {LuaTypeConverter.GetLuaType(method.ReturnType)}");
 
@@ -172,12 +172,12 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                         ImGui.TextWrapped(docs.Description);
 
                     if (method.ReturnType.Name.EndsWith("Wrapper"))
-                        DrawWrapperProperties(method.ReturnType.Name, $"{id}_method_{index}");
+                        DrawWrapperProperties(method.ReturnType.Name, $"{id}_method_{index}", fullChain);
                     else if (method.ReturnType.IsList())
                     {
                         var elementType = method.ReturnType.GetGenericArguments()[0];
                         if (elementType.Name.EndsWith("Wrapper"))
-                            DrawWrapperProperties(elementType.Name, $"{id}_method_{index}");
+                            DrawWrapperProperties(elementType.Name, $"{id}_method_{index}", fullChain);
                     }
                 }
             }
