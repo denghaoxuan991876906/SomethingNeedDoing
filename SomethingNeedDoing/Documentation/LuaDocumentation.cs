@@ -84,5 +84,7 @@ public class LuaDocumentation
         _documentation[module.ModuleName] = docs;
     }
 
+    public void RegisterModule(ILuaModule module, List<LuaFunctionDoc> docs) => _documentation[module.ModuleName] = docs;
+
     public Dictionary<string, List<LuaFunctionDoc>> GetModules() => _documentation;
 }

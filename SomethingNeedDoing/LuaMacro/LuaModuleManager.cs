@@ -42,6 +42,10 @@ public class LuaModuleManager
         }
 
         _modules.Add(module);
-        _documentation.RegisterModule(module);
+
+        if (module is IPCModule ipcModule)
+            ipcModule.RegisterDocumentation(_documentation);
+        else
+            _documentation.RegisterModule(module);
     }
 }

@@ -11,37 +11,37 @@ public class AutoHook : IPC
     [EzIPC]
     [LuaFunction(
         description: "Enables or disables the AutoHook plugin.",
-        parameterDescriptions: ["True to enable, false to disable"])]
+        parameterDescriptions: ["enable"])]
     public readonly Action<bool> SetPluginState = null!;
 
     [EzIPC]
     [LuaFunction(
         description: "Enables or disables auto-gig functionality.",
-        parameterDescriptions: ["True to enable, false to disable"])]
+        parameterDescriptions: ["enable"])]
     public readonly Action<bool> SetAutoGigState = null!;
 
     [EzIPC]
     [LuaFunction(
         description: "Sets the size for auto-gig functionality.",
-        parameterDescriptions: ["The size to set (integer value)"])]
+        parameterDescriptions: ["size"])]
     public readonly Action<int> SetAutoGigSize = null!;
 
     [EzIPC]
     [LuaFunction(
         description: "Sets the speed for auto-gig functionality.",
-        parameterDescriptions: ["The speed to set (integer value)"])]
+        parameterDescriptions: ["speed"])]
     public readonly Action<int> SetAutoGigSpeed = null!;
 
     [EzIPC]
     [LuaFunction(
         description: "Sets the current preset by name.",
-        parameterDescriptions: ["The name of the preset to set"])]
+        parameterDescriptions: ["name"])]
     public readonly Action<string> SetPreset = null!;
 
     [EzIPC]
     [LuaFunction(
         description: "Creates and selects an anonymous preset.",
-        parameterDescriptions: ["The name for the anonymous preset"])]
+        parameterDescriptions: ["name"])]
     public readonly Action<string> CreateAndSelectAnonymousPreset = null!;
 
     [EzIPC]

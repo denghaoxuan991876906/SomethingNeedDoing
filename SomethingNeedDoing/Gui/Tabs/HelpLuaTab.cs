@@ -20,85 +20,138 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
 
         foreach (var module in luaDocs.GetModules())
         {
-            if (ImGui.CollapsingHeader(module.Key))
+            if (module.Key == "IPC")
             {
-                using var font = ImRaii.PushFont(UiBuilder.MonoFont);
-                using var _ = ImRaii.PushIndent();
-
-                foreach (var (function, index) in module.Value.WithIndex())
+                if (ImGui.CollapsingHeader(module.Key))
                 {
-                    using var functionId = ImRaii.PushId(function.FunctionName);
+                    using var font = ImRaii.PushFont(UiBuilder.MonoFont);
+                    using var _ = ImRaii.PushIndent();
 
-                    var isMethod = function.IsMethod;
-                    var isProperty = !isMethod && function.FunctionName.Contains('.');
-                    var isField = !isMethod && !isProperty;
+                    var groupedFunctions = module.Value
+                        .GroupBy(f => f.ModuleName.Contains('.') ? f.ModuleName.Split('.')[1] : "Root");
 
-                    // display with types but don't copy types
-                    var displaySignature = isMethod
-                        ? $"{function.FunctionName}({string.Join(", ", function.Parameters.Select(p => $"{p.Name}: {p.Type}"))})"
-                        : function.FunctionName;
-                    var copySignature = isMethod
-                        ? $"{function.FunctionName}({string.Join(", ", function.Parameters.Select(p => p.Name))})"
-                        : function.FunctionName;
+                    if (groupedFunctions.FirstOrDefault(g => g.Key == "Root") is { } rootFunctions)
+                        rootFunctions.Each(f => DrawFunction(f));
 
-                    var storageId = ImGui.GetID($"##{function.FunctionName}_return_{index}_open");
-                    var isOpen = ImGui.GetStateStorage().GetBool(storageId, false);
-
-                    if (isMethod)
-                        FunctionText(function.FunctionName, function.Parameters, copySignature);
-                    else
-                        ImGuiEx.TextCopy(ImGuiColors.DalamudViolet, displaySignature, copySignature);
-
-                    if (function.ReturnType.TypeName != "void")
-                    {
-                        ImGui.SameLine();
-                        ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {function.ReturnType}");
-                    }
-
-                    if (function.ReturnType.Type?.IsEnum == true || function.ReturnType.Type?.IsWrapper() == true ||
-                        (function.ReturnType is { TypeName: "table", GenericArguments.Count: > 0 } &&
-                         function.ReturnType.GenericArguments[0].Type?.IsWrapper() == true))
-                    {
-                        ImGui.SameLine();
-                        ImGui.TextColored(ImGuiColors.DalamudGrey, isOpen ? "▼" : "▶");
-                    }
-
-                    if (ImGui.IsItemClicked())
-                    {
-                        isOpen = !isOpen;
-                        ImGui.GetStateStorage().SetBool(storageId, isOpen);
-                    }
-
-                    if (isOpen)
-                    {
-                        using var __ = ImRaii.PushIndent();
-                        if (function.ReturnType.Type?.IsEnum == true)
-                            DrawEnumValues(function.ReturnType.Type, $"{function.FunctionName}_return_{index}");
-                        else if (function.ReturnType.Type?.IsWrapper() == true)
-                            DrawWrapperProperties(function.ReturnType.Type.Name, $"{function.FunctionName}_return_{index}", copySignature);
-                        else if (function.ReturnType is { TypeName: "table", GenericArguments.Count: > 0 })
-                        {
-                            var elementType = function.ReturnType.GenericArguments[0];
-                            if (elementType.Type?.IsWrapper() == true)
-                                DrawWrapperProperties(elementType.Type.Name, $"{function.FunctionName}_return_{index}", copySignature);
-                        }
-                    }
-
-                    if (function.Examples is { Length: > 0 } examples)
-                    {
-                        foreach (var ex in examples)
-                        {
-                            if (!string.IsNullOrEmpty(ex))
-                            {
-                                ImGui.TextColored(ImGuiColors.DalamudGrey, "Example:");
-                                using var exampleColor = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow);
-                                ImGui.TextWrapped(ex);
-                            }
-                        }
-                    }
-
-                    ImGui.Separator();
+                    foreach (var submodule in groupedFunctions.Where(g => g.Key != "Root"))
+                        DrawSubmodule(submodule);
                 }
+            }
+            else
+            {
+                if (ImGui.CollapsingHeader(module.Key))
+                {
+                    using var font = ImRaii.PushFont(UiBuilder.MonoFont);
+                    using var _ = ImRaii.PushIndent();
+                    module.Value.EachWithIndex((f, i) => DrawFunction(f, i));
+                }
+            }
+        }
+    }
+
+    private void DrawSubmodule(IGrouping<string, LuaFunctionDoc> submodule)
+    {
+        var storageId = ImGui.GetID($"##{submodule.Key}_open");
+        var isOpen = ImGui.GetStateStorage().GetBool(storageId, false);
+
+        ImGuiEx.TextCopy(ImGuiColors.DalamudViolet, submodule.Key, submodule.Key);
+        ImGui.SameLine();
+        ImGui.TextColored(ImGuiColors.DalamudGrey, isOpen ? "▼" : "▶");
+
+        if (ImGui.IsItemClicked())
+        {
+            isOpen = !isOpen;
+            ImGui.GetStateStorage().SetBool(storageId, isOpen);
+        }
+
+        if (isOpen)
+        {
+            using var __ = ImRaii.PushIndent();
+            submodule.Each(f => DrawFunction(f));
+        }
+        ImGui.Separator();
+    }
+
+    private void DrawFunction(LuaFunctionDoc function, int? index = null)
+    {
+        using var functionId = ImRaii.PushId(function.FunctionName);
+
+        var isMethod = function.IsMethod;
+        var isProperty = !isMethod && function.FunctionName.Contains('.');
+        var isField = !isMethod && !isProperty;
+
+        var (displaySignature, copySignature) = GetSignatures(function);
+
+        if (isMethod)
+            FunctionText(function.FunctionName, function.Parameters, copySignature);
+        else
+            ImGuiEx.TextCopy(ImGuiColors.DalamudViolet, displaySignature, copySignature);
+
+        if (function.ReturnType.TypeName != "void")
+        {
+            ImGui.SameLine();
+            ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {function.ReturnType}");
+        }
+
+        if (function.ReturnType.Type?.IsEnum == true || function.ReturnType.Type?.IsWrapper() == true ||
+            (function.ReturnType is { TypeName: "table", GenericArguments.Count: > 0 } &&
+             function.ReturnType.GenericArguments[0].Type?.IsWrapper() == true))
+        {
+            var storageId = ImGui.GetID($"##{function.FunctionName}_return_{index ?? 0}_open");
+            var isOpen = ImGui.GetStateStorage().GetBool(storageId, false);
+
+            ImGui.SameLine();
+            ImGui.TextColored(ImGuiColors.DalamudGrey, isOpen ? "▼" : "▶");
+
+            if (ImGui.IsItemClicked())
+            {
+                isOpen = !isOpen;
+                ImGui.GetStateStorage().SetBool(storageId, isOpen);
+            }
+
+            if (isOpen)
+            {
+                using var __ = ImRaii.PushIndent();
+                if (function.ReturnType.Type?.IsEnum == true)
+                    DrawEnumValues(function.ReturnType.Type, $"{function.FunctionName}_return_{index ?? 0}");
+                else if (function.ReturnType.Type?.IsWrapper() == true)
+                    DrawWrapperProperties(function.ReturnType.Type.Name, $"{function.FunctionName}_return_{index ?? 0}", copySignature);
+                else if (function.ReturnType is { TypeName: "table", GenericArguments.Count: > 0 })
+                {
+                    var elementType = function.ReturnType.GenericArguments[0];
+                    if (elementType.Type?.IsWrapper() == true)
+                        DrawWrapperProperties(elementType.Type.Name, $"{function.FunctionName}_return_{index ?? 0}", copySignature);
+                }
+            }
+        }
+
+        DrawExamples(function.Examples);
+        ImGui.Separator();
+    }
+
+    private (string DisplaySignature, string CopySignature) GetSignatures(LuaFunctionDoc function)
+    {
+        var isMethod = function.IsMethod;
+        if (!isMethod)
+            return (function.FunctionName, $"{function.ModuleName}.{function.FunctionName}");
+
+        return (
+            $"{function.FunctionName}({string.Join(", ", function.Parameters.Select(p => $"{p.Name}: {p.Type}"))})",
+            $"{function.ModuleName}.{function.FunctionName}({string.Join(", ", function.Parameters.Select(p => p.Name))})"
+        );
+    }
+
+    private void DrawExamples(string[]? examples)
+    {
+        if (examples is not { Length: > 0 }) return;
+
+        foreach (var ex in examples)
+        {
+            if (!string.IsNullOrEmpty(ex))
+            {
+                ImGui.TextColored(ImGuiColors.DalamudGrey, "Example:");
+                using var exampleColor = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow);
+                ImGui.TextWrapped(ex);
             }
         }
     }

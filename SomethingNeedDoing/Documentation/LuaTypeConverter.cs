@@ -6,6 +6,14 @@ public class LuaTypeConverter
 {
     public static LuaTypeInfo GetLuaType(Type type)
     {
+        // Handle nullable types
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+        {
+            var underlyingType = Nullable.GetUnderlyingType(type)!;
+            var underlyingTypeInfo = GetLuaType(underlyingType);
+            return new LuaTypeInfo($"{underlyingTypeInfo.TypeName}?", underlyingTypeInfo.Description, underlyingTypeInfo.GenericArguments, type);
+        }
+
         if (type == typeof(void))
             return new LuaTypeInfo("nil", "No return value", null, type);
 
