@@ -34,7 +34,9 @@ public class LuaTypeConverter
         if (type.IsList())
         {
             var elementType = type.GetGenericArguments()[0];
-            var elementTypeInfo = GetLuaType(elementType);
+            var elementTypeInfo = elementType.IsWrapper()
+                ? new LuaTypeInfo(elementType.Name, $"Wrapper for {elementType.Name.Replace("Wrapper", "")}")
+                : GetLuaType(elementType);
             return new LuaTypeInfo("table", $"Array of {elementTypeInfo.TypeName}", [elementTypeInfo]);
         }
 
@@ -42,11 +44,7 @@ public class LuaTypeConverter
             return new LuaTypeInfo(type.Name, $"Wrapper for {type.Name.Replace("Wrapper", "")}");
 
         if (type.IsTuple())
-        {
-            var elementTypes = type.GetGenericArguments().Select(GetLuaType).ToList();
-
-            return new LuaTypeInfo("table", "Tuple of values", elementTypes);
-        }
+            return new LuaTypeInfo("table", "Tuple of values", [.. type.GetGenericArguments().Select(GetLuaType)]);
 
         if (type.IsTask())
         {

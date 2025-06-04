@@ -52,7 +52,8 @@ public static class TypeExtensions
         return type.IsGenericType &&
             (type.GetGenericTypeDefinition() == typeof(List<>) ||
              type.GetGenericTypeDefinition() == typeof(IList<>) ||
-             type.GetGenericTypeDefinition() == typeof(IReadOnlyList<>));
+             type.GetGenericTypeDefinition() == typeof(IReadOnlyList<>) ||
+             type.GetGenericTypeDefinition() == typeof(IEnumerable<>));
     }
 
     public static bool IsVector(this Type type)

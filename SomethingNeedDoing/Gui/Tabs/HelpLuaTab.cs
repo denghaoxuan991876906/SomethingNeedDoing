@@ -1,8 +1,8 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
-using SomethingNeedDoing.Documentation;
 using SomethingNeedDoing.Core.Interfaces;
+using SomethingNeedDoing.Documentation;
 using System.Reflection;
 
 namespace SomethingNeedDoing.Gui.Tabs;
@@ -10,9 +10,6 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
 {
     public void DrawTab()
     {
-        using var font = ImRaii.PushFont(UiBuilder.MonoFont);
-
-        // Introduction to Lua
         ImGui.TextColored(ImGuiColors.DalamudViolet, "Lua Scripting");
         ImGui.TextWrapped(
             "SomethingNeedDoing supports Lua scripting for advanced automation. " +
@@ -20,54 +17,25 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
 
         ImGui.Separator();
 
-        // Basic syntax and usage
-        if (ImGui.CollapsingHeader("Basic Lua Usage", ImGuiTreeNodeFlags.DefaultOpen))
-        {
-            ImGui.TextWrapped(@"
-Lua scripts work by yielding commands back to the macro engine.
-
-For example:
-
-yield(""/ac Muscle memory <wait.3>"")
-yield(""/ac Precise touch <wait.2>"")
-yield(""/echo done!"")
-...and so on.
-
-You can also use regular Lua syntax for complex logic:
-
-for i = 1, 5 do
-    yield(""/echo Loop iteration "" .. i)
-    if i == 3 then
-        yield(""/echo Halfway done!"")
-    end
-end");
-        }
-
-        ImGui.Separator();
-
-        // Draw registered Lua modules and functions
         foreach (var module in luaDocs.GetModules())
         {
             if (ImGui.CollapsingHeader(module.Key))
             {
-                ImGui.Indent();
+                using var font = ImRaii.PushFont(UiBuilder.MonoFont);
+                using var _ = ImRaii.PushIndent();
 
-                // Module functions
-                foreach (var function in module.Value)
+                foreach (var (function, index) in module.Value.WithIndex())
                 {
                     using var functionId = ImRaii.PushId(function.FunctionName);
 
-                    // Function signature
                     var signature = function.Parameters.Count > 0
                         ? $"{function.FunctionName}({string.Join(", ", function.Parameters.Select(p => p.Name))})"
                         : function.FunctionName;
 
-                    // Determine if it's a method, property, or field based on parameters and return type
                     var isMethod = function.Parameters.Count > 0 || function.FunctionName.Contains('(');
                     var isProperty = !isMethod && function.FunctionName.Contains('.');
                     var isField = !isMethod && !isProperty;
 
-                    // Display type indicator
                     if (isMethod)
                         ImGui.TextColored(ImGuiColors.DalamudGrey, "Method:");
                     else if (isProperty)
@@ -75,23 +43,17 @@ end");
                     else
                         ImGui.TextColored(ImGuiColors.DalamudGrey, "Field:");
 
-                    // Display signature
                     ImGui.TextColored(ImGuiColors.DalamudViolet, signature);
 
-                    // Display return type
                     if (function.ReturnType.TypeName != "void")
                     {
                         ImGui.SameLine();
-                        ImGui.TextColored(ImGuiColors.DalamudOrange, $"→ {function.ReturnType.TypeName}");
+                        ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {function.ReturnType}");
                     }
 
-                    // Function description
                     if (!string.IsNullOrEmpty(function.Description))
-                    {
                         ImGui.TextWrapped(function.Description);
-                    }
 
-                    // Parameters
                     if (function.Parameters.Count > 0)
                     {
                         ImGui.TextColored(ImGuiColors.DalamudGrey, "Parameters:");
@@ -99,16 +61,22 @@ end");
                         foreach (var param in function.Parameters)
                         {
                             ImGui.TextColored(ImGuiColors.DalamudOrange, param.Name);
-                            ImGui.SameLine();
-                            ImGui.TextWrapped($"- {param.Description ?? "No description available"}");
+                            if (param.Description != null)
+                            {
+                                ImGui.SameLine();
+                                ImGui.TextWrapped($"- {param.Description}");
+                            }
                         }
                         ImGui.Unindent();
                     }
 
-                    // If this returns a wrapper type, show its properties in a collapsible section
                     if (function.ReturnType.TypeName.EndsWith("Wrapper"))
+                        DrawWrapperProperties(function.ReturnType.TypeName, $"{function.FunctionName}_return_{index}");
+                    else if (function.ReturnType.TypeName == "table" && function.ReturnType.GenericArguments?.Count > 0)
                     {
-                        DrawWrapperProperties(function.ReturnType.TypeName);
+                        var elementType = function.ReturnType.GenericArguments[0];
+                        if (elementType.TypeName.EndsWith("Wrapper"))
+                            DrawWrapperProperties(elementType.TypeName, $"{function.FunctionName}_return_{index}");
                     }
 
                     if (function.Examples is { Length: > 0 } examples)
@@ -126,15 +94,15 @@ end");
 
                     ImGui.Separator();
                 }
-
-                ImGui.Unindent();
             }
         }
     }
 
-    private void DrawWrapperProperties(string wrapperTypeName)
+    private void DrawWrapperProperties(string wrapperTypeName, string id)
     {
-        var wrapperType = Type.GetType($"SomethingNeedDoing.LuaMacro.Wrappers.{wrapperTypeName}, SomethingNeedDoing");
+        var wrapperType = typeof(HelpLuaTab).Assembly.GetTypes()
+            .FirstOrDefault(t => t.Name == wrapperTypeName && typeof(IWrapper).IsAssignableFrom(t));
+
         if (wrapperType == null || !typeof(IWrapper).IsAssignableFrom(wrapperType))
             return;
 
@@ -146,35 +114,38 @@ end");
             .Where(m => m.GetCustomAttributes(typeof(LuaDocsAttribute), true).Length != 0)
             .ToList();
 
+        using var _ = ImRaii.PushId(id);
+
         if (wrapperProperties.Count > 0 || wrapperMethods.Count > 0)
         {
-            using var tree = ImRaii.TreeNode("Wrapper Properties");
+            using var tree = ImRaii.TreeNode($"Return Value Properties");
             if (!tree) return;
-            //if (ImGui.TreeNode("Wrapper Properties"))
-            //{
-            ImGui.Indent();
+            using var __ = ImRaii.PushIndent();
 
             if (wrapperProperties.Count > 0)
             {
                 ImGui.TextColored(ImGuiColors.DalamudGrey, "Properties:");
-                ImGui.Indent();
-                foreach (var prop in wrapperProperties)
+                using var ___ = ImRaii.PushIndent();
+                foreach (var (prop, index) in wrapperProperties.WithIndex())
                 {
-                    var docs = prop.GetCustomAttributes(typeof(LuaDocsAttribute), true)
-                        .Cast<LuaDocsAttribute>()
-                        .FirstOrDefault();
+                    var docs = prop.GetCustomAttributes(typeof(LuaDocsAttribute), true).Cast<LuaDocsAttribute>().FirstOrDefault();
 
                     ImGui.TextColored(ImGuiColors.DalamudOrange, prop.Name);
                     ImGui.SameLine();
-                    ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {GetLuaTypeName(prop.PropertyType)}");
+                    ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {LuaTypeConverter.GetLuaType(prop.PropertyType)}");
 
                     if (docs?.Description != null)
                         ImGui.TextWrapped(docs.Description);
 
                     if (prop.PropertyType.Name.EndsWith("Wrapper"))
-                        DrawWrapperProperties(prop.PropertyType.Name);
+                        DrawWrapperProperties(prop.PropertyType.Name, $"{id}_prop_{index}");
+                    else if (prop.PropertyType.IsList())
+                    {
+                        var elementType = prop.PropertyType.GetGenericArguments()[0];
+                        if (elementType.Name.EndsWith("Wrapper"))
+                            DrawWrapperProperties(elementType.Name, $"{id}_prop_{index}");
+                    }
                 }
-                ImGui.Unindent();
             }
 
             if (wrapperMethods.Count > 0)
@@ -183,12 +154,10 @@ end");
                     ImGui.Spacing();
 
                 ImGui.TextColored(ImGuiColors.DalamudGrey, "Methods:");
-                ImGui.Indent();
-                foreach (var method in wrapperMethods)
+                using var ___ = ImRaii.PushIndent();
+                foreach (var (method, index) in wrapperMethods.WithIndex())
                 {
-                    var docs = method.GetCustomAttributes(typeof(LuaDocsAttribute), true)
-                        .Cast<LuaDocsAttribute>()
-                        .FirstOrDefault();
+                    var docs = method.GetCustomAttributes(typeof(LuaDocsAttribute), true).Cast<LuaDocsAttribute>().FirstOrDefault();
 
                     var parameters = method.GetParameters();
                     var methodSignature = parameters.Length > 0
@@ -197,32 +166,21 @@ end");
 
                     ImGui.TextColored(ImGuiColors.DalamudOrange, methodSignature);
                     ImGui.SameLine();
-                    ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {GetLuaTypeName(method.ReturnType)}");
+                    ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {LuaTypeConverter.GetLuaType(method.ReturnType)}");
 
                     if (docs?.Description != null)
                         ImGui.TextWrapped(docs.Description);
 
                     if (method.ReturnType.Name.EndsWith("Wrapper"))
-                        DrawWrapperProperties(method.ReturnType.Name);
+                        DrawWrapperProperties(method.ReturnType.Name, $"{id}_method_{index}");
+                    else if (method.ReturnType.IsList())
+                    {
+                        var elementType = method.ReturnType.GetGenericArguments()[0];
+                        if (elementType.Name.EndsWith("Wrapper"))
+                            DrawWrapperProperties(elementType.Name, $"{id}_method_{index}");
+                    }
                 }
-                ImGui.Unindent();
             }
-
-            ImGui.Unindent();
-            //ImGui.TreePop();
-            //}
         }
-    }
-
-    private static string GetLuaTypeName(Type type)
-    {
-        if (type == typeof(void)) return "nil";
-        if (type == typeof(bool)) return "boolean";
-        if (type == typeof(string)) return "string";
-        if (type.IsNumeric()) return "number";
-        if (type.IsList()) return "table";
-        if (type.IsTask()) return "async";
-        if (typeof(IWrapper).IsAssignableFrom(type)) return type.Name;
-        return "object";
     }
 }

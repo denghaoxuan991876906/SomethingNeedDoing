@@ -27,6 +27,7 @@ public unsafe class InstancesModule : LuaModuleBase
     [LuaFunction] public FriendsListWrapper FriendsList => new();
     public class FriendsListWrapper : IWrapper
     {
+        [LuaDocs]
         public List<FriendWrapper> Friends
         {
             get
@@ -38,21 +39,21 @@ public unsafe class InstancesModule : LuaModuleBase
             }
         }
 
-        public FriendWrapper? GetFriendByName(string name) => Friends.FirstOrDefault(f => f.Name == name);
+        [LuaDocs] public FriendWrapper? GetFriendByName(string name) => Friends.FirstOrDefault(f => f.Name == name);
     }
 
     public class FriendWrapper(InfoProxyCommonList.CharacterData data) : IWrapper
     {
-        public string Name => data.NameString;
-        public ulong ContentId => data.ContentId;
-        public OnlineStatus State => data.State;
-        public bool IsOtherServer => data.IsOtherServer;
-        public ushort CurrentWorld => data.CurrentWorld;
-        public ushort HomeWorld => data.HomeWorld;
-        public ushort Location => data.Location;
-        public GrandCompany GrandCompany => data.GrandCompany;
-        public Language ClientLanguage => data.ClientLanguage;
-        public byte Sex => data.Sex;
-        public JobWrapper Job => new(data.Job);
+        [LuaDocs] public string Name => data.NameString;
+        [LuaDocs] public ulong ContentId => data.ContentId;
+        [LuaDocs] public OnlineStatus State => data.State;
+        [LuaDocs] public bool IsOtherServer => data.IsOtherServer;
+        [LuaDocs] public ushort CurrentWorld => data.CurrentWorld;
+        [LuaDocs] public ushort HomeWorld => data.HomeWorld;
+        [LuaDocs] public ushort Location => data.Location;
+        [LuaDocs] public GrandCompany GrandCompany => data.GrandCompany;
+        [LuaDocs] public Language ClientLanguage => data.ClientLanguage;
+        [LuaDocs] public byte Sex => data.Sex;
+        [LuaDocs] public JobWrapper Job => new(data.Job);
     }
 }
