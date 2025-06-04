@@ -5,7 +5,6 @@ using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Documentation;
 using System.Reflection;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 public class HelpLuaTab(LuaDocumentation luaDocs)
@@ -42,8 +41,11 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                         ? $"{function.FunctionName}({string.Join(", ", function.Parameters.Select(p => p.Name))})"
                         : function.FunctionName;
 
+                    var storageId = ImGui.GetID($"##{function.FunctionName}_return_{index}_open");
+                    var isOpen = ImGui.GetStateStorage().GetBool(storageId, false);
+
                     if (isMethod)
-                        FunctionText(function.FunctionName, function.Parameters);
+                        FunctionText(function.FunctionName, function.Parameters, copySignature);
                     else
                         ImGuiEx.TextCopy(ImGuiColors.DalamudViolet, displaySignature, copySignature);
 
@@ -53,13 +55,33 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                         ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {function.ReturnType}");
                     }
 
-                    if (function.ReturnType.TypeName.EndsWith("Wrapper"))
-                        DrawWrapperProperties(function.ReturnType.TypeName, $"{function.FunctionName}_return_{index}", copySignature);
-                    else if (function.ReturnType.TypeName == "table" && function.ReturnType.GenericArguments?.Count > 0)
+                    if (function.ReturnType.Type?.IsEnum == true || function.ReturnType.Type?.IsWrapper() == true ||
+                        (function.ReturnType is { TypeName: "table", GenericArguments.Count: > 0 } &&
+                         function.ReturnType.GenericArguments[0].Type?.IsWrapper() == true))
                     {
-                        var elementType = function.ReturnType.GenericArguments[0];
-                        if (elementType.TypeName.EndsWith("Wrapper"))
-                            DrawWrapperProperties(elementType.TypeName, $"{function.FunctionName}_return_{index}", copySignature);
+                        ImGui.SameLine();
+                        ImGui.TextColored(ImGuiColors.DalamudGrey, isOpen ? "▼" : "▶");
+                    }
+
+                    if (ImGui.IsItemClicked())
+                    {
+                        isOpen = !isOpen;
+                        ImGui.GetStateStorage().SetBool(storageId, isOpen);
+                    }
+
+                    if (isOpen)
+                    {
+                        using var __ = ImRaii.PushIndent();
+                        if (function.ReturnType.Type?.IsEnum == true)
+                            DrawEnumValues(function.ReturnType.Type, $"{function.FunctionName}_return_{index}");
+                        else if (function.ReturnType.Type?.IsWrapper() == true)
+                            DrawWrapperProperties(function.ReturnType.Type.Name, $"{function.FunctionName}_return_{index}", copySignature);
+                        else if (function.ReturnType is { TypeName: "table", GenericArguments.Count: > 0 })
+                        {
+                            var elementType = function.ReturnType.GenericArguments[0];
+                            if (elementType.Type?.IsWrapper() == true)
+                                DrawWrapperProperties(elementType.Type.Name, $"{function.FunctionName}_return_{index}", copySignature);
+                        }
                     }
 
                     if (function.Examples is { Length: > 0 } examples)
@@ -81,9 +103,9 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
         }
     }
 
-    private void FunctionText(string functionName, List<(string Name, LuaTypeInfo Type, string? Description)> parameters)
+    private void FunctionText(string functionName, List<(string Name, LuaTypeInfo Type, string? Description)> parameters, string fullChain)
     {
-        ImGui.TextColored(ImGuiColors.DalamudViolet, functionName);
+        ImGuiEx.TextCopy(ImGuiColors.DalamudViolet, functionName, fullChain);
         ImGui.SameLine(0, 0);
         ImGui.TextUnformatted("(");
         ImGui.SameLine(0, 0);
@@ -125,74 +147,124 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
 
         using var _ = ImRaii.PushId(id);
 
-        if (wrapperProperties.Count > 0 || wrapperMethods.Count > 0)
+        if (wrapperProperties.Count > 0)
         {
-            using var tree = ImRaii.TreeNode($"Return Value Properties");
-            if (!tree) return;
             using var __ = ImRaii.PushIndent();
+            foreach (var (prop, index) in wrapperProperties.WithIndex())
+            {
+                var docs = prop.GetCustomAttributes(typeof(LuaDocsAttribute), true).Cast<LuaDocsAttribute>().FirstOrDefault();
+                var fullChain = string.IsNullOrEmpty(parentChain) ? prop.Name : $"{parentChain}.{prop.Name}";
 
+                ImGuiEx.TextCopy(ImGuiColors.DalamudOrange, prop.Name, fullChain);
+                ImGui.SameLine();
+                ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {LuaTypeConverter.GetLuaType(prop.PropertyType)}");
+
+                if (prop.PropertyType.IsWrapper() || prop.PropertyType.IsList() || prop.PropertyType.IsEnum)
+                {
+                    var storageId = ImGui.GetID($"##{id}_prop_{index}_open");
+                    var isOpen = ImGui.GetStateStorage().GetBool(storageId, false);
+
+                    ImGui.SameLine();
+                    ImGui.TextColored(ImGuiColors.DalamudGrey, isOpen ? "▼" : "▶");
+
+                    if (ImGui.IsItemClicked())
+                    {
+                        isOpen = !isOpen;
+                        ImGui.GetStateStorage().SetBool(storageId, isOpen);
+                    }
+
+                    if (isOpen)
+                    {
+                        using var ___ = ImRaii.PushIndent();
+                        if (prop.PropertyType.IsWrapper())
+                            DrawWrapperProperties(prop.PropertyType.Name, $"{id}_prop_{index}", fullChain);
+                        else if (prop.PropertyType.IsList())
+                        {
+                            var elementType = prop.PropertyType.GetGenericArguments()[0];
+                            if (elementType.IsWrapper())
+                                DrawWrapperProperties(elementType.Name, $"{id}_prop_{index}", fullChain);
+                        }
+                        else if (prop.PropertyType.IsEnum)
+                            DrawEnumValues(prop.PropertyType, $"{id}_prop_{index}");
+                    }
+                }
+
+                if (docs?.Description != null)
+                    ImGui.TextWrapped(docs.Description);
+            }
+        }
+
+        if (wrapperMethods.Count > 0)
+        {
             if (wrapperProperties.Count > 0)
+                ImGui.Spacing();
+
+            using var __ = ImRaii.PushIndent();
+            foreach (var (method, index) in wrapperMethods.WithIndex())
             {
-                ImGui.TextColored(ImGuiColors.DalamudGrey, "Properties:");
-                using var ___ = ImRaii.PushIndent();
-                foreach (var (prop, index) in wrapperProperties.WithIndex())
+                var docs = method.GetCustomAttributes(typeof(LuaDocsAttribute), true).Cast<LuaDocsAttribute>().FirstOrDefault();
+                var parameters = method.GetParameters().Select(p => (
+                    Name: p.Name ?? "unk",
+                    TypeInfo: LuaTypeConverter.GetLuaType(p.ParameterType),
+                    Description: (string?)null
+                )).ToList();
+                var copySignature = parameters.Count > 0 ? $"{method.Name}({string.Join(", ", parameters.Select(p => p.TypeInfo.TypeName))})" : method.Name;
+
+                var fullChain = string.IsNullOrEmpty(parentChain) ? copySignature : $"{parentChain}:{copySignature}";
+                FunctionText(method.Name, parameters, fullChain);
+                ImGui.SameLine();
+                ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {LuaTypeConverter.GetLuaType(method.ReturnType)}");
+
+                if (method.ReturnType.IsWrapper() || method.ReturnType.IsList() || method.ReturnType.IsEnum)
                 {
-                    var docs = prop.GetCustomAttributes(typeof(LuaDocsAttribute), true).Cast<LuaDocsAttribute>().FirstOrDefault();
-                    var fullChain = string.IsNullOrEmpty(parentChain) ? prop.Name : $"{parentChain}.{prop.Name}";
+                    var storageId = ImGui.GetID($"##{id}_method_{index}_open");
+                    var isOpen = ImGui.GetStateStorage().GetBool(storageId, false);
 
-                    ImGuiEx.TextCopy(ImGuiColors.DalamudOrange, prop.Name, fullChain);
                     ImGui.SameLine();
-                    ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {LuaTypeConverter.GetLuaType(prop.PropertyType)}");
+                    ImGui.TextColored(ImGuiColors.DalamudGrey, isOpen ? "▼" : "▶");
 
-                    if (docs?.Description != null)
-                        ImGui.TextWrapped(docs.Description);
-
-                    if (prop.PropertyType.Name.EndsWith("Wrapper"))
-                        DrawWrapperProperties(prop.PropertyType.Name, $"{id}_prop_{index}", fullChain);
-                    else if (prop.PropertyType.IsList())
+                    if (ImGui.IsItemClicked())
                     {
-                        var elementType = prop.PropertyType.GetGenericArguments()[0];
-                        if (elementType.Name.EndsWith("Wrapper"))
-                            DrawWrapperProperties(elementType.Name, $"{id}_prop_{index}", fullChain);
+                        isOpen = !isOpen;
+                        ImGui.GetStateStorage().SetBool(storageId, isOpen);
+                    }
+
+                    if (isOpen)
+                    {
+                        using var ___ = ImRaii.PushIndent();
+                        if (method.ReturnType.IsWrapper())
+                            DrawWrapperProperties(method.ReturnType.Name, $"{id}_method_{index}", fullChain);
+                        else if (method.ReturnType.IsList())
+                        {
+                            var elementType = method.ReturnType.GetGenericArguments()[0];
+                            if (elementType.IsWrapper())
+                                DrawWrapperProperties(elementType.Name, $"{id}_method_{index}", fullChain);
+                        }
+                        else if (method.ReturnType.IsEnum)
+                            DrawEnumValues(method.ReturnType, $"{id}_method_{index}");
                     }
                 }
+
+                if (docs?.Description != null)
+                    ImGui.TextWrapped(docs.Description);
             }
+        }
+    }
 
-            if (wrapperMethods.Count > 0)
-            {
-                if (wrapperProperties.Count > 0)
-                    ImGui.Spacing();
+    private void DrawEnumValues(Type enumType, string id)
+    {
+        if (!enumType.IsEnum) return;
 
-                ImGui.TextColored(ImGuiColors.DalamudGrey, "Methods:");
-                using var ___ = ImRaii.PushIndent();
-                foreach (var (method, index) in wrapperMethods.WithIndex())
-                {
-                    var docs = method.GetCustomAttributes(typeof(LuaDocsAttribute), true).Cast<LuaDocsAttribute>().FirstOrDefault();
-                    var parameters = method.GetParameters().Select(p => (
-                        Name: p.Name ?? "unk",
-                        TypeInfo: LuaTypeConverter.GetLuaType(p.ParameterType),
-                        Description: (string?)null
-                    )).ToList();
-                    var copySignature = parameters.Count > 0 ? $"{method.Name}({string.Join(", ", parameters.Select(p => p.TypeInfo.TypeName))})" : method.Name;
+        using var _ = ImRaii.PushId(id);
+        using var __ = ImRaii.PushIndent();
+        foreach (var value in Enum.GetValues(enumType))
+        {
+            var name = Enum.GetName(enumType, value);
+            if (name == null) continue;
 
-                    var fullChain = string.IsNullOrEmpty(parentChain) ? copySignature : $"{parentChain}:{copySignature}";
-                    FunctionText(method.Name, parameters);
-                    ImGui.SameLine();
-                    ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {LuaTypeConverter.GetLuaType(method.ReturnType)}");
-
-                    if (docs?.Description != null)
-                        ImGui.TextWrapped(docs.Description);
-
-                    if (method.ReturnType.Name.EndsWith("Wrapper"))
-                        DrawWrapperProperties(method.ReturnType.Name, $"{id}_method_{index}", fullChain);
-                    else if (method.ReturnType.IsList())
-                    {
-                        var elementType = method.ReturnType.GetGenericArguments()[0];
-                        if (elementType.Name.EndsWith("Wrapper"))
-                            DrawWrapperProperties(elementType.Name, $"{id}_method_{index}", fullChain);
-                    }
-                }
-            }
+            ImGuiEx.TextCopy(ImGuiColors.DalamudOrange, name, name);
+            ImGui.SameLine();
+            ImGui.TextColored(ImGuiColors.DalamudGrey, $"= {value}");
         }
     }
 }
