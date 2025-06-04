@@ -5,6 +5,7 @@ using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Documentation;
 using System.Reflection;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 public class HelpLuaTab(LuaDocumentation luaDocs)
@@ -167,18 +168,15 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                 foreach (var (method, index) in wrapperMethods.WithIndex())
                 {
                     var docs = method.GetCustomAttributes(typeof(LuaDocsAttribute), true).Cast<LuaDocsAttribute>().FirstOrDefault();
-
-                    // display with types but don't copy types
-                    var parameters = method.GetParameters();
-                    var displaySignature = parameters.Length > 0
-                        ? $"{method.Name}({string.Join(", ", parameters.Select(p => $"{p.Name}: {LuaTypeConverter.GetLuaType(p.ParameterType)}"))})"
-                        : method.Name;
-                    var copySignature = parameters.Length > 0
-                        ? $"{method.Name}({string.Join(", ", parameters.Select(p => p.Name))})"
-                        : method.Name;
+                    var parameters = method.GetParameters().Select(p => (
+                        Name: p.Name ?? "unk",
+                        TypeInfo: LuaTypeConverter.GetLuaType(p.ParameterType),
+                        Description: (string?)null
+                    )).ToList();
+                    var copySignature = parameters.Count > 0 ? $"{method.Name}({string.Join(", ", parameters.Select(p => p.TypeInfo.TypeName))})" : method.Name;
 
                     var fullChain = string.IsNullOrEmpty(parentChain) ? copySignature : $"{parentChain}:{copySignature}";
-                    ImGuiEx.TextCopy(ImGuiColors.DalamudOrange, displaySignature, fullChain);
+                    FunctionText(method.Name, parameters);
                     ImGui.SameLine();
                     ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {LuaTypeConverter.GetLuaType(method.ReturnType)}");
 
