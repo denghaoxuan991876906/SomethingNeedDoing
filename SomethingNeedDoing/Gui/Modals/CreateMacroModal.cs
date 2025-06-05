@@ -26,13 +26,13 @@ public static class CreateMacroModal
     {
         if (!IsOpen) return;
 
-        ImGui.OpenPopup($"Create New Macro##{nameof(CreateMacroModal)}");
+        ImGui.OpenPopup($"CreateMacroPopup##{nameof(CreateMacroModal)}");
 
         ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
         ImGui.SetNextWindowSize(Size);
 
         using var style = ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, new Vector2(15, 15));
-        using var popup = ImRaii.PopupModal($"Create New Macro####{nameof(CreateMacroModal)}", ref IsOpen, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoTitleBar);
+        using var popup = ImRaii.PopupModal($"CreateMacroPopup##{nameof(CreateMacroModal)}", ref IsOpen, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoTitleBar);
         if (!popup) return;
 
         ImGuiX.Icon(FontAwesomeHelper.IconNew);

@@ -32,7 +32,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<LuaDocumentation>();
 
         // UI Services
-        services.AddSingleton<RunningMacrosPanel>();
         services.AddSingleton<WindowSystem>();
         services.AddSingleton<MacroStatusWindow>();
         services.AddSingleton<HelpLuaTab>();

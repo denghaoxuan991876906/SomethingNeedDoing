@@ -13,7 +13,6 @@ namespace SomethingNeedDoing.Gui;
 /// </summary>
 public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, MacroStatusWindow? statusWindow = null)
 {
-    private readonly MacroMetadataEditor _metadataEditor = new();
     private bool _showVersionHistory = false;
     private List<GitCommitInfo>? _versionHistory;
 

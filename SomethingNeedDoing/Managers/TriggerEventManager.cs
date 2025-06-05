@@ -135,15 +135,16 @@ public class TriggerEventManager : IDisposable
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task RaiseTriggerEvent(TriggerEvent eventType, object? data = null)
     {
-        var args = new TriggerEventArgs(eventType, data);
         if (!_eventHandlers.TryGetValue(eventType, out var handlers))
             return;
 
-        foreach (var triggerFunction in handlers)
+        var args = new TriggerEventArgs(eventType, data);
+        foreach (var triggerFunction in handlers.ToList())
         {
             try
             {
-                TriggerEventOccurred?.Invoke(this, args);
+                Svc.Log.Debug($"Raising trigger event {eventType} for macro {triggerFunction.Macro.Name}");
+                TriggerEventOccurred?.Invoke(triggerFunction.Macro, args);
             }
             catch (Exception ex)
             {

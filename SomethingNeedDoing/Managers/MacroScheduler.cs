@@ -101,7 +101,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 }
                 break;
             default:
-                throw new ArgumentException($"Unsupported trigger event: {triggerEvent}", nameof(triggerEvent));
+                // For all other events, we just need to register with the trigger event manager
+                _triggerEventManager.RegisterTrigger(macro, triggerEvent);
+                break;
         }
     }
 
@@ -133,7 +135,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 }
                 break;
             default:
-                throw new ArgumentException($"Unsupported trigger event: {triggerEvent}", nameof(triggerEvent));
+                // For all other events, we just need to unregister from the trigger event manager
+                _triggerEventManager.UnregisterTrigger(macro, triggerEvent);
+                break;
         }
     }
 
@@ -451,42 +455,22 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void SubscribeToTriggerEvents()
     {
-        C.Macros.ForEach(SubscribeCustomTriggers);
+        // Subscribe to all macros' trigger events
+        foreach (var macro in C.Macros)
+        {
+            foreach (var triggerEvent in macro.Metadata.TriggerEvents)
+            {
+                SubscribeToTriggerEvent(macro, triggerEvent);
+            }
+        }
 
+        // Subscribe to global events
         Svc.Framework.Update += OnFrameworkUpdate;
         Svc.Condition.ConditionChange += OnConditionChange;
         Svc.ClientState.TerritoryChanged += OnTerritoryChanged;
         Svc.Chat.ChatMessage += OnChatMessage;
         Svc.ClientState.Login += OnLogin;
         Svc.ClientState.Logout += OnLogout;
-    }
-
-    private void SubscribeCustomTriggers(IMacro macro)
-    {
-        foreach (var triggerEvent in macro.Metadata.TriggerEvents)
-        {
-            switch (triggerEvent)
-            {
-                case TriggerEvent.OnAutoRetainerCharacterPostProcess:
-                    if (!_arApis.ContainsKey(macro.Id))
-                    {
-                        _arApis.TryAdd(macro.Id, new AutoRetainerApi());
-                        _arApis[macro.Id].OnCharacterPostprocessStep += () => CheckCharacterPostProcess(macro);
-                        _arApis[macro.Id].OnCharacterReadyToPostProcess += () => DoCharacterPostProcess(macro);
-                    }
-                    break;
-                case TriggerEvent.OnAddonEvent:
-                    if (macro.Metadata.AddonEventConfig is { } cfg)
-                    {
-                        if (!_addonEvents.ContainsKey(macro.Id))
-                        {
-                            _addonEvents.TryAdd(macro.Id, cfg);
-                            Svc.AddonLifecycle.RegisterListener(cfg.EventType, cfg.AddonName, OnAddonEvent);
-                        }
-                    }
-                    break;
-            }
-        }
     }
 
     private void OnAddonEvent(AddonEvent type, AddonArgs args)

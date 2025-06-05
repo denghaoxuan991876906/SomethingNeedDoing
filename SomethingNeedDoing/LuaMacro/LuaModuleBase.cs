@@ -25,12 +25,11 @@ public abstract class LuaModuleBase : ILuaModule
             lua[$"{modulePath}.{attr.Name ?? method.Name}"] = CreateDelegate(method);
         }
 
-        // Register all properties marked with LuaFunction attribute
+        // Register all properties marked with LuaFunction attribute as getter functions
         foreach (var property in GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             if (property.GetCustomAttribute<LuaFunctionAttribute>() is not { } attr) continue;
-            if (property.GetValue(this) is { } propertyValue)
-                lua[$"{modulePath}.{attr.Name ?? property.Name}"] = propertyValue;
+            lua[$"{modulePath}.{attr.Name ?? property.Name}"] = CreateDelegate(property.GetMethod!);
         }
     }
 

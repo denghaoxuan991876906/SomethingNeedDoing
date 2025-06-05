@@ -32,4 +32,45 @@ public static class ConfigMacroExtensions
     public static void Resume(this IMacro macro, IMacroScheduler scheduler)
         => scheduler.ResumeMacro(macro.Id);
     public static void UpdateLastModified(this IMacro macro) => macro.Metadata.LastModified = DateTime.Now;
+
+    /// <summary>
+    /// Adds a trigger event to a macro and subscribes to it.
+    /// </summary>
+    /// <param name="macro">The macro to add the trigger to.</param>
+    /// <param name="scheduler">The macro scheduler to use for subscription.</param>
+    /// <param name="triggerEvent">The trigger event to add.</param>
+    public static void AddTriggerEvent(this IMacro macro, IMacroScheduler scheduler, TriggerEvent triggerEvent)
+    {
+        Svc.Log.Debug($"Adding trigger event {triggerEvent} to macro {macro.Name}");
+        macro.Metadata.TriggerEvents.Add(triggerEvent);
+        scheduler.SubscribeToTriggerEvent(macro, triggerEvent);
+        C.Save();
+    }
+
+    /// <summary>
+    /// Removes a trigger event from a macro and unsubscribes from it.
+    /// </summary>
+    /// <param name="macro">The macro to remove the trigger from.</param>
+    /// <param name="scheduler">The macro scheduler to use for unsubscription.</param>
+    /// <param name="triggerEvent">The trigger event to remove.</param>
+    public static void RemoveTriggerEvent(this IMacro macro, IMacroScheduler scheduler, TriggerEvent triggerEvent)
+    {
+        Svc.Log.Debug($"Removing trigger event {triggerEvent} from macro {macro.Name}");
+        macro.Metadata.TriggerEvents.Remove(triggerEvent);
+        scheduler.UnsubscribeFromTriggerEvent(macro, triggerEvent);
+        C.Save();
+    }
+
+    public static void SetTriggerEvents(this IMacro macro, IMacroScheduler scheduler, IEnumerable<TriggerEvent> triggerEvents)
+    {
+        // First, remove all existing trigger events that aren't in the new set
+        var eventsToRemove = macro.Metadata.TriggerEvents.Where(e => !triggerEvents.Contains(e)).ToList();
+        foreach (var triggerEvent in eventsToRemove)
+            macro.RemoveTriggerEvent(scheduler, triggerEvent);
+
+        // Then, add all new trigger events that aren't already in the set
+        var eventsToAdd = triggerEvents.Where(e => !macro.Metadata.TriggerEvents.Contains(e)).ToList();
+        foreach (var triggerEvent in eventsToAdd)
+            macro.AddTriggerEvent(scheduler, triggerEvent);
+    }
 }

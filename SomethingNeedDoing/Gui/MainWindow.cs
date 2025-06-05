@@ -378,12 +378,9 @@ public class MainWindow : Window
                 {
                     ImGui.Spacing();
 
-                    var events = selectedMacro.Metadata.TriggerEvents;
+                    var events = new List<TriggerEvent>(selectedMacro.Metadata.TriggerEvents);
                     if (ImGuiUtils.EnumCheckboxes(ref events, [TriggerEvent.None]))
-                    {
-                        selectedMacro.Metadata.TriggerEvents = events;
-                        C.Save();
-                    }
+                        selectedMacro.SetTriggerEvents(_scheduler, events);
                 }
             }
             else

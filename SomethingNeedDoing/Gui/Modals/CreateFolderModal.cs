@@ -24,13 +24,13 @@ public static class CreateFolderModal
     {
         if (!IsOpen) return;
 
-        ImGui.OpenPopup($"Create New Folder##{nameof(CreateFolderModal)}");
+        ImGui.OpenPopup($"CreateFolderPopup##{nameof(CreateFolderModal)}");
 
         ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
         ImGui.SetNextWindowSize(Size);
 
         using var style = ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, new Vector2(15, 15));
-        using var popup = ImRaii.PopupModal($"Create New Macro##{nameof(CreateFolderModal)}", ref IsOpen, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoTitleBar);
+        using var popup = ImRaii.PopupModal($"CreateFolderPopup##{nameof(CreateFolderModal)}", ref IsOpen, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoTitleBar);
         if (!popup) return;
 
         ImGuiX.Icon(FontAwesomeHelper.IconFolder);

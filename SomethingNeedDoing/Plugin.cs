@@ -22,7 +22,6 @@ public sealed class Plugin : IDalamudPlugin
     private readonly ServiceProvider _serviceProvider;
     private readonly WindowSystem _windowSystem;
     private readonly MainWindow _mainWindow;
-    private readonly MacroStatusWindow _macroStatusWindow;
     private readonly IMacroScheduler _macroScheduler;
     private bool _isFirstDraw = true;
 
@@ -44,23 +43,15 @@ public sealed class Plugin : IDalamudPlugin
         _windowSystem = _serviceProvider.GetRequiredService<WindowSystem>();
         _macroScheduler = _serviceProvider.GetRequiredService<IMacroScheduler>();
         _mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-        _macroStatusWindow = _serviceProvider.GetRequiredService<MacroStatusWindow>();
 
         // Initialize UI
         _windowSystem.AddWindow(_mainWindow);
-        _windowSystem.AddWindow(_macroStatusWindow);
 
-        // Set up commands and UI
-        Svc.Framework.RunOnFrameworkThread(() =>
-        {
-            Svc.PluginInterface.UiBuilder.Draw += CheckFontsOnFirstDraw;
-            Svc.PluginInterface.UiBuilder.Draw += _windowSystem.Draw;
-            Svc.PluginInterface.UiBuilder.OpenConfigUi += ToggleMainWindow;
-            EzCmd.Add(Command, OnChatCommand, "Open a window to edit various settings.", displayOrder: int.MaxValue);
-            Aliases.ToList().ForEach(a => EzCmd.Add(a, OnChatCommand, $"{Command} Alias"));
-        });
-
-        EzCmd.Add("/sndstatus", ToggleStatusWindow, "Toggle the macro status window");
+        Svc.PluginInterface.UiBuilder.Draw += CheckFontsOnFirstDraw;
+        Svc.PluginInterface.UiBuilder.Draw += _windowSystem.Draw;
+        Svc.PluginInterface.UiBuilder.OpenConfigUi += ToggleMainWindow;
+        EzCmd.Add(Command, OnChatCommand, "Open a window to edit various settings.", displayOrder: int.MaxValue);
+        Aliases.ToList().ForEach(a => EzCmd.Add(a, OnChatCommand, $"{Command} Alias"));
     }
 
     private void CheckFontsOnFirstDraw()
@@ -153,15 +144,5 @@ public sealed class Plugin : IDalamudPlugin
             C.SetProperty(args[0], args[1]);
             return;
         }
-    }
-
-    private void ToggleStatusWindow(string command, string args)
-    {
-        // Toggle status window visibility
-        _macroStatusWindow.IsOpen = !_macroStatusWindow.IsOpen;
-
-        // If we're opening it, bring it to front
-        if (_macroStatusWindow.IsOpen)
-            _macroStatusWindow.BringToFront();
     }
 }
