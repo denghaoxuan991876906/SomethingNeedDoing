@@ -1,6 +1,7 @@
 using Dalamud.Interface.Windowing;
 using Microsoft.Extensions.DependencyInjection;
 using SomethingNeedDoing.Core.Interfaces;
+using System.Net.Http;
 
 namespace SomethingNeedDoing.Utils;
 
@@ -9,6 +10,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddSomethingNeedDoingServices(this IServiceCollection services)
     {
         services.AddSingleton<WindowSystem>();
+        services.AddSingleton<HttpClient>();
 
         services.Scan(scan => scan
             .FromAssemblyOf<Plugin>()
@@ -21,6 +23,10 @@ public static class ServiceCollectionExtensions
             .WithSingletonLifetime()
             .AddClasses(classes => classes
                 .AssignableTo<IMacroScheduler>())
+            .AsImplementedInterfaces()
+            .WithSingletonLifetime()
+            .AddClasses(classes => classes
+                .AssignableTo<IGitService>())
             .AsImplementedInterfaces()
             .WithSingletonLifetime());
 

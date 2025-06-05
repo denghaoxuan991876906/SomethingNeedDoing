@@ -290,7 +290,7 @@ public static class MigrationModal
                     return;
                 }
 
-                foreach (dynamic node in children)
+                foreach (var node in children)
                 {
                     try
                     {

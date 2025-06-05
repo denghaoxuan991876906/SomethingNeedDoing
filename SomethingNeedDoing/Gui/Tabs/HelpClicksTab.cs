@@ -1,5 +1,4 @@
-﻿using Dalamud.Game.ClientState.Keys;
-using Dalamud.Interface;
+﻿using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;

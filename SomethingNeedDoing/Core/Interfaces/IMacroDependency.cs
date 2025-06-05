@@ -23,9 +23,9 @@ public interface IMacroDependency
     DependencyType Type { get; }
 
     /// <summary>
-    /// Gets the version or identifier of the dependency.
+    /// Gets the source of the dependency (URL, file path, etc.).
     /// </summary>
-    string Version { get; }
+    string Source { get; }
 
     /// <summary>
     /// Gets the content of the dependency.
@@ -38,6 +38,12 @@ public interface IMacroDependency
     /// </summary>
     /// <returns>True if the dependency is available, false otherwise.</returns>
     Task<bool> IsAvailableAsync();
+
+    /// <summary>
+    /// Validates the dependency.
+    /// </summary>
+    /// <returns>A validation result indicating if the dependency is valid and any error messages.</returns>
+    Task<DependencyValidationResult> ValidateAsync();
 }
 
 /// <summary>
@@ -46,27 +52,42 @@ public interface IMacroDependency
 public enum DependencyType
 {
     /// <summary>
-    /// A local file dependency.
+    /// A local dependency (file or macro).
     /// </summary>
-    LocalFile,
+    Local,
 
     /// <summary>
-    /// A Git repository dependency.
+    /// A remote dependency (Git or HTTP).
     /// </summary>
-    GitRepository,
+    Remote
+}
+
+/// <summary>
+/// Represents the result of validating a dependency.
+/// </summary>
+public class DependencyValidationResult
+{
+    /// <summary>
+    /// Gets whether the dependency is valid.
+    /// </summary>
+    public bool IsValid { get; init; }
 
     /// <summary>
-    /// A ConfigMacro dependency.
+    /// Gets any error messages associated with the validation.
     /// </summary>
-    ConfigMacro,
+    public string[] Errors { get; init; } = [];
 
     /// <summary>
-    /// A GitMacro dependency.
+    /// Creates a successful validation result.
     /// </summary>
-    GitMacro,
+    public static DependencyValidationResult Success() => new() { IsValid = true };
 
     /// <summary>
-    /// An HTTP dependency.
+    /// Creates a failed validation result with the specified errors.
     /// </summary>
-    Http,
+    public static DependencyValidationResult Failure(params string[] errors) => new()
+    {
+        IsValid = false,
+        Errors = errors
+    };
 }

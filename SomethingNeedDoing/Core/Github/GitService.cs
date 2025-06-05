@@ -3,7 +3,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.Core;
+namespace SomethingNeedDoing.Core.Github;
 
 /// <summary>
 /// Implementation of the Git service using the GitHub API.
@@ -32,7 +32,7 @@ public class GitService : IGitService
 
         var content = await response.Content.ReadAsStringAsync();
         var fileInfo = JsonSerializer.Deserialize<GitHubFileInfo>(content);
-        return fileInfo?.Content;
+        return fileInfo?.Content ?? string.Empty;
     }
 
     /// <inheritdoc/>

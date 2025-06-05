@@ -11,7 +11,7 @@ public class MainWindow : Window
     private readonly HelpTab _helpTab;
     private readonly MacrosTab _macrosTab;
 
-    public MainWindow(IMacroScheduler scheduler, MacroEditor macroEditor, MacrosSettingsSection macroSettings, HelpTab helpTab) : base("Something Need Doing", ImGuiWindowFlags.NoScrollbar)
+    public MainWindow(IMacroScheduler scheduler, MacroEditor macroEditor, MacroSettingsSection macroSettings, HelpTab helpTab) : base("Something Need Doing", ImGuiWindowFlags.NoScrollbar)
     {
         _helpTab = helpTab;
         _macrosTab = new MacrosTab(scheduler, macroSettings, macroEditor);

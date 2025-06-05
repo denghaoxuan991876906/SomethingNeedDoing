@@ -13,42 +13,62 @@ namespace SomethingNeedDoing.Core;
 /// <param name="gitService">The Git service.</param>
 public class DependencyFactory(HttpClient httpClient, IGitService gitService)
 {
-    private readonly HttpClient _httpClient = httpClient;
-    private readonly IGitService _gitService = gitService;
 
     /// <summary>
-    /// Creates a dependency based on the specified type and parameters.
+    /// Creates a dependency from a source string, automatically detecting the type.
     /// </summary>
-    /// <param name="type">The type of dependency.</param>
-    /// <param name="name">The name of the dependency.</param>
-    /// <param name="parameters">The parameters for creating the dependency.</param>
+    /// <param name="source">The source URL or path.</param>
     /// <returns>The created dependency.</returns>
-    /// <exception cref="ArgumentException">Thrown when the dependency type is not supported or required parameters are missing.</exception>
-    public IMacroDependency CreateDependency(DependencyType type, string name, params string[] parameters) => type switch
+    public IMacroDependency CreateDependency(string source)
     {
-        DependencyType.GitRepository => CreateGitDependency(name, parameters),
-        DependencyType.Http => CreateHttpDependency(name, parameters),
-        _ => throw new ArgumentException($"Unsupported dependency type: {type}", nameof(type))
-    };
+        var normalizedSource = NormalizeSource(source);
 
-    private IMacroDependency CreateGitDependency(string name, string[] parameters)
-    {
-        if (parameters.Length < 1)
-            throw new ArgumentException("Git dependency requires at least a repository URL", nameof(parameters));
+        if (normalizedSource.StartsWith("git://"))
+        {
+            var parts = normalizedSource[6..].Split('/');
+            if (parts.Length >= 2)
+            {
+                var owner = parts[0];
+                var repo = parts[1];
+                var branch = parts.Length > 2 ? parts[2] : "main";
+                var path = parts.Length > 3 ? string.Join("/", parts.Skip(3)) : null;
 
-        var repositoryUrl = parameters[0];
-        var branch = parameters.Length > 1 ? parameters[1] : "main";
-        var path = parameters.Length > 2 ? parameters[2] : null;
+                return new GitDependency(gitService, $"https://github.com/{owner}/{repo}", branch, path, repo);
+            }
+        }
+        else if (System.IO.File.Exists(source))
 
-        return new GitRepositoryDependency(_gitService, repositoryUrl, branch, path, name);
+            return new LocalDependency(source, System.IO.Path.GetFileNameWithoutExtension(source));
+
+        return new HttpDependency(httpClient, source, "latest");
     }
 
-    private IMacroDependency CreateHttpDependency(string name, string[] parameters)
+    /// <summary>
+    /// Normalizes a source URL to a consistent format.
+    /// </summary>
+    private string NormalizeSource(string source)
     {
-        if (parameters.Length < 1)
-            throw new ArgumentException("HTTP dependency requires a URL", nameof(parameters));
+        if (source.Contains("github.com"))
+        {
+            var uri = new Uri(source);
+            var pathParts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
-        var url = parameters[0];
-        return new HttpDependency(_httpClient, url, name);
+            if (pathParts.Length >= 2)
+            {
+                var owner = pathParts[0];
+                var repo = pathParts[1].Replace(".git", "");
+
+                if (source.Contains("/blob/") || source.Contains("/raw/"))
+                {
+                    var branch = pathParts[3];
+                    var path = string.Join("/", pathParts.Skip(4));
+                    return $"git://github.com/{owner}/{repo}/{branch}/{path}";
+                }
+
+                return $"git://github.com/{owner}/{repo}";
+            }
+        }
+
+        return source;
     }
 }

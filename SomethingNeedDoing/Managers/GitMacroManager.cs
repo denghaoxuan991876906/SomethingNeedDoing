@@ -24,6 +24,8 @@ public class GitMacroManager : IDisposable
     };
     private readonly string _cacheDirectory;
     private readonly ConcurrentDictionary<string, ConfigMacro> _gitMacros = [];
+    private readonly DependencyFactory _dependencyFactory;
+    private readonly GitMacroMetadataParser _metadataParser;
 
     /// <summary>
     /// Event raised when a macro is updated.
@@ -38,10 +40,13 @@ public class GitMacroManager : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="GitMacroManager"/> class.
     /// </summary>
+    /// <param name="scheduler">The macro scheduler.</param>
     /// <param name="dependencyFactory">The dependency factory.</param>
-    public GitMacroManager(IMacroScheduler scheduler)
+    public GitMacroManager(IMacroScheduler scheduler, DependencyFactory dependencyFactory, GitMacroMetadataParser metadataParser)
     {
         _scheduler = scheduler;
+        _dependencyFactory = dependencyFactory;
+        _metadataParser = metadataParser;
         _cacheDirectory = Path.Combine(Svc.PluginInterface.ConfigDirectory.FullName, "GitMacros");
         Directory.CreateDirectory(_cacheDirectory);
         UpdateAllMacros();
@@ -395,7 +400,7 @@ public class GitMacroManager : IDisposable
             await File.WriteAllTextAsync(GetCachedFilePath(macro), content);
 
             // Parse metadata and update macro
-            var metadata = GitMacroMetadataParser.ParseMetadata(content);
+            var metadata = _metadataParser.ParseMetadata(content);
             macro.Content = content;
             macro.GitInfo.CommitHash = commitHash;
             macro.Metadata = metadata;
@@ -420,16 +425,15 @@ public class GitMacroManager : IDisposable
     {
         foreach (var dependency in macro.Metadata.Dependencies)
         {
-            if (dependency.Type == DependencyType.GitMacro)
+            if (dependency.Type == DependencyType.Remote && dependency.Source.StartsWith("git://"))
             {
-                var gitDependency = (GitMacroDependency)dependency;
                 var depMacro = new ConfigMacro
                 {
                     GitInfo =
                     {
-                        RepositoryUrl = gitDependency.RepositoryUrl,
-                        FilePath = gitDependency.FilePath,
-                        Branch = gitDependency.Branch
+                        RepositoryUrl = dependency.Source[6..], // Remove "git://" prefix
+                        FilePath = dependency.Name,
+                        Branch = "main" // Default to main branch
                     }
                 };
 

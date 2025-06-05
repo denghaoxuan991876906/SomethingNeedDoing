@@ -12,27 +12,27 @@ namespace SomethingNeedDoing.Core;
 /// </remarks>
 /// <param name="httpClient">The HTTP client.</param>
 /// <param name="url">The URL of the dependency.</param>
-/// <param name="version">The version of the dependency.</param>
-public class HttpDependency(HttpClient httpClient, string url, string version) : IMacroDependency
+/// <param name="name">The name of the dependency.</param>
+public class HttpDependency(HttpClient httpClient, string url, string name) : IMacroDependency
 {
     private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
     /// <inheritdoc/>
-    public string Id { get; } = url ?? throw new ArgumentNullException(nameof(url));
+    public string Id { get; } = Guid.NewGuid().ToString();
 
     /// <inheritdoc/>
-    public string Name => System.IO.Path.GetFileNameWithoutExtension(Id);
+    public string Name { get; } = name;
 
     /// <inheritdoc/>
-    public DependencyType Type => DependencyType.Http;
+    public DependencyType Type => DependencyType.Remote;
 
     /// <inheritdoc/>
-    public string Version { get; } = version ?? throw new ArgumentNullException(nameof(version));
+    public string Source { get; } = url ?? throw new ArgumentNullException(nameof(url));
 
     /// <inheritdoc/>
     public async Task<string> GetContentAsync()
     {
-        var response = await _httpClient.GetAsync(Id);
+        var response = await _httpClient.GetAsync(Source);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync();
     }
@@ -42,12 +42,31 @@ public class HttpDependency(HttpClient httpClient, string url, string version) :
     {
         try
         {
-            var response = await _httpClient.GetAsync(Id);
+            var response = await _httpClient.GetAsync(Source);
             return response.IsSuccessStatusCode;
         }
         catch
         {
             return false;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<DependencyValidationResult> ValidateAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(Source);
+            if (!response.IsSuccessStatusCode)
+                return DependencyValidationResult.Failure($"HTTP request failed with status code: {response.StatusCode}");
+
+            // Try to read the content to validate it
+            await response.Content.ReadAsStringAsync();
+            return DependencyValidationResult.Success();
+        }
+        catch (Exception ex)
+        {
+            return DependencyValidationResult.Failure($"Error validating HTTP dependency: {ex.Message}");
         }
     }
 }

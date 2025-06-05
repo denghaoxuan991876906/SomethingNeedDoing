@@ -1,6 +1,6 @@
-﻿namespace SomethingNeedDoing.Core.Github;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
+namespace SomethingNeedDoing.Core.Github;
 /// <summary>
 /// Represents information about a Git commit.
 /// </summary>

@@ -1,4 +1,5 @@
 using SomethingNeedDoing.Core.Interfaces;
+using System.IO;
 using System.Text.RegularExpressions;
 
 namespace SomethingNeedDoing.Core.Github;
@@ -6,18 +7,24 @@ namespace SomethingNeedDoing.Core.Github;
 /// <summary>
 /// Parser for Git macro metadata.
 /// </summary>
-public static class GitMacroMetadataParser
+/// <remarks>
+/// Initializes a new instance of the <see cref="GitMacroMetadataParser"/> class.
+/// </remarks>
+/// <param name="gitService">The Git service.</param>
+public class GitMacroMetadataParser(IGitService gitService)
 {
     private static readonly Regex MetadataBlockRegex = new(
         @"^--\[\[SND\s*Metadata\s*\]\]\s*\n(.*?)\n--\[\[End\s*Metadata\s*\]\]",
         RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+    private readonly IGitService _gitService = gitService ?? throw new ArgumentNullException(nameof(gitService));
 
     /// <summary>
     /// Parses metadata from macro content.
     /// </summary>
     /// <param name="content">The macro content to parse.</param>
     /// <returns>The parsed metadata.</returns>
-    public static MacroMetadata ParseMetadata(string content)
+    public MacroMetadata ParseMetadata(string content)
     {
         /* Metadata looks like
          * --[[SND Metadata]]
@@ -66,7 +73,7 @@ public static class GitMacroMetadataParser
         return metadata;
     }
 
-    private static void ParseDependencies(string value, MacroMetadata metadata)
+    private void ParseDependencies(string value, MacroMetadata metadata)
     {
         // TODO: better determining factors for JSON vs YAML
         try
@@ -84,7 +91,7 @@ public static class GitMacroMetadataParser
         }
     }
 
-    private static void ParseJsonDependencies(string value, MacroMetadata metadata)
+    private void ParseJsonDependencies(string value, MacroMetadata metadata)
     {
         // Simple JSON-like parsing for dependencies
         var dependencies = new List<IMacroDependency>();
@@ -92,7 +99,11 @@ public static class GitMacroMetadataParser
 
         foreach (Match match in matches)
         {
-            var dep = new GitMacroDependency();
+            string? repo = null;
+            string? path = null;
+            var branch = "main";
+            var name = string.Empty;
+
             var props = match.Groups[1].Value.Split(',');
 
             foreach (var prop in props)
@@ -106,40 +117,55 @@ public static class GitMacroMetadataParser
                 switch (key.ToLower())
                 {
                     case "repo":
-                        dep.RepositoryUrl = val;
+                        repo = val;
                         break;
                     case "path":
-                        dep.FilePath = val;
+                        path = val;
                         break;
                     case "branch":
-                        dep.Branch = val;
+                        branch = val;
+                        break;
+                    case "name":
+                        name = val;
                         break;
                 }
             }
 
-            if (!string.IsNullOrEmpty(dep.RepositoryUrl) && !string.IsNullOrEmpty(dep.FilePath))
-                dependencies.Add(dep);
+            if (!string.IsNullOrEmpty(repo) && !string.IsNullOrEmpty(path))
+            {
+                name = string.IsNullOrEmpty(name) ? Path.GetFileNameWithoutExtension(path) : name;
+                dependencies.Add(new GitDependency(_gitService, repo, branch, path, name));
+            }
         }
 
         metadata.Dependencies = dependencies;
     }
 
-    private static void ParseYamlDependencies(string value, MacroMetadata metadata)
+    private void ParseYamlDependencies(string value, MacroMetadata metadata)
     {
         var dependencies = new List<IMacroDependency>();
         var lines = value.Split('\n');
-        GitMacroDependency? currentDep = null;
+        string? repo = null;
+        string? path = null;
+        var branch = "main";
+        var name = string.Empty;
 
         foreach (var line in lines)
         {
             var trimmed = line.Trim();
             if (trimmed.StartsWith('-'))
             {
-                if (currentDep != null)
-                    dependencies.Add(currentDep);
-                currentDep = new GitMacroDependency();
+                if (!string.IsNullOrEmpty(repo) && !string.IsNullOrEmpty(path))
+                {
+                    name = string.IsNullOrEmpty(name) ? Path.GetFileNameWithoutExtension(path) : name;
+                    dependencies.Add(new GitDependency(_gitService, repo, branch, path, name));
+                }
+                repo = null;
+                path = null;
+                branch = "main";
+                name = string.Empty;
             }
-            else if (currentDep != null)
+            else
             {
                 var parts = trimmed.Split(':');
                 if (parts.Length != 2) continue;
@@ -150,32 +176,40 @@ public static class GitMacroMetadataParser
                 switch (key.ToLower())
                 {
                     case "repo":
-                        currentDep.RepositoryUrl = val;
+                        repo = val;
                         break;
                     case "path":
-                        currentDep.FilePath = val;
+                        path = val;
                         break;
                     case "branch":
-                        currentDep.Branch = val;
+                        branch = val;
+                        break;
+                    case "name":
+                        name = val;
                         break;
                 }
             }
         }
 
-        if (currentDep != null)
+        if (!string.IsNullOrEmpty(repo) && !string.IsNullOrEmpty(path))
         {
-            dependencies.Add(currentDep);
+            name = string.IsNullOrEmpty(name) ? Path.GetFileNameWithoutExtension(path) : name;
+            dependencies.Add(new GitDependency(_gitService, repo, branch, path, name));
         }
 
         metadata.Dependencies = dependencies;
     }
 
-    private static void ParseSimpleDependencies(string value, MacroMetadata metadata)
+    private void ParseSimpleDependencies(string value, MacroMetadata metadata)
     {
         var dependencies = value.Split(',')
             .Select(v => v.Trim())
             .Where(v => !string.IsNullOrEmpty(v))
-            .Select(v => new GitMacroDependency { FilePath = v })
+            .Select(v =>
+            {
+                var name = Path.GetFileNameWithoutExtension(v);
+                return new GitDependency(_gitService, v, "main", v, name);
+            })
             .ToList<IMacroDependency>();
 
         metadata.Dependencies = dependencies;
