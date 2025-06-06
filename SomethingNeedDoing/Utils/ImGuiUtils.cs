@@ -1,6 +1,9 @@
 ﻿using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using ECommons.ImGuiMethods;
+using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.Utils;
 public static class ImGuiUtils
@@ -114,5 +117,70 @@ public static class ImGuiUtils
             }
         }
         return changed;
+    }
+
+    public static void DrawLink(Vector4 colour, string label, string url)
+    {
+        ImGuiEx.Text(colour, label);
+
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+
+            using var tooltip = ImRaii.Tooltip();
+            if (tooltip.Success)
+            {
+                var pos = ImGui.GetCursorPos();
+                ImGui.GetWindowDrawList().AddText(
+                    UiBuilder.IconFont, 12,
+                    ImGui.GetWindowPos() + pos + new Vector2(2),
+                    ImGuiColors.DalamudGrey.ToUint(),
+                    FontAwesomeIcon.ExternalLinkAlt.ToIconString()
+                );
+                ImGui.SetCursorPos(pos + new Vector2(20, 0));
+                ImGuiEx.Text(ImGuiColors.DalamudGrey, url);
+            }
+        }
+
+        if (ImGui.IsItemClicked())
+        {
+            Task.Run(() => Dalamud.Utility.Util.OpenLink(url));
+        }
+    }
+
+    public static bool Button(Vector4 btnColour, FontAwesomeIcon icon, string text)
+    {
+        using var group = ImRaii.Group();
+        using var _ = ImRaii.PushColor(ImGuiCol.Button, btnColour)
+            .Push(ImGuiCol.ButtonHovered, new Vector4(btnColour.X + 1, btnColour.Y + 1, btnColour.Z + 1, btnColour.W))
+            .Push(ImGuiCol.ButtonActive, new Vector4(btnColour.X + 2, btnColour.Y + 2, btnColour.Z + 2, btnColour.W));
+
+        var id = $"##Button_{icon}_{text}";
+
+        // Calculate minimum width based on text and icon
+        float iconWidth;
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+            iconWidth = ImGui.CalcTextSize(icon.ToIconString()).X;
+        var textWidth = ImGui.CalcTextSize(text).X;
+        var style = ImGui.GetStyle();
+        var minWidth = iconWidth + textWidth + style.FramePadding.X * 2 + style.ItemSpacing.X;
+        var buttonSize = new Vector2(minWidth, ImGui.GetFrameHeight());
+
+        var result = ImGui.Button(id, buttonSize);
+
+        var buttonX = ImGui.GetItemRectMin().X;
+        var buttonY = ImGui.GetItemRectMin().Y;
+        var buttonHeight = ImGui.GetItemRectSize().Y;
+
+        ImGui.SetCursorScreenPos(new Vector2(buttonX + style.FramePadding.X, buttonY));
+        ImGui.AlignTextToFramePadding();
+
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+            ImGui.TextUnformatted(icon.ToIconString());
+
+        ImGui.SameLine(0, style.ItemSpacing.X);
+        ImGui.Text(text);
+
+        return result;
     }
 }

@@ -1,10 +1,11 @@
-using SomethingNeedDoing.Core.Events;
+﻿using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Github;
 using SomethingNeedDoing.Core.Interfaces;
-using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.Managers;
@@ -23,9 +24,8 @@ public class GitMacroManager : IDisposable
         }
     };
     private readonly string _cacheDirectory;
-    private readonly ConcurrentDictionary<string, ConfigMacro> _gitMacros = [];
-    private readonly DependencyFactory _dependencyFactory;
     private readonly GitMacroMetadataParser _metadataParser;
+    private readonly TimeSpan _updateCooldown = TimeSpan.FromMinutes(5);
 
     /// <summary>
     /// Event raised when a macro is updated.
@@ -42,26 +42,22 @@ public class GitMacroManager : IDisposable
     /// </summary>
     /// <param name="scheduler">The macro scheduler.</param>
     /// <param name="dependencyFactory">The dependency factory.</param>
-    public GitMacroManager(IMacroScheduler scheduler, DependencyFactory dependencyFactory, GitMacroMetadataParser metadataParser)
+    public GitMacroManager(IMacroScheduler scheduler, GitMacroMetadataParser metadataParser)
     {
         _scheduler = scheduler;
-        _dependencyFactory = dependencyFactory;
         _metadataParser = metadataParser;
         _cacheDirectory = Path.Combine(Svc.PluginInterface.ConfigDirectory.FullName, "GitMacros");
         Directory.CreateDirectory(_cacheDirectory);
-        UpdateAllMacros();
+        _ = UpdateAllMacros();
     }
 
     /// <summary>
     /// Initializes all Git macros by loading them from config and checking for updates.
     /// </summary>
-    public void UpdateAllMacros()
+    public async Task UpdateAllMacros()
     {
-        foreach (var macro in C.Macros)
-        {
-            _gitMacros[macro.Id] = macro;
-            _ = CheckForUpdates(macro); // Fire and forget, let it run async
-        }
+        await CheckForUpdates();
+        await Task.WhenAll([.. C.Macros.Where(m => m.GitInfo.HasUpdate).Select(m => UpdateMacro(m, null))]);
     }
 
     /// <summary>
@@ -73,18 +69,22 @@ public class GitMacroManager : IDisposable
     /// <returns>The created Git macro.</returns>
     public async Task<ConfigMacro> AddGitMacro(string repositoryUrl, string filePath, string branch = "main")
     {
+        var (ownerAndRepo, _) = GetOwnerAndRepo(repositoryUrl);
+        var parts = ownerAndRepo.Split('/');
+
         var macro = new ConfigMacro
         {
             GitInfo =
             {
                 RepositoryUrl = repositoryUrl,
                 FilePath = filePath,
-                Branch = branch
+                Branch = branch,
+                Owner = parts[0],
+                Repo = parts[1]
             }
         };
 
         await UpdateMacro(macro);
-        _gitMacros[macro.Id] = macro;
         C.Macros.Add(macro);
         C.Save();
 
@@ -98,31 +98,49 @@ public class GitMacroManager : IDisposable
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task CheckForUpdates(ConfigMacro macro)
     {
-        try
+        if (!macro.IsGitMacro) return;
+        if (DateTime.Now - macro.GitInfo.LastUpdateCheck > _updateCooldown)
         {
-            if (macro.GitInfo.RepositoryUrl.IsNullOrEmpty()) return;
+            try
+            {
+                var (ownerAndRepo, _) = GetOwnerAndRepo(macro.GitInfo.RepositoryUrl);
+                var parts = ownerAndRepo.Split('/');
+                macro.GitInfo.Owner = parts[0];
+                macro.GitInfo.Repo = parts[1];
 
-            // Store current trigger events
-            var triggerEvents = macro.Metadata.TriggerEvents.ToList();
+                var latestCommit = await GetLatestCommitHash(macro);
+                macro.GitInfo.HasUpdate = latestCommit != macro.GitInfo.CommitHash;
+                macro.GitInfo.LastUpdateCheck = DateTime.Now;
 
-            // Stop the macro and unsubscribe from events
-            _scheduler.StopMacro(macro.Id);
-            foreach (var triggerEvent in triggerEvents)
-                _scheduler.UnsubscribeFromTriggerEvent(macro, triggerEvent);
-
-            await UpdateMacro(macro);
-
-            // Resubscribe
-            foreach (var triggerEvent in triggerEvents)
-                _scheduler.SubscribeToTriggerEvent(macro, triggerEvent);
-
-            MacroUpdated?.Invoke(this, new GitMacroUpdateEventArgs(macro));
+                if (macro.GitInfo.HasUpdate)
+                    Svc.Log.Debug($"Update available for {macro.Name} ({macro.GitInfo.CommitHash} → {latestCommit})");
+                else
+                    Svc.Log.Debug($"No updates available for {macro.Name} ({macro.GitInfo.CommitHash} == {latestCommit})");
+            }
+            catch (Exception ex)
+            {
+                Svc.Log.Error(ex, $"Failed to check for updates for macro {macro.Name}");
+            }
         }
-        catch (Exception ex)
-        {
-            Svc.Log.Error(ex, $"Failed to update macro {macro.Name}");
-            MacroUpdateFailed?.Invoke(this, new GitMacroUpdateEventArgs(macro, ex));
-        }
+        else
+            Svc.Log.Debug($"Skipping update check for {macro.Name} due to cooldown. Next check available in {_updateCooldown - (DateTime.Now - macro.GitInfo.LastUpdateCheck)}");
+    }
+
+    /// <summary>
+    /// Checks for updates to all macros.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task CheckForUpdates()
+    {
+        foreach (var macro in C.Macros.Where(m => m.IsGitMacro))
+            await CheckForUpdates(macro);
+    }
+
+    public async Task UpdateMacro(ConfigMacro macro)
+    {
+        await CheckForUpdates(macro);
+        if (macro.GitInfo.HasUpdate)
+            await UpdateMacro(macro, null);
     }
 
     /// <summary>
@@ -163,13 +181,11 @@ public class GitMacroManager : IDisposable
         try
         {
             await UpdateMacro(macro, commitHash);
-            MacroUpdated?.Invoke(this, new GitMacroUpdateEventArgs(macro));
             return true;
         }
         catch (Exception ex)
         {
             Svc.Log.Error(ex, $"Failed to downgrade Git macro {macro.Name}");
-            MacroUpdateFailed?.Invoke(this, new GitMacroUpdateEventArgs(macro, ex));
             return false;
         }
     }
@@ -185,12 +201,10 @@ public class GitMacroManager : IDisposable
         try
         {
             await UpdateMacro(macro, commitHash);
-            MacroUpdated?.Invoke(this, new GitMacroUpdateEventArgs(macro));
         }
         catch (Exception ex)
         {
             Svc.Log.Error(ex, $"Failed to update macro {macro.Name} to commit {commitHash}");
-            MacroUpdateFailed?.Invoke(this, new GitMacroUpdateEventArgs(macro, ex));
         }
     }
 
@@ -255,59 +269,41 @@ public class GitMacroManager : IDisposable
     /// <returns>The file content.</returns>
     private async Task<string> DownloadFile(ConfigMacro macro, string commitHash)
     {
-        Svc.Log.Debug($"Original file path: {macro.GitInfo.FilePath}");
-        Svc.Log.Debug($"Original repository URL: {macro.GitInfo.RepositoryUrl}");
-
         var filePath = macro.GitInfo.FilePath;
+        Svc.Log.Debug($"Original file path: {filePath}");
 
-        // Clean up the file path - remove any blob/branch/ prefix if it exists
-        if (filePath.StartsWith("blob/"))
-        {
-            filePath = filePath[(filePath.IndexOf('/', 5) + 1)..];
-            Svc.Log.Debug($"Cleaned up file path from blob prefix: {filePath}");
-        }
-        // If no file path is provided, try to extract it from the URL
-        else if (string.IsNullOrEmpty(filePath) && macro.GitInfo.RepositoryUrl.Contains("/blob/"))
-        {
-            var parts = macro.GitInfo.RepositoryUrl.Split(["/blob/"], StringSplitOptions.None);
-            if (parts.Length != 2)
-            {
-                Svc.Log.Error($"Invalid repository URL format: {macro.GitInfo.RepositoryUrl}");
-                throw new ArgumentException($"Invalid repository URL format: {macro.GitInfo.RepositoryUrl}");
-            }
+        // First decode any existing URL encoding to avoid double-encoding
+        var decodedPath = Uri.UnescapeDataString(filePath);
+        Svc.Log.Debug($"Decoded file path: {decodedPath}");
 
-            var afterBlob = parts[1];
-            var pathParts = afterBlob.Split('/', 2);
-            if (pathParts.Length != 2)
-            {
-                Svc.Log.Error($"Invalid URL format after blob: {afterBlob}");
-                throw new ArgumentException($"Invalid URL format after blob: {afterBlob}");
-            }
+        // Then encode each segment properly
+        var encodedPath = string.Join("/", decodedPath.Split('/').Select(Uri.EscapeDataString));
+        Svc.Log.Debug($"Encoded file path: {encodedPath}");
 
-            filePath = pathParts[1];
-            Svc.Log.Debug($"Extracted file path from web URL: {filePath}");
-        }
-        else if (string.IsNullOrEmpty(filePath))
-        {
-            Svc.Log.Error("No file path provided and could not extract from URL");
-            throw new ArgumentException("No file path provided and could not extract from URL");
-        }
-
-        var (ownerAndRepo, _) = GetOwnerAndRepo(macro.GitInfo.RepositoryUrl);
-        var apiUrl = $"https://api.github.com/repos/{ownerAndRepo}/contents/{filePath}?ref={commitHash}";
+        var apiUrl = $"https://api.github.com/repos/{macro.GitInfo.Owner}/{macro.GitInfo.Repo}/contents/{encodedPath}?ref={commitHash}";
         Svc.Log.Debug($"Downloading file from: {apiUrl}");
 
         var response = await _httpClient.GetAsync(apiUrl);
-        var responseContent = await response.Content.ReadAsStringAsync();
 
         if (!response.IsSuccessStatusCode)
         {
-            Svc.Log.Error($"Failed to download file. Status: {response.StatusCode}, Response: {responseContent}");
-            throw new HttpRequestException($"Failed to download file: {responseContent}");
+            var error = await response.Content.ReadAsStringAsync();
+            Svc.Log.Error($"Failed to download file: {response.StatusCode} - {error}");
+            throw new InvalidOperationException($"Failed to download file: {response.StatusCode}");
         }
 
-        var fileInfo = JsonSerializer.Deserialize<GitHubFileInfo>(responseContent);
-        return fileInfo?.Content ?? throw new InvalidOperationException("Failed to get file content");
+        var content = await response.Content.ReadAsStringAsync();
+        var fileContent = JsonSerializer.Deserialize<GitHubFileContent>(content);
+
+        if (fileContent?.Content == null)
+        {
+            Svc.Log.Error("Failed to parse file content from GitHub response");
+            throw new InvalidOperationException("Failed to parse file content from GitHub response");
+        }
+
+        var decodedContent = Encoding.UTF8.GetString(Convert.FromBase64String(fileContent.Content));
+        Svc.Log.Debug($"Downloaded content length: {decodedContent.Length}");
+        return decodedContent;
     }
 
     /// <summary>
@@ -319,7 +315,6 @@ public class GitMacroManager : IDisposable
     {
         try
         {
-            // Handle GitHub URLs
             if (repositoryUrl.Contains("github.com"))
             {
                 var uri = new Uri(repositoryUrl);
@@ -338,25 +333,24 @@ public class GitMacroManager : IDisposable
                         throw new ArgumentException($"Invalid GitHub URL format: {repositoryUrl}");
 
                     var branch = pathParts[3]; // The branch is after /blob/
-                    Svc.Log.Debug($"Extracted from web URL - Owner: {owner}, Repo: {repo}, Branch: {branch}");
+                    var filePath = Uri.UnescapeDataString(string.Join("/", pathParts[4..])); // Everything after the branch is the file path
+                    Svc.Log.Debug($"Extracted from web URL - Owner: {owner}, Repo: {repo}, Branch: {branch}, FilePath: {filePath}");
                     return ($"{owner}/{repo}", branch);
                 }
 
                 // For regular GitHub URLs, get the default branch
                 Svc.Log.Debug($"Using repository URL - Owner: {owner}, Repo: {repo}");
-                return ($"{owner}/{repo}", "master"); // Default to master for GitHub URLs
+                return ($"{owner}/{repo}", "main"); // Default to main for GitHub URLs
             }
 
-            // Handle SSH URLs
             if (repositoryUrl.StartsWith("git@"))
             {
                 var parts = repositoryUrl.Split(':');
                 var path = parts[1].Replace(".git", "");
-                Svc.Log.Debug($"Using default branch 'master' for SSH URL");
-                return (path, "master");
+                Svc.Log.Debug($"Using default branch 'main' for SSH URL");
+                return (path, "main");
             }
 
-            // Handle other HTTPS URLs
             var uri2 = new Uri(repositoryUrl);
             var pathParts2 = uri2.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
@@ -365,8 +359,8 @@ public class GitMacroManager : IDisposable
 
             var owner2 = pathParts2[0];
             var repo2 = pathParts2[1].Replace(".git", "");
-            Svc.Log.Debug($"Using default branch 'master' for HTTPS URL");
-            return ($"{owner2}/{repo2}", "master");
+            Svc.Log.Debug($"Using default branch 'main' for HTTPS URL");
+            return ($"{owner2}/{repo2}", "main");
         }
         catch (Exception ex)
         {
@@ -382,36 +376,70 @@ public class GitMacroManager : IDisposable
     /// <returns>A task representing the asynchronous operation.</returns>
     private async Task UpdateMacro(ConfigMacro macro, string? specificCommit = null)
     {
-        if (macro.GitInfo.RepositoryUrl.IsNullOrEmpty()) return;
+        if (!macro.IsGitMacro || !macro.GitInfo.HasUpdate) return;
         try
         {
-            // Get the latest commit hash
-            var commitHash = specificCommit ?? await GetLatestCommitHash(macro);
+            Svc.Log.Debug($"Starting update for macro {macro.Name}");
 
-            // If the commit hash hasn't changed and we have a cached version, use that
-            if (commitHash == macro.GitInfo.CommitHash && File.Exists(GetCachedFilePath(macro)))
+            // Store current trigger events
+            var triggerEvents = macro.Metadata.TriggerEvents.ToList();
+
+            // Stop the macro and unsubscribe from events
+            _scheduler.StopMacro(macro.Id);
+            foreach (var triggerEvent in triggerEvents)
+                _scheduler.UnsubscribeFromTriggerEvent(macro, triggerEvent);
+
+            var commitHash = specificCommit ?? await GetLatestCommitHash(macro);
+            Svc.Log.Debug($"Got commit hash: {commitHash}");
+
+            var cachePath = GetCachedFilePath(macro);
+            var useCache = commitHash == macro.GitInfo.CommitHash && File.Exists(cachePath);
+
+            if (useCache)
             {
-                macro.Content = await File.ReadAllTextAsync(GetCachedFilePath(macro));
-                return;
+                var cachedContent = await File.ReadAllTextAsync(cachePath);
+                if (!string.IsNullOrEmpty(cachedContent))
+                {
+                    Svc.Log.Debug("Using cached version");
+                    macro.Content = cachedContent;
+                    return;
+                }
+                Svc.Log.Debug("Cache file is empty, downloading new version");
             }
 
-            // Download the new version
+            Svc.Log.Debug("Downloading new version");
             var content = await DownloadFile(macro, commitHash);
-            await File.WriteAllTextAsync(GetCachedFilePath(macro), content);
+            Svc.Log.Debug($"Downloaded content length: {content.Length}");
 
-            // Parse metadata and update macro
+            if (string.IsNullOrEmpty(content))
+            {
+                Svc.Log.Error("Downloaded content is empty");
+                throw new InvalidOperationException("Downloaded content is empty");
+            }
+
+            Svc.Log.Debug($"Caching to: {cachePath}");
+            await File.WriteAllTextAsync(cachePath, content);
+
+            Svc.Log.Debug("Parsing metadata");
             var metadata = _metadataParser.ParseMetadata(content);
             macro.Content = content;
             macro.GitInfo.CommitHash = commitHash;
             macro.Metadata = metadata;
             macro.GitInfo.LastUpdateCheck = DateTime.Now;
+            Svc.Log.Debug("Update complete");
 
-            // Update dependencies if any
             await UpdateDependencies(macro);
+
+            // Resubscribe to trigger events
+            foreach (var triggerEvent in triggerEvents)
+                _scheduler.SubscribeToTriggerEvent(macro, triggerEvent);
+
+            MacroUpdated?.Invoke(this, new GitMacroUpdateEventArgs(macro));
         }
         catch (Exception ex)
         {
             Svc.Log.Error(ex, $"Failed to update macro {macro.Name}");
+            MacroUpdateFailed?.Invoke(this, new GitMacroUpdateEventArgs(macro, ex));
             throw;
         }
     }
@@ -457,9 +485,21 @@ public class GitMacroManager : IDisposable
     /// <inheritdoc/>
     public void Dispose() => _httpClient.Dispose();
 
-    private class GitHubFileInfo
+    private class GitHubFileContent
     {
-        public string Content { get; set; } = string.Empty;
-        public string Encoding { get; set; } = string.Empty;
+        [JsonPropertyName("content")]
+        public string? Content { get; set; }
+
+        [JsonPropertyName("encoding")]
+        public string? Encoding { get; set; }
+
+        [JsonPropertyName("sha")]
+        public string? Sha { get; set; }
+
+        [JsonPropertyName("size")]
+        public int Size { get; set; }
+
+        [JsonPropertyName("url")]
+        public string? Url { get; set; }
     }
 }

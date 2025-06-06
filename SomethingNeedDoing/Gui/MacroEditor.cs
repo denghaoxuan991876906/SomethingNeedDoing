@@ -1,19 +1,24 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
+using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
+using SomethingNeedDoing.Managers;
+using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.Gui;
 
 /// <summary>
 /// Macro editor with IDE-like features
 /// </summary>
-public class MacroEditor(IMacroScheduler scheduler, MacroStatusWindow? statusWindow = null)
+public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, MacroStatusWindow? statusWindow = null)
 {
     private readonly IMacroScheduler _scheduler = scheduler;
+    private readonly GitMacroManager _gitManager = gitManager;
     private readonly MacroStatusWindow? _statusWindow = statusWindow;
     private bool _showLineNumbers = true;
     private bool _highlightSyntax = true;
+    private bool _isCheckingForUpdates;
 
     public void Draw(IMacro? macro)
     {
@@ -101,32 +106,37 @@ public class MacroEditor(IMacroScheduler scheduler, MacroStatusWindow? statusWin
 
     private void DrawActionButtons(IMacro macro)
     {
-        const float buttonWidth = 80;
-
-        using (ImRaii.PushColor(ImGuiCol.Button, new Vector4(0.2f, 0.7f, 0.2f, 1.0f))
-            .Push(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.8f, 0.3f, 1.0f))
-            .Push(ImGuiCol.ButtonActive, new Vector4(0.4f, 0.9f, 0.4f, 1.0f)))
-        {
-            if (ImGuiX.IconTextButton(FontAwesomeIcon.PlayCircle, "Run", new Vector2(buttonWidth, 0)))
-                _scheduler.StartMacro(macro);
-        }
-
+        if (ImGuiUtils.Button(new Vector4(0.2f, 0.7f, 0.2f, 1.0f), FontAwesomeIcon.PlayCircle, "Run"))
+            _scheduler.StartMacro(macro);
         ImGui.SameLine();
-        using (ImRaii.PushColor(ImGuiCol.Button, new Vector4(0.7f, 0.2f, 0.2f, 1.0f))
-            .Push(ImGuiCol.ButtonHovered, new Vector4(0.8f, 0.3f, 0.3f, 1.0f))
-            .Push(ImGuiCol.ButtonActive, new Vector4(0.9f, 0.4f, 0.4f, 1.0f)))
-        {
-            if (ImGuiX.IconTextButton(FontAwesomeIcon.StopCircle, "Stop", new Vector2(buttonWidth, 0)))
-                _scheduler.StopMacro(macro.Id);
-        }
-
+        if (ImGuiUtils.Button(new Vector4(0.7f, 0.2f, 0.2f, 1.0f), FontAwesomeIcon.StopCircle, "Stop"))
+            _scheduler.StopMacro(macro.Id);
         ImGui.SameLine();
-        using (ImRaii.PushColor(ImGuiCol.Button, new Vector4(0.3f, 0.3f, 0.3f, 1.0f))
-            .Push(ImGuiCol.ButtonHovered, new Vector4(0.4f, 0.4f, 0.4f, 1.0f))
-            .Push(ImGuiCol.ButtonActive, new Vector4(0.5f, 0.5f, 0.5f, 1.0f)))
+        if (ImGuiUtils.Button(new Vector4(0.3f, 0.3f, 0.3f, 1.0f), FontAwesomeIcon.PauseCircle, "Copy"))
+            ImGui.SetClipboardText(macro.Content);
+        ImGui.SameLine();
+        if (macro is ConfigMacro { IsGitMacro: true } configMacro)
         {
-            if (ImGuiX.IconTextButton(FontAwesomeIcon.Clipboard, "Copy", new Vector2(buttonWidth, 0)))
-                ImGui.SetClipboardText(macro.Content);
+            if (_isCheckingForUpdates)
+            {
+                using (ImRaii.Disabled())
+                    ImGuiUtils.Button(new Vector4(0.2f, 0.4f, 0.8f, 1.0f), FontAwesomeIcon.Sync, "Checking...");
+            }
+            else if (ImGuiUtils.Button(new Vector4(0.2f, 0.4f, 0.8f, 1.0f), FontAwesomeIcon.Sync, "Check for updates"))
+            {
+                _isCheckingForUpdates = true;
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _gitManager.CheckForUpdates(configMacro);
+                    }
+                    finally
+                    {
+                        _isCheckingForUpdates = false;
+                    }
+                });
+            }
         }
     }
 
@@ -238,10 +248,18 @@ public class MacroEditor(IMacroScheduler scheduler, MacroStatusWindow? statusWin
 
     private void DrawStatusBar(IMacro macro)
     {
-        using var _ = ImRaii.PushColor(ImGuiCol.FrameBg, new Vector4(0.1f, 0.1f, 0.1f, 1.0f)).Push(ImGuiCol.Text, ImGuiColors.DalamudGrey);
+        using var _ = ImRaii.PushColor(ImGuiCol.FrameBg, new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
 
         var lines = macro.Content.Split('\n').Length;
         var chars = macro.Content.Length;
-        ImGui.TextUnformatted($"Name: {macro.Name}  |  Lines: {lines}  |  Chars: {chars}  |  Type: {macro.Type}");
+        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Name: {macro.Name}  |  Lines: {lines}  |  Chars: {chars}  |  Type: {macro.Type}");
+
+        if (macro is ConfigMacro { IsGitMacro: true } configMacro)
+        {
+            ImGui.SameLine(0, 0);
+            ImGuiEx.Text(ImGuiColors.DalamudGrey, " | ");
+            ImGui.SameLine(0, 0);
+            ImGuiUtils.DrawLink(ImGuiColors.DalamudGrey, $"Git: {configMacro.GitInfo}", configMacro.GitInfo.RepositoryUrl);
+        }
     }
 }

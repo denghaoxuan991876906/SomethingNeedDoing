@@ -70,6 +70,64 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
 
                 ImGui.Spacing();
 
+                if (ImGui.CollapsingHeader("Git Settings", ImGuiTreeNodeFlags.DefaultOpen))
+                {
+                    ImGui.Spacing();
+
+                    ImGui.AlignTextToFramePadding();
+                    ImGui.Text("Repository URL:");
+                    ImGui.SameLine(100);
+
+                    var repoUrl = selectedMacro.GitInfo.RepositoryUrl;
+                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                    if (ImGui.InputText("##RepoUrl", ref repoUrl, 500))
+                    {
+                        selectedMacro.GitInfo.RepositoryUrl = repoUrl;
+                        C.Save();
+                    }
+
+                    if (selectedMacro.IsGitMacro)
+                    {
+                        ImGui.Indent(20);
+
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text("Branch:");
+                        ImGui.SameLine(100);
+
+                        var branch = selectedMacro.GitInfo.Branch;
+                        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                        if (ImGui.InputText("##Branch", ref branch, 100))
+                        {
+                            selectedMacro.GitInfo.Branch = branch;
+                            C.Save();
+                        }
+
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text("File Path:");
+                        ImGui.SameLine(100);
+
+                        var filePath = selectedMacro.GitInfo.FilePath;
+                        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                        if (ImGui.InputText("##FilePath", ref filePath, 500))
+                        {
+                            selectedMacro.GitInfo.FilePath = filePath;
+                            C.Save();
+                        }
+
+                        ImGui.AlignTextToFramePadding();
+                        var autoUpdate = selectedMacro.GitInfo.AutoUpdate;
+                        if (ImGui.Checkbox("Auto Update", ref autoUpdate))
+                        {
+                            selectedMacro.GitInfo.AutoUpdate = autoUpdate;
+                            C.Save();
+                        }
+
+                        ImGui.Unindent(20);
+                    }
+                }
+
+                ImGui.Spacing();
+
                 if (selectedMacro.Type is MacroType.Native)
                 {
                     if (ImGui.CollapsingHeader("Crafting Settings", ImGuiTreeNodeFlags.DefaultOpen))

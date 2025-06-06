@@ -13,6 +13,16 @@ public class GitInfo
     public string RepositoryUrl { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the owner of the repository.
+    /// </summary>
+    public string Owner { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the name of the repository.
+    /// </summary>
+    public string Repo { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the Git branch name.
     /// </summary>
     public string Branch { get; set; } = "main";
@@ -56,4 +66,23 @@ public class GitInfo
     /// Gets or sets the version history of this macro.
     /// </summary>
     public List<GitCommitInfo> VersionHistory { get; set; } = [];
+
+    /// <summary>
+    /// Returns a string representation of the Git information.
+    /// </summary>
+    public override string ToString()
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrEmpty(CurrentVersion))
+            parts.Add($"v{CurrentVersion}");
+
+        if (!string.IsNullOrEmpty(CommitHash))
+            parts.Add($"({CommitHash[..7]})");
+
+        if (!string.IsNullOrEmpty(Owner) && !string.IsNullOrEmpty(Repo))
+            parts.Add($"{Owner}/{Repo}");
+
+        return string.Join(" | ", parts);
+    }
 }
