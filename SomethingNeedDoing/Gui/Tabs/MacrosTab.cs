@@ -415,10 +415,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
 
             ImGui.Separator();
             if (ImGui.MenuItem("Create new folder..."))
-            {
                 CreateFolderModal.Open();
-                ImGui.CloseCurrentPopup();
-            }
         }
     }
 

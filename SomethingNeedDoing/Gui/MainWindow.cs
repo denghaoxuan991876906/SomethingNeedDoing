@@ -10,11 +10,13 @@ public class MainWindow : Window
 {
     private readonly HelpTab _helpTab;
     private readonly MacrosTab _macrosTab;
+    private readonly VersionHistoryModal _versionHistoryModal;
 
-    public MainWindow(IMacroScheduler scheduler, MacroEditor macroEditor, MacroSettingsSection macroSettings, HelpTab helpTab) : base("Something Need Doing", ImGuiWindowFlags.NoScrollbar)
+    public MainWindow(IMacroScheduler scheduler, MacroEditor macroEditor, MacroSettingsSection macroSettings, HelpTab helpTab, VersionHistoryModal versionHistoryModal) : base("Something Need Doing", ImGuiWindowFlags.NoScrollbar)
     {
         _helpTab = helpTab;
         _macrosTab = new MacrosTab(scheduler, macroSettings, macroEditor);
+        _versionHistoryModal = versionHistoryModal;
 
         Size = new Vector2(1000, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
@@ -30,6 +32,7 @@ public class MainWindow : Window
         CreateFolderModal.DrawModal();
         RenameModal.DrawModal();
         MigrationModal.DrawModal();
+        _versionHistoryModal.Draw();
 
         using var _ = ImRaii.TabBar("Tabs");
         using (var tab = ImRaii.TabItem("MacrosLibrary"))

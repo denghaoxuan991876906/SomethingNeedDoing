@@ -3,10 +3,11 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
+using SomethingNeedDoing.Gui.Modals;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 
-public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory dependencyFactory)
+public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory dependencyFactory, VersionHistoryModal versionHistoryModal)
 {
     private string _selectedPlugin = string.Empty;
     private string _gitUrl = string.Empty;
@@ -91,35 +92,28 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                         ImGui.Indent(20);
 
                         ImGui.AlignTextToFramePadding();
-                        ImGui.Text("Branch:");
-                        ImGui.SameLine(100);
-
-                        var branch = selectedMacro.GitInfo.Branch;
-                        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                        if (ImGui.InputText("##Branch", ref branch, 100))
-                        {
-                            selectedMacro.GitInfo.Branch = branch;
-                            C.Save();
-                        }
-
-                        ImGui.AlignTextToFramePadding();
-                        ImGui.Text("File Path:");
-                        ImGui.SameLine(100);
-
-                        var filePath = selectedMacro.GitInfo.FilePath;
-                        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                        if (ImGui.InputText("##FilePath", ref filePath, 500))
-                        {
-                            selectedMacro.GitInfo.FilePath = filePath;
-                            C.Save();
-                        }
-
-                        ImGui.AlignTextToFramePadding();
                         var autoUpdate = selectedMacro.GitInfo.AutoUpdate;
                         if (ImGui.Checkbox("Auto Update", ref autoUpdate))
                         {
                             selectedMacro.GitInfo.AutoUpdate = autoUpdate;
                             C.Save();
+                        }
+
+                        ImGui.SameLine();
+                        if (ImGui.Button("Version History"))
+                        {
+                            ImGui.OpenPopup("Version History");
+                            versionHistoryModal.Open(selectedMacro);
+                        }
+
+                        if (ImGui.Button("Reset Git Info"))
+                        {
+                            selectedMacro.GitInfo = new GitInfo();
+                            C.Save();
+                        }
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.SetTooltip("Reset all Git-related information for this macro");
                         }
 
                         ImGui.Unindent(20);
