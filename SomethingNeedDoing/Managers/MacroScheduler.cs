@@ -415,9 +415,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         {
             // Propagate error state to parent
             if (e.NewState == MacroState.Error)
-            {
                 parentMacro.State = MacroState.Error;
-            }
         }
 
         // Raise the event for all subscribers
@@ -430,9 +428,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             {
                 _macroHierarchy.UnregisterTemporaryMacro(e.MacroId);
                 if (sender is IMacro tempMacro)
-                {
                     tempMacro.StateChanged -= OnMacroStateChanged;
-                }
             }
 
             // Unregister function-level triggers before stopping the macro
@@ -448,21 +444,15 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private void OnTriggerEventOccurred(object? sender, TriggerEventArgs e)
     {
         if (sender is IMacro macro)
-        {
             _ = StartMacro(macro, e);
-        }
     }
 
     private void SubscribeToTriggerEvents()
     {
         // Subscribe to all macros' trigger events
         foreach (var macro in C.Macros)
-        {
             foreach (var triggerEvent in macro.Metadata.TriggerEvents)
-            {
                 SubscribeToTriggerEvent(macro, triggerEvent);
-            }
-        }
 
         // Subscribe to global events
         Svc.Framework.Update += OnFrameworkUpdate;
@@ -554,12 +544,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         {
             if (C.GetMacro(e.MacroId) is { } macro)
             {
-                Svc.Log.Debug($"[{nameof(MacroScheduler)}] Starting macro {e.MacroId}");
+                Svc.Log.Info($"[{nameof(MacroScheduler)}] Starting macro {e.MacroId}");
                 _ = StartMacro(macro);
             }
             else if (sender is IMacroEngine engine && engine.GetTemporaryMacro(e.MacroId) is { } tempMacro)
             {
-                Svc.Log.Debug($"[{nameof(MacroScheduler)}] Starting temporary macro {e.MacroId}");
+                Svc.Log.Info($"[{nameof(MacroScheduler)}] Starting temporary macro {e.MacroId}");
                 // Find the parent macro by looking at the ID prefix
                 var parentId = e.MacroId.Split("_")[0];
                 if (C.GetMacro(parentId) is { } parentMacro)
@@ -575,25 +565,17 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     _ = StartMacro(tempMacro);
                 }
                 else
-                {
                     Svc.Log.Warning($"[{nameof(MacroScheduler)}] Could not find parent macro {parentId} for temporary macro {e.MacroId}");
-                }
             }
             else
-            {
                 Svc.Log.Warning($"[{nameof(MacroScheduler)}] Could not find macro {e.MacroId} to start");
-            }
         }
         else if (e.ControlType == MacroControlType.Stop)
-        {
             StopMacro(e.MacroId);
-        }
     }
 
     private void OnMacroStepCompleted(object? sender, MacroStepCompletedEventArgs e)
-    {
-        Svc.Log.Verbose($"Macro step completed for {e.MacroId}: {e.StepIndex}/{e.TotalSteps}");
-    }
+        => Svc.Log.Verbose($"Macro step completed for {e.MacroId}: {e.StepIndex}/{e.TotalSteps}");
     #endregion
 
     /// <inheritdoc/>

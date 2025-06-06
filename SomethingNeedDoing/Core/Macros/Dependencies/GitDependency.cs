@@ -11,37 +11,43 @@ public class GitDependency(IGitService gitService, string repositoryUrl, string 
     public string Id { get; } = Guid.NewGuid().ToString();
     public string Name { get; } = name;
     public DependencyType Type => DependencyType.Remote;
-    public string Source => repositoryUrl;
+    public string Source => GitInfo.RepositoryUrl;
+    public GitInfo GitInfo { get; } = new()
+    {
+        RepositoryUrl = repositoryUrl,
+        Branch = branch,
+        FilePath = path ?? string.Empty
+    };
 
     public async Task<string> GetContentAsync()
     {
-        if (string.IsNullOrEmpty(path))
+        if (string.IsNullOrEmpty(GitInfo.FilePath))
             throw new InvalidOperationException("No file path specified for Git dependency");
 
-        return await gitService.GetFileContentAsync(repositoryUrl, branch, path);
+        return await gitService.GetFileContentAsync(GitInfo.RepositoryUrl, GitInfo.Branch, GitInfo.FilePath);
     }
 
     public async Task<bool> IsAvailableAsync()
     {
-        if (string.IsNullOrEmpty(path))
+        if (string.IsNullOrEmpty(GitInfo.FilePath))
             return false;
 
-        return await gitService.FileExistsAsync(repositoryUrl, branch, path);
+        return await gitService.FileExistsAsync(GitInfo.RepositoryUrl, GitInfo.Branch, GitInfo.FilePath);
     }
 
     public async Task<DependencyValidationResult> ValidateAsync()
     {
-        if (string.IsNullOrEmpty(path))
+        if (string.IsNullOrEmpty(GitInfo.FilePath))
             return DependencyValidationResult.Failure("No file path specified");
 
         try
         {
-            var exists = await gitService.FileExistsAsync(repositoryUrl, branch, path);
+            var exists = await gitService.FileExistsAsync(GitInfo.RepositoryUrl, GitInfo.Branch, GitInfo.FilePath);
             if (!exists)
-                return DependencyValidationResult.Failure($"File not found in repository: {path}");
+                return DependencyValidationResult.Failure($"File not found in repository: {GitInfo.FilePath}");
 
             // Try to get the content to validate it
-            await gitService.GetFileContentAsync(repositoryUrl, branch, path);
+            await gitService.GetFileContentAsync(GitInfo.RepositoryUrl, GitInfo.Branch, GitInfo.FilePath);
             return DependencyValidationResult.Success();
         }
         catch (Exception ex)

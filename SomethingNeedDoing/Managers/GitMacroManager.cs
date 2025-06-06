@@ -13,6 +13,7 @@ namespace SomethingNeedDoing.Managers;
 public class GitMacroManager : IDisposable
 {
     private readonly IMacroScheduler _scheduler;
+    private readonly GitMacroMetadataParser _metadataParser;
     private readonly HttpClient _httpClient = new()
     {
         DefaultRequestHeaders =
@@ -40,6 +41,7 @@ public class GitMacroManager : IDisposable
     public GitMacroManager(IMacroScheduler scheduler, GitMacroMetadataParser metadataParser)
     {
         _scheduler = scheduler;
+        _metadataParser = metadataParser;
         _ = UpdateAllMacros();
     }
 
@@ -93,7 +95,7 @@ public class GitMacroManager : IDisposable
         if (!macro.IsGitMacro) return;
         if (DateTime.Now - macro.GitInfo.LastUpdateCheck < _updateCooldown)
         {
-            Svc.Log.Debug($"Skipping update check for {macro.Name} (last checked {macro.GitInfo.LastUpdateCheck})");
+            Svc.Log.Info($"Skipping update check for {macro.Name} (last checked {macro.GitInfo.LastUpdateCheck})");
             return;
         }
 
@@ -133,12 +135,12 @@ public class GitMacroManager : IDisposable
             if (latestCommit != macro.GitInfo.CommitHash)
             {
                 macro.GitInfo.HasUpdate = true;
-                Svc.Log.Debug($"Update available for {macro.Name} ({macro.GitInfo.CommitHash} → {latestCommit})");
+                Svc.Log.Info($"Update available for {macro.Name} ({macro.GitInfo.CommitHash} → {latestCommit})");
             }
             else
             {
                 macro.GitInfo.HasUpdate = false;
-                Svc.Log.Debug($"No updates available for {macro.Name} ({macro.GitInfo.CommitHash} == {latestCommit})");
+                Svc.Log.Info($"No updates available for {macro.Name} ({macro.GitInfo.CommitHash} == {latestCommit})");
             }
         }
 
@@ -362,7 +364,7 @@ public class GitMacroManager : IDisposable
         currentTriggers.ForEach(t => _scheduler.SubscribeToTriggerEvent(macro, t));
 
         C.Save();
-        Svc.Log.Debug($"Successfully updated macro {macro.Name} to commit {commitHash}");
+        Svc.Log.Info($"Successfully updated macro {macro.Name} to commit {commitHash}");
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
 using SomethingNeedDoing.Core.Interfaces;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Text;
 
 namespace SomethingNeedDoing.Core.Github;
 
@@ -18,6 +19,62 @@ public class GitMacroMetadataParser(IGitService gitService)
         RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
     private readonly IGitService _gitService = gitService ?? throw new ArgumentNullException(nameof(gitService));
+
+    /// <summary>
+    /// Writes metadata to macro content.
+    /// </summary>
+    /// <param name="macro">The macro to write metadata to.</param>
+    /// <returns>True if the metadata was written successfully.</returns>
+    public bool WriteMetadata(ConfigMacro macro)
+    {
+        if (macro == null)
+            return false;
+
+        var metadataBlock = new StringBuilder();
+        metadataBlock.AppendLine("--[[SND Metadata]]");
+
+        if (!string.IsNullOrEmpty(macro.Metadata.Author))
+            metadataBlock.AppendLine($"author: {macro.Metadata.Author}");
+
+        if (!string.IsNullOrEmpty(macro.Metadata.Version))
+            metadataBlock.AppendLine($"version: {macro.Metadata.Version}");
+
+        if (!string.IsNullOrEmpty(macro.Metadata.Description))
+            metadataBlock.AppendLine($"description: {macro.Metadata.Description}");
+
+        if (macro.Metadata.Dependencies.Any())
+        {
+            metadataBlock.AppendLine("dependencies:");
+            foreach (var dep in macro.Metadata.Dependencies)
+            {
+                if (dep is GitDependency gitDep)
+                {
+                    metadataBlock.AppendLine($"  - repo: {gitDep.GitInfo.RepositoryUrl}");
+                    metadataBlock.AppendLine($"    path: {gitDep.GitInfo.FilePath}");
+                    if (gitDep.GitInfo.Branch != "main")
+                        metadataBlock.AppendLine($"    branch: {gitDep.GitInfo.Branch}");
+                    if (gitDep.Name != Path.GetFileNameWithoutExtension(gitDep.GitInfo.FilePath))
+                        metadataBlock.AppendLine($"    name: {gitDep.Name}");
+                }
+            }
+        }
+
+        if (macro.Metadata.TriggerEvents.Any())
+            metadataBlock.AppendLine($"triggers: {string.Join(", ", macro.Metadata.TriggerEvents)}");
+
+        metadataBlock.AppendLine("--[[End Metadata]]");
+
+        var match = MetadataBlockRegex.Match(macro.Content);
+        if (match.Success)
+            // When replacing, trim any extra newlines after the existing block
+            macro.Content = macro.Content[..match.Index] + metadataBlock.ToString() + macro.Content[(match.Index + match.Length)..].TrimStart('\r', '\n');
+        else
+            // When adding new, ensure there's a newline between metadata and content
+            macro.Content = metadataBlock.ToString() + (macro.Content.StartsWith("\n") ? "" : "\n") + macro.Content;
+
+        C.Save();
+        return true;
+    }
 
     /// <summary>
     /// Parses metadata from macro content.

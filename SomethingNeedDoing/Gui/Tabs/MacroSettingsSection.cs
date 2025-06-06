@@ -2,12 +2,13 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
+using SomethingNeedDoing.Core.Github;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Gui.Modals;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 
-public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory dependencyFactory, VersionHistoryModal versionHistoryModal)
+public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory dependencyFactory, VersionHistoryModal versionHistoryModal, GitMacroMetadataParser metadataParser)
 {
     private string _selectedPlugin = string.Empty;
     private string _gitUrl = string.Empty;
@@ -67,6 +68,15 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                         selectedMacro.Metadata.Description = description;
                         C.Save();
                     }
+
+                    if (ImGui.Button("Write Metadata to Content"))
+                    {
+                        if (metadataParser.WriteMetadata(selectedMacro))
+                            Svc.Log.Debug($"Wrote metadata to macro {selectedMacro.Name}");
+                        else
+                            Svc.Log.Error($"Failed to write metadata to macro {selectedMacro.Name}");
+                    }
+                    ImGuiEx.Tooltip("Writes the current metadata (author, version, description, dependencies, triggers) to the macro content. If metadata already exists, it will be updated.");
                 }
 
                 ImGui.Spacing();
