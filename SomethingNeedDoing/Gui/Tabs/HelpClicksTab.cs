@@ -3,6 +3,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using ECommons.Automation.UIInput;
+using ECommons.ImGuiMethods;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 public static class HelpClicksTab
@@ -63,18 +64,9 @@ public static class HelpClicksTab
 
             using var textColor = ImRaii.PushColor(ImGuiCol.Text, color);
             if (ImGui.Selectable($"/click {displayName}"))
-            {
                 ImGui.SetClipboardText($"/click {displayName}");
-            }
 
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.BeginTooltip();
-                ImGui.Text(isProperty ?
-                    "This is a property with methods. Cannot be called directly." :
-                    "Click to copy to clipboard");
-                ImGui.EndTooltip();
-            }
+            ImGuiEx.Tooltip(isProperty ? "This is a property with methods. Cannot be called directly." : "Click to copy to clipboard"))
         }
 
         ImGui.EndChild();

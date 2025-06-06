@@ -121,10 +121,7 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                             selectedMacro.GitInfo = new GitInfo();
                             C.Save();
                         }
-                        if (ImGui.IsItemHovered())
-                        {
-                            ImGui.SetTooltip("Reset all Git-related information for this macro");
-                        }
+                        ImGuiEx.Tooltip("Clears out all git information and reverts this back to regular local macro.");
 
                         ImGui.Unindent(20);
                     }
@@ -292,12 +289,7 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                             var isGit = macroId.StartsWith("git://");
                             var displayName = isGit ? macroId[6..] : macroId;
 
-                            using (ImRaii.PushColor(ImGuiCol.Text, isGit ? ImGuiColors.ParsedBlue : ImGuiColors.DalamudWhite))
-                            {
-                                ImGuiX.Icon(isGit ? FontAwesomeIcon.CloudDownloadAlt : FontAwesomeIcon.FileAlt);
-                                ImGui.SameLine();
-                                ImGui.Text(displayName);
-                            }
+                            ImGuiEx.Text(isGit ? ImGuiColors.ParsedBlue : ImGuiColors.DalamudWhite, isGit ? FontAwesomeIcon.CloudDownloadAlt : FontAwesomeIcon.FileAlt, displayName);
 
                             ImGui.SameLine(ImGui.GetContentRegionAvail().X - 30);
                             if (ImGuiUtils.IconButton(FontAwesomeIcon.Trash, "Remove dependency"))

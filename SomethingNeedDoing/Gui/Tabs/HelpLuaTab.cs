@@ -150,8 +150,7 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
             if (!string.IsNullOrEmpty(ex))
             {
                 ImGui.TextColored(ImGuiColors.DalamudGrey, "Example:");
-                using var exampleColor = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow);
-                ImGui.TextWrapped(ex);
+                ImGuiEx.TextWrapped(ImGuiColors.DalamudYellow, ex);
             }
         }
     }

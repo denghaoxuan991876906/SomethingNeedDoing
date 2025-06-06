@@ -48,8 +48,7 @@ public static class MigrationModal
 
         if (!migrationValid)
         {
-            using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudRed))
-                ImGui.TextUnformatted("Migration Preview Failed");
+            ImGuiEx.Text(ImGuiColors.DalamudRed, "Migration Preview Failed");
 
             using (var errorBox = ImRaii.Child("ErrorBox", new Vector2(400, 100), false))
                 ImGui.TextWrapped(errorMessage);
@@ -102,8 +101,7 @@ public static class MigrationModal
                     {
                         ImGuiEx.TextV($"{name} ({macro.Type})");
                         ImGui.SameLine();
-                        using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey))
-                            ImGuiEx.TextV($"in {macro.FolderPath}");
+                        ImGuiEx.TextV(ImGuiColors.DalamudGrey, $"in {macro.FolderPath}");
                     }
                 }
                 if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))

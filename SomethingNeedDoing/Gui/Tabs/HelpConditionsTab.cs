@@ -1,6 +1,7 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
+using ECommons.ImGuiMethods;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 public static class HelpConditionsTab
@@ -47,17 +48,9 @@ public static class HelpConditionsTab
             using var colour = ImRaii.PushColor(ImGuiCol.Text, isActive ? ImGuiColors.HealerGreen : ImGui.GetStyle().Colors[(int)ImGuiCol.Text]);
 
             if (ImGui.Selectable($"<condition.{name}>"))
-            {
                 ImGui.SetClipboardText($"<condition.{name}>");
-            }
 
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.BeginTooltip();
-                ImGui.Text($"Current state: {(isActive ? "Active" : "Inactive")}");
-                ImGui.Text($"Usage example: /ac \"Some Action\" <condition.{name}>");
-                ImGui.EndTooltip();
-            }
+            ImGuiEx.Tooltip($"Current state: {(isActive ? "Active" : "Inactive")}\n" + $"Usage example: /ac \"Some Action\" <condition.{name}>");
 
             counter++;
             if (counter % (totalConditions / columns + 1) == 0)
