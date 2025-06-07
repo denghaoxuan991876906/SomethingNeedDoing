@@ -23,12 +23,8 @@ public static class HelpClicksTab
         var commonExamples = new[]
         {
             ("Confirm a Yes/No dialog", "/click SelectYesno Yes"),
-            ("Cancel a dialog", "/click SelectYesno No"),
-            ("Select an option from a dropdown", "/click SelectString 2 (selects the 2nd option)"),
-            ("Click on a context menu item", "/click ContextMenu Open\n/click ContextMenu 3 (selects the 3rd item)"),
-            ("Click a specific item in your inventory", "/click Inventory 5 (clicks the 5th inventory slot)"),
-            ("Press a button in a crafting window", "/click SynthesisResult Synthesize"),
-            ("Close the current window", "/click Escape")
+            ("Select an option from a dropdown", "/click SelectString 2"),
+            ("Click on a context menu item", "/click ContextMenu Open\n/click ContextMenu 3"),
         };
 
         ImGui.BeginTable("ClickExamplesTable", 2, ImGuiTableFlags.Borders);

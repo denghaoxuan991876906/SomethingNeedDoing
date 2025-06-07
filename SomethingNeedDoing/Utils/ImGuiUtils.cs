@@ -4,6 +4,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace SomethingNeedDoing.Utils;
 public static class ImGuiUtils
@@ -182,5 +183,23 @@ public static class ImGuiUtils
         ImGui.Text(text);
 
         return result;
+    }
+
+    public static void Section(string name, Action content, bool indentContent = false, ImFontPtr? contentFont = null)
+    {
+        using var _ = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(7f));
+        using var table = ImRaii.Table($"##Section_{name}", 1, ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit);
+        if (!table) return;
+
+        ImGui.TableSetupColumn(name, ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
+        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, new EzColor(ImGuiColors.DalamudViolet) with { A = 0.2f });
+        ImGuiEx.Text(name);
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
+        using var font = ImRaii.PushFont(contentFont ?? ImGui.GetFont());
+        using (ImRaii.PushIndent(condition: indentContent))
+            content();
     }
 }

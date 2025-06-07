@@ -11,24 +11,14 @@ public static class HelpKeysTab
         using var font = ImRaii.PushFont(UiBuilder.MonoFont);
 
         ImGui.TextColored(ImGuiColors.DalamudViolet, "Virtual Key Commands");
-        ImGui.TextWrapped("The /send command can be used to send virtual key presses to the game.");
-        ImGui.TextWrapped("This can be useful for interacting with UI elements that don't have specific click commands.");
-        ImGui.TextWrapped("Active keys will highlight green.");
-        ImGui.Separator();
-
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "Usage Examples:");
-        ImGui.Indent(10);
-        ImGui.TextWrapped("/send ESC - Press the Escape key");
-        ImGui.TextWrapped("/send RETURN - Press the Enter/Return key");
-        ImGui.TextWrapped("/send F12 - Press the F12 key");
-        ImGui.Unindent(10);
+        ImGui.TextWrapped("Use the /send command to simulate keyboard input. This is useful for interacting with UI elements that don't have dedicated click commands.");
         ImGui.Separator();
 
         // Get all valid virtual keys
         var validKeys = Svc.KeyState.GetValidVirtualKeys().ToHashSet();
 
         // Create a more organized layout with columns
-        var columns = 3;
+        var columns = 4;
         ImGui.Columns(columns, "VirtualKeysColumns", false);
 
         var counter = 0;
@@ -51,7 +41,6 @@ public static class HelpKeysTab
             if (ImGui.IsItemHovered())
             {
                 ImGui.BeginTooltip();
-                ImGui.Text($"Click to copy to clipboard");
                 ImGui.Text($"Current state: {(isActive ? "Active" : "Inactive")}");
                 ImGui.EndTooltip();
             }

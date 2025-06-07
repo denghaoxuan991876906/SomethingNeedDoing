@@ -22,11 +22,8 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
         {
             if (module.Key == "IPC")
             {
-                if (ImGui.CollapsingHeader(module.Key))
+                ImGuiUtils.Section(module.Key, () =>
                 {
-                    using var font = ImRaii.PushFont(UiBuilder.MonoFont);
-                    using var _ = ImRaii.PushIndent();
-
                     var groupedFunctions = module.Value
                         .GroupBy(f => f.ModuleName.Contains('.') ? f.ModuleName.Split('.')[1] : "Root");
 
@@ -35,17 +32,10 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
 
                     foreach (var submodule in groupedFunctions.Where(g => g.Key != "Root"))
                         DrawSubmodule(submodule);
-                }
+                }, true, UiBuilder.MonoFont);
             }
             else
-            {
-                if (ImGui.CollapsingHeader(module.Key))
-                {
-                    using var font = ImRaii.PushFont(UiBuilder.MonoFont);
-                    using var _ = ImRaii.PushIndent();
-                    module.Value.EachWithIndex((f, i) => DrawFunction(f, i));
-                }
-            }
+                ImGuiUtils.Section(module.Key, () => module.Value.EachWithIndex((f, i) => DrawFunction(f, i)), true, UiBuilder.MonoFont);
         }
     }
 

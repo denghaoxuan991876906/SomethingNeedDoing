@@ -11,17 +11,7 @@ public static class HelpConditionsTab
         using var font = ImRaii.PushFont(UiBuilder.MonoFont);
 
         ImGui.TextColored(ImGuiColors.DalamudViolet, "Condition Modifiers");
-        ImGui.TextWrapped("These conditions can be used with the <condition> modifier in native macros. For example:");
-        ImGui.TextColored(ImGuiColors.DalamudOrange, "/ac \"Byregot's Blessing\" <condition.crafting>");
-        ImGui.TextWrapped("This command will only execute if you are currently crafting.");
-        ImGui.Separator();
-
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "Usage Examples:");
-        ImGui.Indent(10);
-        ImGui.TextWrapped("/ac \"Inner Quiet\" <condition.crafting> - Only use if crafting");
-        ImGui.TextWrapped("/ac \"Veneration\" <condition.crafting> <condition.notboundbydutyfinder> - Only use if crafting and not in a duty");
-        ImGui.TextWrapped("/ac \"Standard Step\" <condition.incombat> - Only use if in combat");
-        ImGui.Unindent(10);
+        ImGui.TextWrapped("Use these conditions with the <condition> modifier in native macros to control when commands execute.");
         ImGui.Separator();
 
         ImGui.TextColored(ImGuiColors.DalamudViolet, "Available Conditions:");
@@ -50,7 +40,7 @@ public static class HelpConditionsTab
             if (ImGui.Selectable($"<condition.{name}>"))
                 ImGui.SetClipboardText($"<condition.{name}>");
 
-            ImGuiEx.Tooltip($"Current state: {(isActive ? "Active" : "Inactive")}\n" + $"Usage example: /ac \"Some Action\" <condition.{name}>");
+            ImGuiEx.Tooltip($"Current state: {(isActive ? "Active" : "Inactive")}");
 
             counter++;
             if (counter % (totalConditions / columns + 1) == 0)

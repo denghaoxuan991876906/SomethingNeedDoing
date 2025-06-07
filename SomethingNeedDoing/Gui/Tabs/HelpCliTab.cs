@@ -16,28 +16,27 @@ public static class HelpCliTab
         ImGui.Separator();
 
         // Command reference table
-        ImGui.BeginTable("CommandReferenceTable", 3, ImGuiTableFlags.BordersOuter | ImGuiTableFlags.BordersInner);
+        ImGui.BeginTable("CommandReferenceTable", 2, ImGuiTableFlags.BordersOuter | ImGuiTableFlags.BordersInner);
 
         ImGui.TableSetupColumn("Command", ImGuiTableColumnFlags.WidthFixed, 180 * ImGuiHelpers.GlobalScale);
         ImGui.TableSetupColumn("Description", ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableSetupColumn("Example", ImGuiTableColumnFlags.WidthFixed, 200 * ImGuiHelpers.GlobalScale);
         ImGui.TableHeadersRow();
 
         // CLI command data
         var cliData = new[]
         {
-            ("help", "Show the help window.", null),
-            ("run", "Run a macro, the name must be unique.", $"{P.Aliases[0]} run MyMacro"),
-            ("run loop #", "Run a macro and then loop N times, the name must be unique.", $"{P.Aliases[0]} run loop 5 MyMacro"),
-            ("pause", "Pause the currently executing macro.", null),
-            ("pause loop", "Pause the currently executing macro at the next loop point.", null),
-            ("resume", "Resume the currently paused macro.", null),
-            ("stop", "Stop the currently executing macro.", null),
-            ("stop loop", "Stop the currently executing macro at the next loop point.", null),
-            ("cfg", "Change a configuration value.", $"{P.Aliases[0]} cfg EnableAutoUpdates true"),
+            ("help", "Show the help window."),
+            ("run", "Run a macro, the name must be unique."),
+            ("run loop #", "Run a macro and then loop N times, the name must be unique."),
+            ("pause", "Pause the currently executing macro."),
+            ("pause loop", "Pause the currently executing macro at the next loop point."),
+            ("resume", "Resume the currently paused macro."),
+            ("stop", "Stop the currently executing macro."),
+            ("stop loop", "Stop the currently executing macro at the next loop point."),
+            ("cfg", "Change a configuration value."),
         };
 
-        foreach (var (name, desc, example) in cliData)
+        foreach (var (name, desc) in cliData)
         {
             ImGui.TableNextRow();
 
@@ -46,41 +45,6 @@ public static class HelpCliTab
 
             ImGui.TableSetColumnIndex(1);
             ImGui.TextWrapped(desc);
-
-            ImGui.TableSetColumnIndex(2);
-            if (example != null)
-                ImGui.TextColored(ImGuiColors.DalamudOrange, example);
-
-        }
-
-        ImGui.EndTable();
-
-        ImGui.Separator();
-
-        // Advanced examples section
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "Advanced Examples:");
-
-        ImGui.BeginTable("AdvancedExamplesTable", 2, ImGuiTableFlags.BordersOuter);
-        ImGui.TableSetupColumn("Scenario", ImGuiTableColumnFlags.WidthFixed, 250 * ImGuiHelpers.GlobalScale);
-        ImGui.TableSetupColumn("Command", ImGuiTableColumnFlags.WidthStretch);
-
-        var advancedExamples = new[]
-        {
-            ("Run a macro that crafts 5 items:", $"{P.Aliases[0]} run loop 5 MyCraftingMacro"),
-            ("Run a macro and pause it at every loop:", $"{P.Aliases[0]} run MyMacro\n{P.Aliases[0]} pause loop"),
-            ("Stop all running macros:", $"{P.Aliases[0]} stop"),
-            ("Resume a paused macro:", $"{P.Aliases[0]} resume"),
-        };
-
-        foreach (var (scenario, command) in advancedExamples)
-        {
-            ImGui.TableNextRow();
-
-            ImGui.TableSetColumnIndex(0);
-            ImGui.TextWrapped(scenario);
-
-            ImGui.TableSetColumnIndex(1);
-            ImGui.TextColored(ImGuiColors.DalamudOrange, command);
         }
 
         ImGui.EndTable();
