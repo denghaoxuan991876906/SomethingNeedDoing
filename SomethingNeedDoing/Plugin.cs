@@ -22,6 +22,20 @@ public sealed class Plugin : IDalamudPlugin
     private readonly WindowSystem _windowSystem;
     private readonly IMacroScheduler _macroScheduler;
 
+    /*
+     * verify that function level triggers work
+     * write better docs for all help tabs
+     * change the reset gitinfo and version history buttons, and the populate metadata button
+     * move the check for updates to right align?
+     * fix line numbers not scrolling
+     * add checks for plugin dependencies (and macro dependencies?)
+     * add pause/resume buttons to editor
+     * make sure all config options are in settings
+     * see if any of the ui code can be made generic
+     * make a command service?
+     * get rid of changing cfg by command?
+     */
+
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
         P = this;
@@ -38,15 +52,16 @@ public sealed class Plugin : IDalamudPlugin
 
         // Get required services
         _windowSystem = _serviceProvider.GetRequiredService<WindowSystem>();
+        _windowSystem.AddWindow(_serviceProvider.GetRequiredService<MainWindow>());
         _macroScheduler = _serviceProvider.GetRequiredService<IMacroScheduler>();
 
         Svc.PluginInterface.UiBuilder.Draw += _windowSystem.Draw;
         Svc.PluginInterface.UiBuilder.OpenConfigUi += ToggleMainWindow;
-        EzCmd.Add(Command, OnChatCommand, "Open a window to edit various settings.", displayOrder: int.MaxValue);
+        EzCmd.Add(Command, OnChatCommand, "Open a window to edit various settings.", displayOrder: int.MinValue);
         Aliases.ToList().ForEach(a => EzCmd.Add(a, OnChatCommand, $"{Command} Alias"));
     }
 
-    private void ToggleMainWindow() => _windowSystem.Windows.FirstOrDefault(w => w.GetType() == typeof(MainWindow))?.IsOpen ^= true;
+    private void ToggleMainWindow() => _windowSystem.Toggle<MainWindow>();
 
     public void Dispose()
     {

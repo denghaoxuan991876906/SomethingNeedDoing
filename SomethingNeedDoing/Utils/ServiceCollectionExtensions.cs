@@ -28,6 +28,10 @@ public static class ServiceCollectionExtensions
             .AddClasses(classes => classes
                 .AssignableTo<IGitService>())
             .AsImplementedInterfaces()
+            .WithSingletonLifetime()
+            .AddClasses(classes => classes
+                .AssignableTo<IDisableable>())
+            .AsImplementedInterfaces()
             .WithSingletonLifetime());
 
         services.Scan(scan => scan

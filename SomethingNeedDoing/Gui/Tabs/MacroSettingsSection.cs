@@ -8,13 +8,15 @@ using SomethingNeedDoing.Gui.Modals;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 
-public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory dependencyFactory, VersionHistoryModal versionHistoryModal, GitMacroMetadataParser metadataParser)
+public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory dependencyFactory, VersionHistoryModal versionHistoryModal, GitMacroMetadataParser metadataParser, IEnumerable<IDisableable> disableablePlugins)
 {
-    private string _selectedPlugin = string.Empty;
+    private string _pluginDependency = string.Empty;
+    private string _pluginToDisable = string.Empty;
     private string _gitUrl = string.Empty;
     private string _branch = "main";
     private string _path = string.Empty;
     private DependencyType _dependencyType = DependencyType.Local;
+    private readonly List<string> _disableablePluginNames = [.. disableablePlugins.Select(p => p.InternalName)];
 
     public void Draw(ConfigMacro? selectedMacro)
     {
@@ -189,12 +191,12 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                         .ToList();
 
                     ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                    if (ImGuiEx.Combo("##PluginSelector", ref _selectedPlugin, installedPlugins))
+                    if (ImGuiEx.Combo("##PluginSelector", ref _pluginDependency, installedPlugins))
                     {
-                        if (!selectedMacro.Metadata.PluginDependecies.Contains(_selectedPlugin))
+                        if (!selectedMacro.Metadata.PluginDependecies.Contains(_pluginDependency))
                         {
                             var newDeps = selectedMacro.Metadata.PluginDependecies.ToList();
-                            newDeps.Add(_selectedPlugin);
+                            newDeps.Add(_pluginDependency);
                             selectedMacro.Metadata.PluginDependecies = [.. newDeps];
                             C.Save();
                         }
@@ -219,6 +221,49 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                                 var newDeps = selectedMacro.Metadata.PluginDependecies.ToList();
                                 newDeps.Remove(plugin);
                                 selectedMacro.Metadata.PluginDependecies = [.. newDeps];
+                                C.Save();
+                            }
+                        }
+                    }
+                }
+
+                ImGui.Spacing();
+
+                if (ImGui.CollapsingHeader("Plugins to Disable", ImGuiTreeNodeFlags.DefaultOpen))
+                {
+                    ImGui.Spacing();
+
+                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                    if (ImGuiEx.Combo("##DisableablePluginSelector", ref _pluginToDisable, _disableablePluginNames))
+                    {
+                        if (!selectedMacro.Metadata.PluginsToDisable.Contains(_pluginToDisable))
+                        {
+                            var newDeps = selectedMacro.Metadata.PluginsToDisable.ToList();
+                            newDeps.Add(_pluginToDisable);
+                            selectedMacro.Metadata.PluginsToDisable = [.. newDeps];
+                            C.Save();
+                        }
+                    }
+
+                    ImGui.Spacing();
+
+                    if (selectedMacro.Metadata.PluginsToDisable.Length == 0)
+                        ImGui.TextColored(ImGuiColors.DalamudGrey, "No plugins configured to disable");
+                    else
+                    {
+                        foreach (var plugin in selectedMacro.Metadata.PluginsToDisable)
+                        {
+                            using var __ = ImRaii.PushId(plugin);
+
+                            ImGui.AlignTextToFramePadding();
+                            ImGui.Text(plugin);
+                            ImGui.SameLine(ImGui.GetContentRegionAvail().X - 30);
+
+                            if (ImGuiUtils.IconButton(FontAwesomeIcon.Trash, "Remove plugin"))
+                            {
+                                var newDeps = selectedMacro.Metadata.PluginsToDisable.ToList();
+                                newDeps.Remove(plugin);
+                                selectedMacro.Metadata.PluginsToDisable = [.. newDeps];
                                 C.Save();
                             }
                         }

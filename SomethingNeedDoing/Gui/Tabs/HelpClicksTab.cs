@@ -66,7 +66,7 @@ public static class HelpClicksTab
             if (ImGui.Selectable($"/click {displayName}"))
                 ImGui.SetClipboardText($"/click {displayName}");
 
-            ImGuiEx.Tooltip(isProperty ? "This is a property with methods. Cannot be called directly." : "Click to copy to clipboard"))
+            ImGuiEx.Tooltip(isProperty ? "This is a property with methods. Cannot be called directly." : "Click to copy to clipboard");
         }
 
         ImGui.EndChild();

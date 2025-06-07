@@ -4,14 +4,14 @@ using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
+using SomethingNeedDoing.Core.Events;
+using SomethingNeedDoing.Core.Interfaces;
+using SomethingNeedDoing.LuaMacro;
+using SomethingNeedDoing.NativeMacro;
 using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text.RegularExpressions;
-using SomethingNeedDoing.Core.Interfaces;
-using SomethingNeedDoing.Core.Events;
-using SomethingNeedDoing.NativeMacro;
-using SomethingNeedDoing.LuaMacro;
 
 namespace SomethingNeedDoing.Scheduler;
 /// <summary>
@@ -24,6 +24,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private readonly Dictionary<string, AutoRetainerApi> _arApis = [];
     private readonly Dictionary<string, AddonEventConfig> _addonEvents = [];
     private readonly MacroHierarchyManager _macroHierarchy = new();
+    private readonly Dictionary<string, IDisableable> _disableablePlugins = [];
 
     private readonly NativeMacroEngine _nativeEngine;
     private readonly NLuaMacroEngine _luaEngine;
@@ -39,7 +40,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// </summary>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
 
-    public MacroScheduler(NativeMacroEngine nativeEngine, NLuaMacroEngine luaEngine, TriggerEventManager triggerEventManager)
+    public MacroScheduler(NativeMacroEngine nativeEngine, NLuaMacroEngine luaEngine, TriggerEventManager triggerEventManager, IEnumerable<IDisableable> disableablePlugins)
     {
         _nativeEngine = nativeEngine;
         _luaEngine = luaEngine;
@@ -57,6 +58,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _luaEngine.MacroControlRequested += OnMacroControlRequested;
         _nativeEngine.MacroStepCompleted += OnMacroStepCompleted;
         _luaEngine.MacroStepCompleted += OnMacroStepCompleted;
+
+        // Initialize disableable plugins
+        foreach (var plugin in disableablePlugins)
+            _disableablePlugins[plugin.InternalName] = plugin;
 
         SubscribeToTriggerEvents();
     }
@@ -213,6 +218,14 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             return;
         }
 
+        if (MissingRequiredPlugins(macro, out var missingPlugins))
+        {
+            Svc.Chat.PrintMessage($"Cannot run {macro.Name}. The following plugins need to be installed: {string.Join(", ", missingPlugins)}");
+            return;
+        }
+
+        await SetPluginStates(macro, false);
+
         // Subscribe to state changes before creating the state
         macro.StateChanged += OnMacroStateChanged;
         var state = new MacroExecutionState(macro);
@@ -246,6 +259,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     {
                         Svc.Log.Error(ex, $"Error executing macro {macro.Name}");
                         state.Macro.State = MacroState.Error;
+                        await SetPluginStates(macro, true);
                     }
                 });
             }
@@ -253,24 +267,27 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             {
                 Svc.Log.Error(ex, $"Error setting up macro {macro.Name}");
                 state.Macro.State = MacroState.Error;
+                await SetPluginStates(macro, true);
             }
         });
 
         await state.ExecutionTask;
         Svc.Log.Verbose($"Setting macro {macro.Id} state to Completed");
         state.Macro.State = MacroState.Completed;
+        await SetPluginStates(macro, true);
     }
 
     /// <summary>
     /// Pauses execution of a macro.
     /// </summary>
     /// <param name="macroId">The ID of the macro to pause.</param>
-    public void PauseMacro(string macroId)
+    public async void PauseMacro(string macroId)
     {
         if (_macroStates.TryGetValue(macroId, out var state))
         {
             state.PauseEvent.Reset();
             state.Macro.State = MacroState.Paused;
+            await SetPluginStates(state.Macro, true);
         }
     }
 
@@ -278,12 +295,13 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// Resumes execution of a paused macro.
     /// </summary>
     /// <param name="macroId">The ID of the macro to resume.</param>
-    public void ResumeMacro(string macroId)
+    public async void ResumeMacro(string macroId)
     {
         if (_macroStates.TryGetValue(macroId, out var state))
         {
             state.PauseEvent.Set();
             state.Macro.State = MacroState.Running;
+            await SetPluginStates(state.Macro, false);
         }
     }
 
@@ -291,7 +309,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// Stops execution of a macro.
     /// </summary>
     /// <param name="macroId">The ID of the macro to stop.</param>
-    public void StopMacro(string macroId)
+    public async void StopMacro(string macroId)
     {
         if (_macroStates.TryGetValue(macroId, out var state))
         {
@@ -301,6 +319,8 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
             // Unregister function-level triggers when macro stops
             UnregisterFunctionTriggers(state.Macro);
+
+            await SetPluginStates(state.Macro, true);
 
             if (_macroStates.TryRemove(macroId, out var removedState))
                 removedState.Dispose();
@@ -386,6 +406,34 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         return Task.CompletedTask;
     }
     #endregion
+
+    private bool MissingRequiredPlugins(IMacro macro, out List<string> missingPlugins)
+    {
+        missingPlugins = [.. macro.Metadata.PluginDependecies.Where(dep => !Svc.PluginInterface.InstalledPlugins.Any(ip => ip.InternalName == dep && ip.IsLoaded))];
+        return missingPlugins.Count == 0;
+    }
+
+    private async Task SetPluginStates(IMacro macro, bool state)
+    {
+        foreach (var name in macro.Metadata.PluginsToDisable)
+        {
+            if (_disableablePlugins.TryGetValue(name, out var plugin))
+            {
+                if (state)
+                {
+                    Svc.Log.Info($"[{macro.Name}] Re-enabling plugin {name}");
+                    await plugin.EnableAsync();
+                }
+                else
+                {
+                    Svc.Log.Info($"[{macro.Name}] Disabling plugin {name}");
+                    await plugin.DisableAsync();
+                }
+            }
+            else
+                Svc.Log.Warning($"Plugin {name} is not registered as disableable");
+        }
+    }
 
     private class MacroExecutionState(IMacro macro)
     {

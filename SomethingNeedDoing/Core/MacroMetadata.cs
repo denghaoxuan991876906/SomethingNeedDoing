@@ -59,6 +59,12 @@ public class MacroMetadata
     public string[] PluginDependecies { get; set; } = [];
 
     /// <summary>
+    /// Gets or sets the plugins that should be disabled while this macro is running.
+    /// </summary>
+    /// <remarks>string is the InternalName of a plugin that implements IDisableable</remarks>
+    public string[] PluginsToDisable { get; set; } = [];
+
+    /// <summary>
     /// Gets or sets the macro dependencies.
     /// </summary>
     public List<IMacroDependency> Dependencies { get; set; } = [];
