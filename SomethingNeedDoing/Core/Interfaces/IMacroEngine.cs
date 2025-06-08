@@ -14,7 +14,9 @@ public interface IMacroEngine : IDisposable
     /// </summary>
     /// <param name="macro">The macro to execute.</param>
     /// <param name="token">A token to cancel execution.</param>
-    Task StartMacro(IMacro macro, CancellationToken token, TriggerEventArgs? triggerEventArgs = null);
+    /// <param name="triggerEventArgs">Optional trigger event arguments.</param>
+    /// <param name="loopCount">Optional number of times to loop the macro. Only supported by native macros.</param>
+    Task StartMacro(IMacro macro, CancellationToken token, TriggerEventArgs? triggerEventArgs = null, int loopCount = 0);
 
     /// <summary>
     /// Event raised when a macro encounters an error.

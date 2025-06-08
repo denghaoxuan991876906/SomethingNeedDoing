@@ -49,7 +49,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
     }
 
     /// <inheritdoc/>
-    public async Task StartMacro(IMacro macro, CancellationToken token, TriggerEventArgs? triggerArgs = null)
+    public async Task StartMacro(IMacro macro, CancellationToken token, TriggerEventArgs? triggerArgs = null, int _ = 0)
     {
         if (macro.Type != MacroType.Lua)
             throw new ArgumentException("This engine only supports Lua macros", nameof(macro));
@@ -68,7 +68,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
         }
     }
 
-    private async Task ExecuteMacro(MacroInstance macro, CancellationToken externalToken, TriggerEventArgs? triggerArgs = null)
+    private async Task ExecuteMacro(MacroInstance macro, CancellationToken externalToken, TriggerEventArgs? triggerArgs = null, int _ = 0)
     {
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken, macro.CancellationSource.Token);
         var token = linkedCts.Token;

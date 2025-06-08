@@ -1,7 +1,7 @@
 ﻿using ECommons.ImGuiMethods;
 
 namespace SomethingNeedDoing.Gui.Tabs;
-public class HelpTab(HelpLuaTab _luaTab)
+public class HelpTab(HelpLuaTab _luaTab, HelpCliTab _cliTab)
 {
     public void Draw()
     {
@@ -10,7 +10,7 @@ public class HelpTab(HelpLuaTab _luaTab)
         ImGuiEx.EzTabBar("Tabs",
             ("General", HelpGeneralTab.DrawTab, null, false),
             ("Lua", _luaTab.DrawTab, null, false),
-            ("Cli", HelpCliTab.DrawTab, null, false),
+            ("Cli", _cliTab.DrawTab, null, false),
             ("Clicks", HelpClicksTab.DrawTab, null, false),
             ("Keys & Sends", HelpKeysTab.DrawTab, null, false),
             ("Conditions", HelpConditionsTab.DrawTab, null, false));

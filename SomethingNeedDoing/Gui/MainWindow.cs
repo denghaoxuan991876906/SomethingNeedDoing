@@ -12,7 +12,7 @@ public class MainWindow : Window
     private readonly MacrosTab _macrosTab;
     private readonly VersionHistoryModal _versionHistoryModal;
 
-    public MainWindow(IMacroScheduler scheduler, MacroEditor macroEditor, MacroSettingsSection macroSettings, HelpTab helpTab, VersionHistoryModal versionHistoryModal) : base("Something Need Doing", ImGuiWindowFlags.NoScrollbar)
+    public MainWindow(IMacroScheduler scheduler, MacroEditor macroEditor, MacroSettingsSection macroSettings, HelpTab helpTab, VersionHistoryModal versionHistoryModal) : base(P.Name, ImGuiWindowFlags.NoScrollbar)
     {
         _helpTab = helpTab;
         _macrosTab = new MacrosTab(scheduler, macroSettings, macroEditor);

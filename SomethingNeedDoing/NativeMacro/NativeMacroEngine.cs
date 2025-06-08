@@ -33,6 +33,8 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
         public bool PauseAtLoop { get; set; } = false;
         public bool StopAtLoop { get; set; } = false;
         public List<IMacroCommand> Commands { get; set; } = [];
+        public int LoopCount { get; set; }
+        public int CurrentLoop { get; set; }
 
         public void Dispose()
         {
@@ -42,12 +44,17 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
     }
 
     /// <inheritdoc/>
-    public async Task StartMacro(IMacro macro, CancellationToken token, TriggerEventArgs? triggerArgs = null)
+    public async Task StartMacro(IMacro macro, CancellationToken token, TriggerEventArgs? triggerArgs = null, int loopCount = 0)
     {
         if (Scheduler == null)
             throw new InvalidOperationException("Scheduler must be set before starting a macro");
 
-        var state = new MacroExecutionState(macro) { Commands = parser.Parse(macro.Content, Scheduler) };
+        var state = new MacroExecutionState(macro)
+        {
+            Commands = parser.Parse(macro.Content, Scheduler),
+            CurrentLoop = 0,
+            LoopCount = loopCount == 0 ? 1 : loopCount
+        };
 
         try
         {
@@ -68,43 +75,45 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
 
         try
         {
-            var totalSteps = state.Commands.Count;
-            var currentStep = 0;
-
-            foreach (var command in state.Commands)
+            for (var i = state.CurrentLoop; i < state.LoopCount; i++)
             {
-                token.ThrowIfCancellationRequested();
+                var totalSteps = state.Commands.Count;
+                var currentStep = 0;
 
-                // Wait if paused
-                state.PauseEvent.Wait(token);
-
-                // Check for loop pause/stop
-                if (state.PauseAtLoop)
+                foreach (var command in state.Commands)
                 {
-                    state.PauseAtLoop = false;
-                    state.PauseEvent.Reset();
+                    token.ThrowIfCancellationRequested();
+
+                    // Wait if paused
+                    state.PauseEvent.Wait(token);
+
+                    // Check for loop pause/stop
+                    if (state.PauseAtLoop)
+                    {
+                        state.PauseAtLoop = false;
+                        state.PauseEvent.Reset();
+                    }
+
+                    if (state.StopAtLoop)
+                    {
+                        state.StopAtLoop = false;
+                        state.CancellationSource.Cancel();
+                        return;
+                    }
+
+                    if (command.RequiresFrameworkThread)
+                        await Svc.Framework.RunOnTick(() => command.Execute(new MacroContext(state.Macro), token), cancellationToken: token);
+                    else
+                        await command.Execute(new MacroContext(state.Macro), token);
+
+                    currentStep++;
+                    MacroStepCompleted?.Invoke(this, new MacroStepCompletedEventArgs(state.Macro.Id, currentStep, totalSteps));
                 }
 
-                if (state.StopAtLoop)
-                {
-                    state.StopAtLoop = false;
-                    state.CancellationSource.Cancel();
-                    return;
-                }
-
-                if (command.RequiresFrameworkThread)
-                    await Svc.Framework.RunOnTick(() => command.Execute(new MacroContext(state.Macro), token), cancellationToken: token);
-                else
-                    await command.Execute(new MacroContext(state.Macro), token);
-
-                currentStep++;
-                MacroStepCompleted?.Invoke(this, new MacroStepCompletedEventArgs(state.Macro.Id, currentStep, totalSteps));
+                state.CurrentLoop++;
             }
         }
-        catch (OperationCanceledException)
-        {
-
-        }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             OnMacroError(state.Macro.Id, "Error executing macro command", ex);

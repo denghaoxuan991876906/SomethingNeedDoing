@@ -21,6 +21,13 @@ public interface IMacroScheduler
     Task StartMacro(IMacro macro);
 
     /// <summary>
+    /// Starts execution of a macro with a specified number of loops.
+    /// </summary>
+    /// <param name="macro">The macro to execute.</param>
+    /// <param name="loopCount">The number of times to loop the macro.</param>
+    Task StartMacro(IMacro macro, int loopCount);
+
+    /// <summary>
     /// Starts execution of a macro with trigger event arguments.
     /// </summary>
     /// <param name="macro">The macro to execute.</param>
@@ -28,10 +35,24 @@ public interface IMacroScheduler
     Task StartMacro(IMacro macro, TriggerEventArgs? triggerArgs);
 
     /// <summary>
+    /// Starts execution of a macro with trigger event arguments and a specified number of loops.
+    /// </summary>
+    /// <param name="macro">The macro to execute.</param>
+    /// <param name="loopCount">The number of times to loop the macro.</param>
+    /// <param name="triggerArgs">Optional trigger event arguments.</param>
+    Task StartMacro(IMacro macro, int loopCount, TriggerEventArgs? triggerArgs);
+
+    /// <summary>
     /// Pauses execution of a macro.
     /// </summary>
     /// <param name="macroId">The ID of the macro to pause.</param>
     void PauseMacro(string macroId);
+
+    /// <summary>
+    /// Sets a macro to pause at the next loop point.
+    /// </summary>
+    /// <param name="macroId">The ID of the macro to check</param>
+    void PauseAtNextLoop(string macroId);
 
     /// <summary>
     /// Resumes execution of a paused macro.
@@ -50,6 +71,12 @@ public interface IMacroScheduler
     /// </summary>
     /// <param name="macroId">The ID of the macro to check.</param>
     void CheckLoopPause(string macroId);
+
+    /// <summary>
+    /// Sets a macro to stop at the next loop point.
+    /// </summary>
+    /// <param name="macroId">The ID of the macro to check</param>
+    void StopAtNextLoop(string macroId);
 
     /// <summary>
     /// Checks if the macro should stop at the current loop point.

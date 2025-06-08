@@ -7,7 +7,7 @@ namespace SomethingNeedDoing.Utils;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddSomethingNeedDoingServices(this IServiceCollection services)
+    public static IServiceCollection SetupPluginServices(this IServiceCollection services)
     {
         services.AddSingleton<WindowSystem>();
         services.AddSingleton<HttpClient>();

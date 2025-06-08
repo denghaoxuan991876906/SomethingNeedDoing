@@ -30,9 +30,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private readonly NLuaMacroEngine _luaEngine;
     private readonly TriggerEventManager _triggerEventManager;
 
-    /// <summary>
-    /// Event raised when any macro's state changes.
-    /// </summary>
+    /// <inheritdoc/>
     public event EventHandler<MacroStateChangedEventArgs>? MacroStateChanged;
 
     /// <summary>
@@ -66,21 +64,13 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         SubscribeToTriggerEvents();
     }
 
-    /// <summary>
-    /// Gets all currently running macros.
-    /// </summary>
+    /// <inheritdoc/>
     public IEnumerable<IMacro> GetMacros() => _macroStates.Values.Select(s => s.Macro);
 
-    /// <summary>
-    /// Gets the current state of a macro.
-    /// </summary>
+    /// <inheritdoc/>
     public MacroState GetMacroState(string macroId) => _macroStates.TryGetValue(macroId, out var state) ? state.Macro.State : MacroState.Unknown;
 
-    /// <summary>
-    /// Subscribes a macro to a trigger event.
-    /// </summary>
-    /// <param name="macro">The macro to subscribe.</param>
-    /// <param name="triggerEvent">The trigger event to subscribe to.</param>
+    /// <inheritdoc/>
     public void SubscribeToTriggerEvent(IMacro macro, TriggerEvent triggerEvent)
     {
         ArgumentNullException.ThrowIfNull(macro);
@@ -112,11 +102,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         }
     }
 
-    /// <summary>
-    /// Unsubscribes a macro from a trigger event.
-    /// </summary>
-    /// <param name="macro">The macro to unsubscribe.</param>
-    /// <param name="triggerEvent">The trigger event to unsubscribe from.</param>
+    /// <inheritdoc/>
     public void UnsubscribeFromTriggerEvent(IMacro macro, TriggerEvent triggerEvent)
     {
         ArgumentNullException.ThrowIfNull(macro);
@@ -205,12 +191,14 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         }
     }
 
-    /// <summary>
-    /// Starts execution of a macro.
-    /// </summary>
-    /// <param name="macro">The macro to execute.</param>
-    /// <param name="triggerArgs">Optional trigger event arguments.</param>
-    public async Task StartMacro(IMacro macro, TriggerEventArgs? triggerArgs = null)
+    /// <inheritdoc/>
+    public Task StartMacro(IMacro macro, int loopCount) => StartMacro(macro, loopCount, null);
+
+    /// <inheritdoc/>
+    public Task StartMacro(IMacro macro, TriggerEventArgs? triggerArgs = null) => StartMacro(macro, 0, triggerArgs);
+
+    /// <inheritdoc/>
+    public async Task StartMacro(IMacro macro, int loopCount, TriggerEventArgs? triggerArgs = null)
     {
         if (_macroStates.ContainsKey(macro.Id))
         {
@@ -253,7 +241,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     {
                         Svc.Log.Verbose($"Setting macro {macro.Id} state to Running");
                         state.Macro.State = MacroState.Running;
-                        await engine.StartMacro(macro, state.CancellationSource.Token, triggerArgs);
+                        await engine.StartMacro(macro, state.CancellationSource.Token, triggerArgs, loopCount);
                     }
                     catch (Exception ex)
                     {
@@ -277,10 +265,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         await SetPluginStates(macro, true);
     }
 
-    /// <summary>
-    /// Pauses execution of a macro.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro to pause.</param>
+    /// <inheritdoc/>
     public async void PauseMacro(string macroId)
     {
         if (_macroStates.TryGetValue(macroId, out var state))
@@ -291,10 +276,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         }
     }
 
-    /// <summary>
-    /// Resumes execution of a paused macro.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro to resume.</param>
+    /// <inheritdoc/>
     public async void ResumeMacro(string macroId)
     {
         if (_macroStates.TryGetValue(macroId, out var state))
@@ -305,10 +287,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         }
     }
 
-    /// <summary>
-    /// Stops execution of a macro.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro to stop.</param>
+    /// <inheritdoc/>
     public async void StopMacro(string macroId)
     {
         if (_macroStates.TryGetValue(macroId, out var state))
@@ -354,9 +333,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// </summary>
     public void StopAllMacros() => _enginesByMacroId.Keys.Each(StopMacro);
 
-    /// <summary>
-    /// Checks if the macro should pause at the current loop point.
-    /// </summary>
+    /// <inheritdoc/>
     public void CheckLoopPause(string macroId)
     {
         if (_macroStates.TryGetValue(macroId, out var state) && state.PauseAtLoop)
@@ -367,9 +344,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         }
     }
 
-    /// <summary>
-    /// Checks if the macro should stop at the current loop point.
-    /// </summary>
+    /// <inheritdoc/>
     public void CheckLoopStop(string macroId)
     {
         if (_macroStates.TryGetValue(macroId, out var state) && state.StopAtLoop)
@@ -380,30 +355,24 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         }
     }
 
-    /// <summary>
-    /// Sets a macro to pause at the next loop point.
-    /// </summary>
-    public Task PauseAtNextLoop(string macroId)
+    /// <inheritdoc/>
+    public void PauseAtNextLoop(string macroId)
     {
         if (_macroStates.TryGetValue(macroId, out var state))
         {
             state.PauseAtLoop = true;
             state.StopAtLoop = false;
         }
-        return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Sets a macro to stop at the next loop point.
-    /// </summary>
-    public Task StopAtNextLoop(string macroId)
+    /// <inheritdoc/>
+    public void StopAtNextLoop(string macroId)
     {
         if (_macroStates.TryGetValue(macroId, out var state))
         {
             state.PauseAtLoop = false;
             state.StopAtLoop = true;
         }
-        return Task.CompletedTask;
     }
     #endregion
 
