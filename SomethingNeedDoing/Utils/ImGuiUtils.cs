@@ -85,11 +85,7 @@ public static class ImGuiUtils
 
     public static void CenteredButtons(params (string text, Action action)[] buttons)
     {
-        var group = new ImGuiHelpers.HorizontalButtonGroup()
-        {
-            IsCentered = true,
-            Height = ImGui.GetTextLineHeight() + ImGui.GetStyle().FramePadding.Y * 2
-        };
+        var group = new ImGuiEx.EzButtonGroup() { IsCentered = true };
         foreach (var button in buttons)
             group.Add(button.text, button.action);
         group.Draw();

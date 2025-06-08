@@ -101,8 +101,6 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
 
                     if (selectedMacro.IsGitMacro)
                     {
-                        ImGui.Indent(20);
-
                         ImGui.AlignTextToFramePadding();
                         var autoUpdate = selectedMacro.GitInfo.AutoUpdate;
                         if (ImGui.Checkbox("Auto Update", ref autoUpdate))
@@ -111,21 +109,10 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                             C.Save();
                         }
 
-                        ImGui.SameLine();
-                        if (ImGui.Button("Version History"))
-                        {
-                            ImGui.OpenPopup("Version History");
-                            versionHistoryModal.Open(selectedMacro);
-                        }
-
-                        if (ImGui.Button("Reset Git Info"))
-                        {
-                            selectedMacro.GitInfo = new GitInfo();
-                            C.Save();
-                        }
-                        ImGuiEx.Tooltip("Clears out all git information and reverts this back to regular local macro.");
-
-                        ImGui.Unindent(20);
+                        var group = new ImGuiEx.EzButtonGroup();
+                        group.AddIconWithText(FontAwesomeIcon.History, "Version History", () => versionHistoryModal.Open(selectedMacro));
+                        group.AddIconWithText(EzColor.Red, FontAwesomeIcon.Sync, "Reset Git Info", () => { selectedMacro.GitInfo = new GitInfo(); C.Save(); }, "Wipes all git information and reverts this macro back to a standard local macro.");
+                        group.Draw();
                     }
                 }
 

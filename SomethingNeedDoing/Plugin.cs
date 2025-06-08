@@ -22,11 +22,10 @@ public sealed class Plugin : IDalamudPlugin
      * change the reset gitinfo and version history buttons, and the populate metadata button
      * move the check for updates to right align?
      * fix line numbers not scrolling
-     * add checks for plugin dependencies (and macro dependencies?)
+     * add checks for macro dependencies
      * add pause/resume buttons to editor
      * make sure all config options are in settings
      * see if any of the ui code can be made generic
-     * make a command service?
      * get rid of changing cfg by command?
      */
 
