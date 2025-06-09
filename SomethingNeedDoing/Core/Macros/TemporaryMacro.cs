@@ -11,10 +11,11 @@ namespace SomethingNeedDoing.Core;
 /// Initializes a new instance of the <see cref="TemporaryMacro"/> class.
 /// </remarks>
 /// <param name="content">The macro content.</param>
-public class TemporaryMacro(string content) : MacroBase
+/// <param name="id">The optional ID for the macro.</param>
+public class TemporaryMacro(string content, string? id = null) : MacroBase
 {
     /// <inheritdoc/>
-    public override string Id { get; } = Guid.NewGuid().ToString();
+    public override string Id { get; } = id ?? Guid.NewGuid().ToString();
 
     /// <inheritdoc/>
     public override string Name { get; set; } = "Temporary Macro";

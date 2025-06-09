@@ -378,8 +378,8 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private bool MissingRequiredPlugins(IMacro macro, out List<string> missingPlugins)
     {
-        missingPlugins = [.. macro.Metadata.PluginDependecies.Where(dep => !Svc.PluginInterface.InstalledPlugins.Any(ip => ip.InternalName == dep && ip.IsLoaded))];
-        return missingPlugins.Count == 0;
+        missingPlugins = [.. macro.Metadata.PluginDependecies.Where(dep => !dep.IsNullOrEmpty() && !Svc.PluginInterface.InstalledPlugins.Any(ip => ip.InternalName == dep && ip.IsLoaded))];
+        return missingPlugins.Count > 0;
     }
 
     private async Task SetPluginStates(IMacro macro, bool state)
@@ -424,11 +424,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnMacroStateChanged(object? sender, MacroStateChangedEventArgs e)
     {
-        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Macro state changed for {e.MacroId}: {e.NewState}");
-
         // If this is a temporary macro, find its parent
         var parts = e.MacroId.Split("_");
-        if (parts.Length > 1 && C.GetMacro(parts[0]) is { } parentMacro)
+        if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro)
         {
             // Propagate error state to parent
             if (e.NewState == MacroState.Error)
@@ -441,18 +439,17 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         if (e.NewState is MacroState.Completed or MacroState.Error)
         {
             // If this is a temporary macro, unregister it and clean up
-            if (parts.Length > 1 && C.GetMacro(parts[0]) is { } parentMacro2)
+            if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro2)
             {
                 _macroHierarchy.UnregisterTemporaryMacro(e.MacroId);
                 if (sender is IMacro tempMacro)
                     tempMacro.StateChanged -= OnMacroStateChanged;
             }
 
-            // Unregister function-level triggers before stopping the macro
-            if (sender is IMacro macro)
-                UnregisterFunctionTriggers(macro);
-
+            // First stop the macro to handle execution cancellation and plugin states
             StopMacro(e.MacroId);
+
+            // Then do a thorough cleanup of all triggers and state
             CleanupMacro(e.MacroId);
         }
     }
@@ -461,17 +458,37 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private void OnTriggerEventOccurred(object? sender, TriggerEventArgs e)
     {
         if (sender is IMacro macro)
-            _ = StartMacro(macro, e);
+        {
+            // If this is a temporary macro created from a function trigger, register it with its parent
+            if (macro is TemporaryMacro && macro.Id.Contains('_'))
+            {
+                var parts = macro.Id.Split('_');
+                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Processing temporary macro {macro.Id} with parts: {string.Join(", ", parts)}");
+                if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro)
+                {
+                    Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Found parent macro {parentMacro.Id} for temporary macro {macro.Id}");
+                    _macroHierarchy.RegisterTemporaryMacro(parentMacro, macro);
+
+                    Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Subscribing to state changes for temporary macro {macro.Id}");
+                    macro.StateChanged += OnMacroStateChanged;
+
+                    _ = StartMacro(macro, e);
+                }
+                else
+                    Svc.Log.Warning($"[{nameof(MacroScheduler)}] Could not find parent macro {parts[0]} for temporary macro {macro.Id}");
+            }
+            else
+                // For regular macros, just start them
+                _ = StartMacro(macro, e);
+        }
     }
 
     private void SubscribeToTriggerEvents()
     {
-        // Subscribe to all macros' trigger events
         foreach (var macro in C.Macros)
             foreach (var triggerEvent in macro.Metadata.TriggerEvents)
                 SubscribeToTriggerEvent(macro, triggerEvent);
 
-        // Subscribe to global events
         Svc.Framework.Update += OnFrameworkUpdate;
         Svc.Condition.ConditionChange += OnConditionChange;
         Svc.ClientState.TerritoryChanged += OnTerritoryChanged;
@@ -482,59 +499,42 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnAddonEvent(AddonEvent type, AddonArgs args)
     {
-        foreach (var kvp in _addonEvents)
-            if (kvp.Value is { } cfg && cfg.EventType == type && cfg.AddonName == args.AddonName && C.GetMacro(kvp.Key) is { } macro)
-                _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnAddonEvent, new { type, args });
+        var eventData = new { type, args };
+        _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnAddonEvent, eventData);
     }
 
-    private void OnFrameworkUpdate(IFramework framework) => C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnUpdate)).Each(m => _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnUpdate));
+    private void OnFrameworkUpdate(IFramework framework)
+    {
+        _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnUpdate);
+    }
 
     private void OnConditionChange(ConditionFlag flag, bool value)
     {
-        var eventData = new Dictionary<string, object>
-        {
-            ["flag"] = flag,
-            ["value"] = value
-        };
-
-        var args = new TriggerEventArgs(TriggerEvent.OnConditionChange, eventData);
-        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnConditionChange)).Each(m => _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnConditionChange, eventData));
+        var eventData = new { flag, value };
+        _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnConditionChange, eventData);
     }
 
     private void OnTerritoryChanged(ushort territoryType)
     {
-        var args = new TriggerEventArgs(TriggerEvent.OnTerritoryChange, territoryType);
-        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnTerritoryChange)).Each(m => _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnTerritoryChange, territoryType));
+        var eventData = new { territoryType };
+        _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnTerritoryChange, eventData);
     }
 
     private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
-        var eventData = new Dictionary<string, object>
-        {
-            ["type"] = type,
-            ["timestamp"] = timestamp,
-            ["sender"] = sender,
-            ["message"] = message,
-            ["isHandled"] = isHandled
-        };
-
-        var args = new TriggerEventArgs(TriggerEvent.OnChatMessage, eventData);
-        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnChatMessage)).Each(m => _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnChatMessage, eventData));
+        var eventData = new { type, timestamp, sender, message, isHandled };
+        _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnChatMessage, eventData);
     }
 
     private void OnLogin()
-        => C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogin)).Each(m => _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnLogin));
+    {
+        _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnLogin);
+    }
 
     private void OnLogout(int type, int code)
     {
-        var eventData = new Dictionary<string, object>
-        {
-            ["type"] = type,
-            ["code"] = code
-        };
-
-        var args = new TriggerEventArgs(TriggerEvent.OnLogout, eventData);
-        C.Macros.Where(m => m.Metadata.TriggerEvents.Contains(TriggerEvent.OnLogout)).Each(m => _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnLogout, eventData));
+        var eventData = new { type, code };
+        _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnLogout, eventData);
     }
 
     private void CheckCharacterPostProcess(IMacro macro)

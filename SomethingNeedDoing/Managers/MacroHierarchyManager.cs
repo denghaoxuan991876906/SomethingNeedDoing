@@ -46,6 +46,7 @@ public class MacroHierarchyManager
             }
         };
 
+        Svc.Log.Verbose($"[{nameof(MacroHierarchyManager)}] Registered temporary macro {temporaryMacro.Id} with parent {parentMacro.Id}");
         return temporaryMacro;
     }
 

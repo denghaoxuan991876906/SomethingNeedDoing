@@ -1,6 +1,7 @@
 using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Interfaces;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace SomethingNeedDoing.Scheduler;
 
@@ -32,11 +33,7 @@ public class TriggerFunction(IMacro macro, string functionName, TriggerEvent eve
 
     /// <inheritdoc/>
     public override bool Equals(object? obj)
-    {
-        if (obj is not TriggerFunction other)
-            return false;
-        return Macro.Id == other.Macro.Id && FunctionName == other.FunctionName;
-    }
+        => obj is TriggerFunction other && Macro.Id == other.Macro.Id && FunctionName == other.FunctionName;
 
     /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(Macro.Id, FunctionName);
@@ -113,7 +110,11 @@ public class TriggerEventManager : IDisposable
         if (Enum.TryParse<TriggerEvent>(functionName, true, out var eventType))
         {
             if (_eventHandlers.TryGetValue(eventType, out var value))
-                value.RemoveAll(tf => tf.Macro.Id == macro.Id && tf.FunctionName == functionName);
+            {
+                var removed = value.RemoveAll(tf => tf.Macro.Id == macro.Id && tf.FunctionName == functionName);
+                if (removed > 0)
+                    Svc.Log.Debug($"Unregistering trigger event {eventType} for macro {macro.Name} function {functionName}");
+            }
         }
     }
 
@@ -132,7 +133,6 @@ public class TriggerEventManager : IDisposable
     /// </summary>
     /// <param name="eventType">The type of event to raise.</param>
     /// <param name="data">Optional data associated with the event.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task RaiseTriggerEvent(TriggerEvent eventType, object? data = null)
     {
         if (!_eventHandlers.TryGetValue(eventType, out var handlers))
@@ -143,8 +143,50 @@ public class TriggerEventManager : IDisposable
         {
             try
             {
-                Svc.Log.Debug($"Raising trigger event {eventType} for macro {triggerFunction.Macro.Name}");
-                TriggerEventOccurred?.Invoke(triggerFunction.Macro, args);
+                if (string.IsNullOrEmpty(triggerFunction.FunctionName))
+                {
+                    // Macro-level trigger: raise the event for the entire macro
+                    Svc.Log.Verbose($"Raising trigger event {eventType} for macro {triggerFunction.Macro.Name}");
+                    TriggerEventOccurred?.Invoke(triggerFunction.Macro, args);
+                }
+                else
+                {
+                    // Function-level trigger: extract just the function's content
+                    string functionContent;
+                    if (triggerFunction.Macro.Type == MacroType.Lua)
+                    {
+                        Svc.Log.Verbose($"Looking for function {triggerFunction.FunctionName} in macro {triggerFunction.Macro.Name}");
+
+                        // Look for function definition in the format "function OnEventName()" or "function OnEventName(args)"
+                        var match = Regex.Match(triggerFunction.Macro.Content, $@"function\s+{triggerFunction.FunctionName}\s*\([^)]*\)\s*\n(.*?)(?=\n\s*end\s*$|\n\s*function\s+\w+\s*\()", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+                        if (!match.Success)
+                        {
+                            // Try a simpler pattern that just looks for the function body
+                            match = Regex.Match(triggerFunction.Macro.Content, $@"function\s+{triggerFunction.FunctionName}\s*\([^)]*\)\s*\n(.*?)\n\s*end", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+                            if (!match.Success)
+                            {
+                                Svc.Log.Error($"Could not find function {triggerFunction.FunctionName} in macro {triggerFunction.Macro.Name}");
+                                continue;
+                            }
+                        }
+                        // Extract the function body and wrap it in a function call
+                        var functionBody = match.Groups[1].Value.Trim();
+                        functionContent = $"function {triggerFunction.FunctionName}()\n{functionBody}\nend\n{triggerFunction.FunctionName}()";
+                    }
+                    else
+                        // For native macros, just use the entire content
+                        functionContent = triggerFunction.Macro.Content;
+
+                    // Create a temporary macro with the parent macro's ID
+                    var tempMacroId = $"{triggerFunction.Macro.Id}_{triggerFunction.FunctionName}_{Guid.NewGuid()}";
+                    var tempMacro = new TemporaryMacro(functionContent, tempMacroId)
+                    {
+                        Name = $"{triggerFunction.Macro.Name} - {triggerFunction.FunctionName}",
+                        Type = triggerFunction.Macro.Type
+                    };
+                    Svc.Log.Verbose($"Created temporary macro {tempMacro.Id} for function {triggerFunction.FunctionName} in macro {triggerFunction.Macro.Name}");
+                    TriggerEventOccurred?.Invoke(tempMacro, args);
+                }
             }
             catch (Exception ex)
             {

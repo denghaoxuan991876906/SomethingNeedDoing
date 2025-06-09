@@ -106,14 +106,11 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
 
     private void DrawActionButtons(IMacro macro)
     {
-        if (ImGuiUtils.Button(new Vector4(0.2f, 0.7f, 0.2f, 1.0f), FontAwesomeIcon.PlayCircle, "Run"))
-            _scheduler.StartMacro(macro);
-        ImGui.SameLine();
-        if (ImGuiUtils.Button(new Vector4(0.7f, 0.2f, 0.2f, 1.0f), FontAwesomeIcon.StopCircle, "Stop"))
-            _scheduler.StopMacro(macro.Id);
-        ImGui.SameLine();
-        if (ImGuiUtils.Button(new Vector4(0.3f, 0.3f, 0.3f, 1.0f), FontAwesomeIcon.PauseCircle, "Copy"))
-            ImGui.SetClipboardText(macro.Content);
+        var group = new ImGuiEx.EzButtonGroup();
+        group.AddIconWithText(new Vector4(0.2f, 0.7f, 0.2f, 1.0f), FontAwesomeIcon.PlayCircle, "Run", () => _scheduler.StartMacro(macro));
+        group.AddIconWithText(new Vector4(0.7f, 0.2f, 0.2f, 1.0f), FontAwesomeIcon.StopCircle, "Stop", () => _scheduler.StopMacro(macro.Id));
+        group.AddIconWithText(new Vector4(0.3f, 0.3f, 0.3f, 1.0f), FontAwesomeIcon.PauseCircle, "Copy", () => ImGui.SetClipboardText(macro.Content));
+        group.Draw();
         ImGui.SameLine();
         if (macro is ConfigMacro { IsGitMacro: true } configMacro)
         {
