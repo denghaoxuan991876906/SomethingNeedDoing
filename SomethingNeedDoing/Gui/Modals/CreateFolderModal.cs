@@ -11,7 +11,7 @@ public static class CreateFolderModal
     public static void Open()
     {
         IsOpen = true;
-        _newFolderName = "New Macro";
+        _newFolderName = "New Folder";
     }
 
     public static void Close()

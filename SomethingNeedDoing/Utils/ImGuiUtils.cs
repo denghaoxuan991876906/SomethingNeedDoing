@@ -9,15 +9,9 @@ using System.Xml.Linq;
 namespace SomethingNeedDoing.Utils;
 public static class ImGuiUtils
 {
-    public static void ContextMenu(string id, params (string menuName, Action action)[] items)
+    public static class Colours
     {
-        using var ctx = ImRaii.ContextPopupItem(id);
-        if (ctx)
-        {
-            foreach (var item in items)
-                if (ImGui.MenuItem(item.menuName))
-                    item.action();
-        }
+        public static EzColor Gold => new(0.847f, 0.733f, 0.49f);
     }
 
     public static bool IconButton(FontAwesomeIcon icon, string tooltip = "", string id = "SNDButton", Vector2 size = default, bool disabled = false, bool active = false)

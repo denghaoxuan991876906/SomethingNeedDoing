@@ -107,9 +107,11 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
     private void DrawActionButtons(IMacro macro)
     {
         var group = new ImGuiEx.EzButtonGroup();
-        group.AddIconWithText(new Vector4(0.2f, 0.7f, 0.2f, 1.0f), FontAwesomeIcon.PlayCircle, "Run", () => _scheduler.StartMacro(macro));
-        group.AddIconWithText(new Vector4(0.7f, 0.2f, 0.2f, 1.0f), FontAwesomeIcon.StopCircle, "Stop", () => _scheduler.StopMacro(macro.Id));
-        group.AddIconWithText(new Vector4(0.3f, 0.3f, 0.3f, 1.0f), FontAwesomeIcon.PauseCircle, "Copy", () => ImGui.SetClipboardText(macro.Content));
+        var baseStyle = new ImGuiEx.EzButtonGroup.ButtonStyle() { NoButtonBg = true, TextColor = ImGuiUtils.Colours.Gold };
+        group.AddIconOnly(FontAwesomeIcon.PlayCircle, () => _scheduler.StartMacro(macro), "Run", baseStyle);
+        group.AddIconOnly(FontAwesomeIcon.PauseCircle, () => _scheduler.PauseMacro(macro.Id), "Pause", baseStyle + new ImGuiEx.EzButtonGroup.ButtonStyle() { NoButtonBg = true, Condition = () => _scheduler.GetMacroState(macro.Id) == MacroState.Running });
+        group.AddIconOnly(FontAwesomeIcon.StopCircle, () => _scheduler.StopMacro(macro.Id), "Stop", baseStyle);
+        group.AddIconOnly(FontAwesomeIcon.Clipboard, () => ImGui.SetClipboardText(macro.Content), "Copy", baseStyle);
         group.Draw();
         ImGui.SameLine();
         if (macro is ConfigMacro { IsGitMacro: true } configMacro)

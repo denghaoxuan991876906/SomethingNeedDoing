@@ -111,7 +111,9 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
 
                         var group = new ImGuiEx.EzButtonGroup();
                         group.AddIconWithText(FontAwesomeIcon.History, "Version History", () => versionHistoryModal.Open(selectedMacro));
-                        group.AddIconWithText(EzColor.Red, FontAwesomeIcon.Sync, "Reset Git Info", () => { selectedMacro.GitInfo = new GitInfo(); C.Save(); }, "Wipes all git information and reverts this macro back to a standard local macro.");
+                        group.AddIconWithText(FontAwesomeIcon.Sync, "Reset Git Info",
+                            () => { selectedMacro.GitInfo = new GitInfo(); C.Save(); }, "Wipes all git information and reverts this macro back to a standard local macro.",
+                            new() { ButtonColor = EzColor.Red });
                         group.Draw();
                     }
                 }
