@@ -23,7 +23,6 @@ public sealed class Plugin : IDalamudPlugin
      * fix line numbers not scrolling
      * add checks for macro dependencies
      * add pause/resume buttons to editor
-     * make sure all config options are in settings
      * see if any of the ui code can be made generic
      * get rid of changing cfg by command?
      */

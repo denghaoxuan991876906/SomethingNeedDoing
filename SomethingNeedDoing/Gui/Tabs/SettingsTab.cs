@@ -10,66 +10,170 @@ public static class SettingsTab
     {
         using var _ = ImRaii.Child("SettingsTab", Vector2.Create(-1), false);
 
-        if (ImGui.CollapsingHeader("General Settings", ImGuiTreeNodeFlags.DefaultOpen))
+        ImGuiUtils.Section("General Settings", () =>
         {
-            using var __ = ImRaii.PushIndent();
-            var useCraftLoopTemplate = C.UseCraftLoopTemplate;
-            if (ImGui.Checkbox("Enable automatic updates for Git macros", ref useCraftLoopTemplate))
+            var chatChannel = C.ChatType;
+            if (ImGuiEx.EnumCombo("ChatType", ref chatChannel))
             {
-                C.UseCraftLoopTemplate = useCraftLoopTemplate;
+                C.ChatType = chatChannel;
                 C.Save();
             }
 
+            var errorChannel = C.ErrorChatType;
+            if (ImGuiEx.EnumCombo("ErrorChatType", ref errorChannel))
+            {
+                C.ErrorChatType = errorChannel;
+                C.Save();
+            }
+        });
+
+        ImGuiUtils.Section("Crafting", () =>
+        {
             var craftSkip = C.CraftSkip;
-            if (ImGui.Checkbox("Enable unsafe actions during crafting", ref craftSkip))
+            if (ImGui.Checkbox("Skip craft actions when not crafting.", ref craftSkip))
             {
                 C.CraftSkip = craftSkip;
                 C.Save();
             }
-        }
 
-        // Native macro options
-        if (ImGui.CollapsingHeader("Native Macro Options"))
-        {
-            using var __ = ImRaii.PushIndent();
+            var smartWait = C.SmartWait;
+            if (ImGui.Checkbox("Wait for crafting actions to complete instead of using wait modifiers.", ref smartWait))
+            {
+                C.SmartWait = smartWait;
+                C.Save();
+            }
+
             var qualitySkip = C.QualitySkip;
             if (ImGui.Checkbox("Skip quality actions at max quality", ref qualitySkip))
             {
                 C.QualitySkip = qualitySkip;
                 C.Save();
             }
-            ImGuiEx.Tooltip("When enabled, quality-increasing actions will be skipped at max quality");
 
             var loopTotal = C.LoopTotal;
-            if (ImGui.Checkbox("Loop command specifies total iterations", ref loopTotal))
+            if (ImGui.Checkbox("Count the /loop number as the total iterations, rather than the amount to loop.", ref loopTotal))
             {
                 C.LoopTotal = loopTotal;
                 C.Save();
             }
-            ImGuiEx.Tooltip("When enabled, /loop 5 means 'loop a total of 5 times' instead of 'loop 5 more times'");
-        }
 
-        // UI Automation options
-        if (ImGui.CollapsingHeader("UI Automation Options"))
+            var loopEcho = C.LoopEcho;
+            if (ImGui.Checkbox("Always echo /loop commands..", ref loopEcho))
+            {
+                C.LoopEcho = loopEcho;
+                C.Save();
+            }
+
+            var useCraftLoopTemplate = C.UseCraftLoopTemplate;
+            if (ImGui.Checkbox("Use the \"CraftLoop\" template", ref useCraftLoopTemplate))
+            {
+                C.UseCraftLoopTemplate = useCraftLoopTemplate;
+                C.Save();
+            }
+
+            var craftLoopFromRecipeNote = C.CraftLoopFromRecipeNote;
+            if (ImGui.Checkbox("Start crafting loops from the recipe note window.", ref craftLoopFromRecipeNote))
+            {
+                C.CraftLoopFromRecipeNote = craftLoopFromRecipeNote;
+                C.Save();
+            }
+
+            var craftLoopMaxWait = C.CraftLoopMaxWait;
+            if (ImGui.SliderInt("Maximum wait value for the \"CraftLoop\" maxwait modifier", ref craftLoopMaxWait, 0, 1000))
+            {
+                C.CraftLoopMaxWait = craftLoopMaxWait;
+                C.Save();
+            }
+
+            var craftLoopEcho = C.CraftLoopEcho;
+            if (ImGui.Checkbox("Always echo \"CraftLoop\" commands", ref craftLoopEcho))
+            {
+                C.CraftLoopEcho = craftLoopEcho;
+                C.Save();
+            }
+        });
+
+        ImGuiUtils.Section("Error Handling", () =>
         {
-            using var __ = ImRaii.PushIndent();
+            var maxTimeoutRetries = C.MaxTimeoutRetries;
+            if (ImGui.SliderInt("Max Timeout Retries", ref maxTimeoutRetries, 0, 10))
+            {
+                C.MaxTimeoutRetries = maxTimeoutRetries;
+                C.Save();
+            }
+
+            var noisyErrors = C.NoisyErrors;
+            if (ImGui.Checkbox("Noisy Errors", ref noisyErrors))
+            {
+                C.NoisyErrors = noisyErrors;
+                C.Save();
+            }
+
+            if (noisyErrors)
+            {
+                var beepFrequency = C.BeepFrequency;
+                if (ImGui.SliderInt("Beep Frequency", ref beepFrequency, 0, 1000))
+                {
+                    C.BeepFrequency = beepFrequency;
+                    C.Save();
+                }
+
+                var beepDuration = C.BeepDuration;
+                if (ImGui.SliderInt("Beep Duration", ref beepDuration, 0, 1000))
+                {
+                    C.BeepDuration = beepDuration;
+                    C.Save();
+                }
+
+                var beepCount = C.BeepCount;
+                if (ImGui.SliderInt("Beep Count", ref beepCount, 0, 10))
+                {
+                    C.BeepCount = beepCount;
+                    C.Save();
+                }
+            }
+        });
+
+        ImGuiUtils.Section("Error Conditions", () =>
+        {
+            var stopMacroIfActionTimeout = C.StopMacroIfActionTimeout;
+            if (ImGui.Checkbox("Stop macro if an action times out.", ref stopMacroIfActionTimeout))
+            {
+                C.StopMacroIfActionTimeout = stopMacroIfActionTimeout;
+                C.Save();
+            }
+
+            var stopMacroIfItemNotFound = C.StopMacroIfItemNotFound;
+            if (ImGui.Checkbox("Stop macro if an item is not found.", ref stopMacroIfItemNotFound))
+            {
+                C.StopMacroIfItemNotFound = stopMacroIfItemNotFound;
+                C.Save();
+            }
+
+            var stopMacroIfCantUseItem = C.StopMacroIfCantUseItem;
+            if (ImGui.Checkbox("Stop macro if an item can't be used.", ref stopMacroIfCantUseItem))
+            {
+                C.StopMacroIfCantUseItem = stopMacroIfCantUseItem;
+                C.Save();
+            }
+
+            var stopMacroIfTargetNotFound = C.StopMacroIfTargetNotFound;
+            if (ImGui.Checkbox("Stop macro if a target is not found.", ref stopMacroIfTargetNotFound))
+            {
+                C.StopMacroIfTargetNotFound = stopMacroIfTargetNotFound;
+                C.Save();
+            }
+
             var stopMacroIfAddonNotFound = C.StopMacroIfAddonNotFound;
-            if (ImGui.Checkbox("Stop macro if UI element is not found", ref stopMacroIfAddonNotFound))
+            if (ImGui.Checkbox("Stop macro if an addon is not found.", ref stopMacroIfAddonNotFound))
             {
                 C.StopMacroIfAddonNotFound = stopMacroIfAddonNotFound;
                 C.Save();
             }
+        });
 
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("When enabled, macros will stop if a UI element is not found");
-            }
-        }
-
-        // Lua Script Options
-        if (ImGui.CollapsingHeader("Lua Script Options"))
+        ImGuiUtils.Section("Lua Options", () =>
         {
-            using var __ = ImRaii.PushIndent();
             ImGui.TextWrapped("Lua require paths (where to look for Lua modules):");
 
             var paths = C.LuaRequirePaths.ToArray();
@@ -93,7 +197,7 @@ public static class SettingsTab
                 C.LuaRequirePaths = [.. newPaths];
                 C.Save();
             }
-        }
+        });
 
         ImGui.Separator();
         ImGui.Spacing();

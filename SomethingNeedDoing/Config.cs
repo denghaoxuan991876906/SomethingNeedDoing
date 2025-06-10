@@ -11,7 +11,7 @@ namespace SomethingNeedDoing;
 /// </summary>
 public class Config : IEzConfig
 {
-    public int Version { get; set; } = 2;
+    public int Version { get; set; } = 1;
 
     #region General Settings
     public XivChatType ChatType { get; set; } = XivChatType.Debug;
@@ -20,12 +20,39 @@ public class Config : IEzConfig
     #endregion
 
     #region Crafting Settings
+    /// <summary>
+    /// Gets or sets a value indicating whether to skip craft actions when not crafting.
+    /// </summary>
     public bool CraftSkip { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to intelligently wait for crafting actions to complete instead of using wait modifiers.
+    /// </summary>
     public bool SmartWait { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to skip quality increasing actions when at 100% HQ chance.
+    /// </summary>
     public bool QualitySkip { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to count the /loop number as the total iterations, rather than the amount to loop.
+    /// </summary>
     public bool LoopTotal { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to always echo /loop commands.
+    /// </summary>
     public bool LoopEcho { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to use the "CraftLoop" template.
+    /// </summary>
     public bool UseCraftLoopTemplate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the "CraftLoop" template.
+    /// </summary>
     public string CraftLoopTemplate { get; set; } =
         "/craft {{count}}\n" +
         "/waitaddon \"RecipeNote\" <maxwait.5>" +
@@ -33,16 +60,47 @@ public class Config : IEzConfig
         "/waitaddon \"Synthesis\" <maxwait.5>" +
         "{{macro}}" +
         "/loop";
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to start crafting loops from the recipe note window.
+    /// </summary>
     public bool CraftLoopFromRecipeNote { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the maximum wait value for the "CraftLoop" maxwait modifier.
+    /// </summary>
     public int CraftLoopMaxWait { get; set; } = 5;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the "CraftLoop" loop should have an echo modifier.
+    /// </summary>
     public bool CraftLoopEcho { get; set; }
     #endregion
 
     #region Error Handling
+    /// <summary>
+    /// Gets or sets the maximum number of retries when an action does not receive a timely response.
+    /// </summary>
     public int MaxTimeoutRetries { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether errors should be audible.
+    /// </summary>
     public bool NoisyErrors { get; set; }
+
+    /// <summary>
+    /// Gets or sets the beep frequency.
+    /// </summary>
     public int BeepFrequency { get; set; } = 900;
+
+    /// <summary>
+    /// Gets or sets the beep duration.
+    /// </summary>
     public int BeepDuration { get; set; } = 250;
+
+    /// <summary>
+    /// Gets or sets the beep count.
+    /// </summary>
     public int BeepCount { get; set; } = 3;
     #endregion
 
