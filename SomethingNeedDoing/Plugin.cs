@@ -17,7 +17,6 @@ public sealed class Plugin : IDalamudPlugin
     private readonly ServiceProvider _serviceProvider;
 
     /*
-     * make onaddonevent work
      * write better docs for all help tabs
      * change the reset gitinfo and version history buttons, and the populate metadata button
      * move the check for updates to right align?

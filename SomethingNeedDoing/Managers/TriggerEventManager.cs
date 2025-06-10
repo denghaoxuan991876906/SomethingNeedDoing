@@ -31,6 +31,20 @@ public class TriggerFunction(IMacro macro, string functionName, TriggerEvent eve
     /// </summary>
     public TriggerEvent EventType { get; } = eventType;
 
+    /// <summary>
+    /// Gets the addon name for OnAddonEvent triggers.
+    /// </summary>
+    public string? AddonName { get; } = eventType == TriggerEvent.OnAddonEvent && functionName.StartsWith("OnAddonEvent_")
+        ? functionName.Split('_')[1]
+        : null;
+
+    /// <summary>
+    /// Gets the event type for OnAddonEvent triggers.
+    /// </summary>
+    public string? AddonEventType { get; } = eventType == TriggerEvent.OnAddonEvent && functionName.StartsWith("OnAddonEvent_")
+        ? functionName.Split('_')[2]
+        : null;
+
     /// <inheritdoc/>
     public override bool Equals(object? obj)
         => obj is TriggerFunction other && Macro.Id == other.Macro.Id && FunctionName == other.FunctionName;
@@ -73,17 +87,42 @@ public class TriggerEventManager : IDisposable
     /// <param name="functionName">The name of the function to register.</param>
     public void RegisterFunctionTrigger(IMacro macro, string functionName)
     {
-        // Try to parse the function name as a trigger event
-        if (Enum.TryParse<TriggerEvent>(functionName, true, out var eventType))
+        // Check for OnAddonEvent function name pattern
+        if (functionName.StartsWith("OnAddonEvent_"))
         {
-            if (!_eventHandlers.ContainsKey(eventType))
-                _eventHandlers[eventType] = [];
-
-            var triggerFunction = new TriggerFunction(macro, functionName, eventType);
-            if (!_eventHandlers[eventType].Contains(triggerFunction))
+            var parts = functionName.Split('_');
+            if (parts.Length == 3) // OnAddonEvent_AddonName_EventType
             {
-                Svc.Log.Debug($"Registering trigger event {eventType} for macro {macro.Name} function {functionName}");
-                _eventHandlers[eventType].Add(triggerFunction);
+                if (!_eventHandlers.ContainsKey(TriggerEvent.OnAddonEvent))
+                    _eventHandlers[TriggerEvent.OnAddonEvent] = [];
+
+                var triggerFunction = new TriggerFunction(macro, functionName, TriggerEvent.OnAddonEvent);
+                if (!_eventHandlers[TriggerEvent.OnAddonEvent].Contains(triggerFunction))
+                {
+                    Svc.Log.Debug($"Registering OnAddonEvent trigger for macro {macro.Name} function {functionName} (Addon: {parts[1]}, Event: {parts[2]})");
+                    _eventHandlers[TriggerEvent.OnAddonEvent].Add(triggerFunction);
+                }
+                return;
+            }
+        }
+
+        // Check if the function name starts with any trigger event name
+        foreach (var eventType in Enum.GetValues<TriggerEvent>())
+        {
+            if (eventType == TriggerEvent.None) continue;
+
+            if (functionName.StartsWith(eventType.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                if (!_eventHandlers.ContainsKey(eventType))
+                    _eventHandlers[eventType] = [];
+
+                var triggerFunction = new TriggerFunction(macro, functionName, eventType);
+                if (!_eventHandlers[eventType].Contains(triggerFunction))
+                {
+                    Svc.Log.Debug($"Registering trigger event {eventType} for macro {macro.Name} function {functionName}");
+                    _eventHandlers[eventType].Add(triggerFunction);
+                }
+                return;
             }
         }
     }
@@ -106,14 +145,36 @@ public class TriggerEventManager : IDisposable
     /// <param name="functionName">The name of the function to unregister.</param>
     public void UnregisterFunctionTrigger(IMacro macro, string functionName)
     {
-        // Try to parse the function name as a trigger event
-        if (Enum.TryParse<TriggerEvent>(functionName, true, out var eventType))
+        // Check for OnAddonEvent function name pattern
+        if (functionName.StartsWith("OnAddonEvent_"))
         {
-            if (_eventHandlers.TryGetValue(eventType, out var value))
+            var parts = functionName.Split('_');
+            if (parts.Length == 3) // OnAddonEvent_AddonName_EventType
             {
-                var removed = value.RemoveAll(tf => tf.Macro.Id == macro.Id && tf.FunctionName == functionName);
-                if (removed > 0)
-                    Svc.Log.Debug($"Unregistering trigger event {eventType} for macro {macro.Name} function {functionName}");
+                if (_eventHandlers.TryGetValue(TriggerEvent.OnAddonEvent, out var value))
+                {
+                    var removed = value.RemoveAll(tf => tf.Macro.Id == macro.Id && tf.FunctionName == functionName);
+                    if (removed > 0)
+                        Svc.Log.Debug($"Unregistering OnAddonEvent trigger for macro {macro.Name} function {functionName}");
+                }
+                return;
+            }
+        }
+
+        // Check if the function name starts with any trigger event name
+        foreach (var eventType in Enum.GetValues<TriggerEvent>())
+        {
+            if (eventType == TriggerEvent.None) continue;
+
+            if (functionName.StartsWith(eventType.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                if (_eventHandlers.TryGetValue(eventType, out var value))
+                {
+                    var removed = value.RemoveAll(tf => tf.Macro.Id == macro.Id && tf.FunctionName == functionName);
+                    if (removed > 0)
+                        Svc.Log.Debug($"Unregistering trigger event {eventType} for macro {macro.Name} function {functionName}");
+                }
+                return;
             }
         }
     }
@@ -143,6 +204,16 @@ public class TriggerEventManager : IDisposable
         {
             try
             {
+                // For OnAddonEvent, check if the addon name and event type match
+                if (eventType == TriggerEvent.OnAddonEvent && data is { } eventData)
+                {
+                    var addonName = eventData.GetType().GetProperty("AddonName")?.GetValue(eventData) as string;
+                    var addonEventType = eventData.GetType().GetProperty("EventType")?.GetValue(eventData) as string;
+
+                    if (addonName != triggerFunction.AddonName || addonEventType != triggerFunction.AddonEventType)
+                        continue;
+                }
+
                 if (string.IsNullOrEmpty(triggerFunction.FunctionName))
                 {
                     // Macro-level trigger: raise the event for the entire macro
