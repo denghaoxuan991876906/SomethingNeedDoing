@@ -18,12 +18,8 @@ public sealed class Plugin : IDalamudPlugin
 
     /*
      * write better docs for all help tabs
-     * change the reset gitinfo and version history buttons, and the populate metadata button
      * move the check for updates to right align?
      * fix line numbers not scrolling
-     * add checks for macro dependencies
-     * add pause/resume buttons to editor
-     * see if any of the ui code can be made generic
      * get rid of changing cfg by command?
      */
 
