@@ -1,8 +1,9 @@
 ﻿using Dalamud.Plugin.Services;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
-using System.Reflection;
 using Lumina.Text.ReadOnly;
+using SomethingNeedDoing.Core.Interfaces;
+using System.Reflection;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;
 
@@ -13,8 +14,10 @@ public class ExcelModule : LuaModuleBase
     private const BindingFlags PropertyFlags = BindingFlags.Public | BindingFlags.Instance |
                                                BindingFlags.IgnoreCase | BindingFlags.DeclaredOnly;
 
+    [LuaFunction]
     public SheetWrapper? this[string name] => GetSheet(name);
 
+    [LuaFunction]
     public SheetWrapper? GetSheet(string name)
     {
         var rawType = typeof(Addon).Assembly.GetType($"Lumina.Excel.Sheets.{name}", false, true);
@@ -96,10 +99,12 @@ public class ExcelModule : LuaModuleBase
         return arg?.GetCustomAttribute<SheetAttribute>() != null ? arg : null;
     }
 
-    public class SheetWrapper(object sheet, bool isSubrowSheet)
+    public class SheetWrapper(object sheet, bool isSubrowSheet) : IWrapper
     {
+        [LuaDocs]
         public object? this[int rowId] => GetRow(rowId);
 
+        [LuaDocs]
         public object? GetRow(int rowId)
         {
             if (!isSubrowSheet)
@@ -136,15 +141,16 @@ public class ExcelModule : LuaModuleBase
         }
     }
 
-    public class RowWrapper(object row)
+    public class RowWrapper(object row) : IWrapper
     {
-        public object? this[string propertyName] => GetPropertyValue(row, propertyName);
+        [LuaDocs] public object? this[string propertyName] => GetPropertyValue(row, propertyName);
     }
 
-    public class SubRowWrapper(object sheet, uint rowId)
+    public class SubRowWrapper(object sheet, uint rowId) : IWrapper
     {
-        public RowWrapper? this[int subRowId] => GetSubRow(subRowId);
+        [LuaDocs] public RowWrapper? this[int subRowId] => GetSubRow(subRowId);
 
+        [LuaDocs]
         public RowWrapper? GetSubRow(int subRowId)
         {
             var method = sheet.GetType().GetMethod(nameof(SubrowExcelSheet<>.GetSubrowOrDefault));
@@ -153,9 +159,9 @@ public class ExcelModule : LuaModuleBase
         }
     }
 
-    public class CollectionWrapper(object collection)
+    public class CollectionWrapper(object collection) : IWrapper
     {
-        public object? this[int index] => GetValue(index);
+        [LuaDocs] public object? this[int index] => GetValue(index);
 
         private object? GetValue(int index)
         {
@@ -188,8 +194,6 @@ public class ExcelModule : LuaModuleBase
         }
 
         private static PropertyInfo? GetIndexer(Type type)
-        {
-            return type.GetProperty("Item", PropertyFlags);
-        }
+            => type.GetProperty("Item", PropertyFlags);
     }
 }
