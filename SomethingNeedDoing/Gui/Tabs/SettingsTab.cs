@@ -27,69 +27,79 @@ public static class SettingsTab
             }
         });
 
-        ImGuiUtils.Section("Crafting", () =>
+        ImGuiUtils.Section("Crafting Settings", () =>
         {
             var craftSkip = C.CraftSkip;
-            if (ImGui.Checkbox("Skip craft actions when not crafting.", ref craftSkip))
+            if (ImGui.Checkbox("Skip craft actions when not crafting", ref craftSkip))
             {
                 C.CraftSkip = craftSkip;
                 C.Save();
             }
 
             var smartWait = C.SmartWait;
-            if (ImGui.Checkbox("Wait for crafting actions to complete instead of using wait modifiers.", ref smartWait))
+            if (ImGui.Checkbox("Smart wait for crafting actions", ref smartWait))
             {
                 C.SmartWait = smartWait;
                 C.Save();
             }
 
             var qualitySkip = C.QualitySkip;
-            if (ImGui.Checkbox("Skip quality actions at max quality", ref qualitySkip))
+            if (ImGui.Checkbox("Skip quality increasing actions when at 100% HQ chance", ref qualitySkip))
             {
                 C.QualitySkip = qualitySkip;
                 C.Save();
             }
 
             var loopTotal = C.LoopTotal;
-            if (ImGui.Checkbox("Count the /loop number as the total iterations, rather than the amount to loop.", ref loopTotal))
+            if (ImGui.Checkbox("Count /loop number as total iterations", ref loopTotal))
             {
                 C.LoopTotal = loopTotal;
                 C.Save();
             }
 
             var loopEcho = C.LoopEcho;
-            if (ImGui.Checkbox("Always echo /loop commands..", ref loopEcho))
+            if (ImGui.Checkbox("Always echo /loop commands", ref loopEcho))
             {
                 C.LoopEcho = loopEcho;
                 C.Save();
             }
 
             var useCraftLoopTemplate = C.UseCraftLoopTemplate;
-            if (ImGui.Checkbox("Use the \"CraftLoop\" template", ref useCraftLoopTemplate))
+            if (ImGui.Checkbox("Use CraftLoop template", ref useCraftLoopTemplate))
             {
                 C.UseCraftLoopTemplate = useCraftLoopTemplate;
                 C.Save();
             }
 
-            var craftLoopFromRecipeNote = C.CraftLoopFromRecipeNote;
-            if (ImGui.Checkbox("Start crafting loops from the recipe note window.", ref craftLoopFromRecipeNote))
+            if (useCraftLoopTemplate)
             {
-                C.CraftLoopFromRecipeNote = craftLoopFromRecipeNote;
-                C.Save();
-            }
+                var craftLoopTemplate = C.CraftLoopTemplate;
+                if (ImGui.InputTextMultiline("CraftLoop Template", ref craftLoopTemplate, 1000, new System.Numerics.Vector2(0, 100)))
+                {
+                    C.CraftLoopTemplate = craftLoopTemplate;
+                    C.Save();
+                }
 
-            var craftLoopMaxWait = C.CraftLoopMaxWait;
-            if (ImGui.SliderInt("Maximum wait value for the \"CraftLoop\" maxwait modifier", ref craftLoopMaxWait, 0, 1000))
-            {
-                C.CraftLoopMaxWait = craftLoopMaxWait;
-                C.Save();
-            }
+                var craftLoopFromRecipeNote = C.CraftLoopFromRecipeNote;
+                if (ImGui.Checkbox("Start crafting loops from recipe note window", ref craftLoopFromRecipeNote))
+                {
+                    C.CraftLoopFromRecipeNote = craftLoopFromRecipeNote;
+                    C.Save();
+                }
 
-            var craftLoopEcho = C.CraftLoopEcho;
-            if (ImGui.Checkbox("Always echo \"CraftLoop\" commands", ref craftLoopEcho))
-            {
-                C.CraftLoopEcho = craftLoopEcho;
-                C.Save();
+                var craftLoopMaxWait = C.CraftLoopMaxWait;
+                if (ImGui.SliderInt("CraftLoop maxwait value", ref craftLoopMaxWait, 1, 10))
+                {
+                    C.CraftLoopMaxWait = craftLoopMaxWait;
+                    C.Save();
+                }
+
+                var craftLoopEcho = C.CraftLoopEcho;
+                if (ImGui.Checkbox("CraftLoop echo", ref craftLoopEcho))
+                {
+                    C.CraftLoopEcho = craftLoopEcho;
+                    C.Save();
+                }
             }
         });
 
@@ -131,44 +141,6 @@ public static class SettingsTab
                     C.BeepCount = beepCount;
                     C.Save();
                 }
-            }
-        });
-
-        ImGuiUtils.Section("Error Conditions", () =>
-        {
-            var stopMacroIfActionTimeout = C.StopMacroIfActionTimeout;
-            if (ImGui.Checkbox("Stop macro if an action times out.", ref stopMacroIfActionTimeout))
-            {
-                C.StopMacroIfActionTimeout = stopMacroIfActionTimeout;
-                C.Save();
-            }
-
-            var stopMacroIfItemNotFound = C.StopMacroIfItemNotFound;
-            if (ImGui.Checkbox("Stop macro if an item is not found.", ref stopMacroIfItemNotFound))
-            {
-                C.StopMacroIfItemNotFound = stopMacroIfItemNotFound;
-                C.Save();
-            }
-
-            var stopMacroIfCantUseItem = C.StopMacroIfCantUseItem;
-            if (ImGui.Checkbox("Stop macro if an item can't be used.", ref stopMacroIfCantUseItem))
-            {
-                C.StopMacroIfCantUseItem = stopMacroIfCantUseItem;
-                C.Save();
-            }
-
-            var stopMacroIfTargetNotFound = C.StopMacroIfTargetNotFound;
-            if (ImGui.Checkbox("Stop macro if a target is not found.", ref stopMacroIfTargetNotFound))
-            {
-                C.StopMacroIfTargetNotFound = stopMacroIfTargetNotFound;
-                C.Save();
-            }
-
-            var stopMacroIfAddonNotFound = C.StopMacroIfAddonNotFound;
-            if (ImGui.Checkbox("Stop macro if an addon is not found.", ref stopMacroIfAddonNotFound))
-            {
-                C.StopMacroIfAddonNotFound = stopMacroIfAddonNotFound;
-                C.Save();
             }
         });
 

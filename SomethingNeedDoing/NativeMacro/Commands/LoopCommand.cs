@@ -6,6 +6,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <summary>
 /// Loops the current macro a specified number of times.
 /// </summary>
+[GenericDoc(
+    "Loop the current macro a specified number of times",
+    ["loopCount"],
+    ["/loop 10", "/loop 10 <echo>", "/loop"]
+)]
 public class LoopCommand(string text, int loopCount, IMacroScheduler scheduler) : MacroCommandBase(text)
 {
     private const int MaxLoops = int.MaxValue;

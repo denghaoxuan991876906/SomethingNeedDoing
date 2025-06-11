@@ -41,24 +41,8 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
 
     private void DrawSubmodule(IGrouping<string, LuaFunctionDoc> submodule)
     {
-        var storageId = ImGui.GetID($"##{submodule.Key}_open");
-        var isOpen = ImGui.GetStateStorage().GetBool(storageId, false);
-
         ImGuiEx.TextCopy(ImGuiColors.DalamudViolet, submodule.Key, submodule.Key);
-        ImGui.SameLine();
-        ImGui.TextColored(ImGuiColors.DalamudGrey, isOpen ? "▼" : "▶");
-
-        if (ImGui.IsItemClicked())
-        {
-            isOpen = !isOpen;
-            ImGui.GetStateStorage().SetBool(storageId, isOpen);
-        }
-
-        if (isOpen)
-        {
-            using var __ = ImRaii.PushIndent();
-            submodule.Each(f => DrawFunction(f));
-        }
+        ImGuiUtils.CollapsibleSection(submodule.Key, () => submodule.Each(f => DrawFunction(f)));
         ImGui.Separator();
     }
 
@@ -87,21 +71,8 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
             (function.ReturnType is { TypeName: "table", GenericArguments.Count: > 0 } &&
              function.ReturnType.GenericArguments[0].Type?.IsWrapper() == true))
         {
-            var storageId = ImGui.GetID($"##{function.FunctionName}_return_{index ?? 0}_open");
-            var isOpen = ImGui.GetStateStorage().GetBool(storageId, false);
-
-            ImGui.SameLine();
-            ImGui.TextColored(ImGuiColors.DalamudGrey, isOpen ? "▼" : "▶");
-
-            if (ImGui.IsItemClicked())
+            ImGuiUtils.CollapsibleSection($"{function.FunctionName}_return_{index ?? 0}", () =>
             {
-                isOpen = !isOpen;
-                ImGui.GetStateStorage().SetBool(storageId, isOpen);
-            }
-
-            if (isOpen)
-            {
-                using var __ = ImRaii.PushIndent();
                 if (function.ReturnType.Type?.IsEnum == true)
                     DrawEnumValues(function.ReturnType.Type, $"{function.FunctionName}_return_{index ?? 0}");
                 else if (function.ReturnType.Type?.IsWrapper() == true)
@@ -112,7 +83,7 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                     if (elementType.Type?.IsWrapper() == true)
                         DrawWrapperProperties(elementType.Type.Name, $"{function.FunctionName}_return_{index ?? 0}", copySignature);
                 }
-            }
+            });
         }
 
         DrawExamples(function.Examples);
@@ -203,21 +174,8 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
 
                 if (prop.PropertyType.IsWrapper() || prop.PropertyType.IsList() || prop.PropertyType.IsEnum)
                 {
-                    var storageId = ImGui.GetID($"##{id}_prop_{index}_open");
-                    var isOpen = ImGui.GetStateStorage().GetBool(storageId, false);
-
-                    ImGui.SameLine();
-                    ImGui.TextColored(ImGuiColors.DalamudGrey, isOpen ? "▼" : "▶");
-
-                    if (ImGui.IsItemClicked())
+                    ImGuiUtils.CollapsibleSection($"{id}_prop_{index}", () =>
                     {
-                        isOpen = !isOpen;
-                        ImGui.GetStateStorage().SetBool(storageId, isOpen);
-                    }
-
-                    if (isOpen)
-                    {
-                        using var ___ = ImRaii.PushIndent();
                         if (prop.PropertyType.IsWrapper())
                             DrawWrapperProperties(prop.PropertyType.Name, $"{id}_prop_{index}", fullChain);
                         else if (prop.PropertyType.IsList())
@@ -228,7 +186,7 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                         }
                         else if (prop.PropertyType.IsEnum)
                             DrawEnumValues(prop.PropertyType, $"{id}_prop_{index}");
-                    }
+                    });
                 }
 
                 if (docs?.Description != null)
@@ -259,21 +217,8 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
 
                 if (method.ReturnType.IsWrapper() || method.ReturnType.IsList() || method.ReturnType.IsEnum)
                 {
-                    var storageId = ImGui.GetID($"##{id}_method_{index}_open");
-                    var isOpen = ImGui.GetStateStorage().GetBool(storageId, false);
-
-                    ImGui.SameLine();
-                    ImGui.TextColored(ImGuiColors.DalamudGrey, isOpen ? "▼" : "▶");
-
-                    if (ImGui.IsItemClicked())
+                    ImGuiUtils.CollapsibleSection($"{id}_method_{index}", () =>
                     {
-                        isOpen = !isOpen;
-                        ImGui.GetStateStorage().SetBool(storageId, isOpen);
-                    }
-
-                    if (isOpen)
-                    {
-                        using var ___ = ImRaii.PushIndent();
                         if (method.ReturnType.IsWrapper())
                             DrawWrapperProperties(method.ReturnType.Name, $"{id}_method_{index}", fullChain);
                         else if (method.ReturnType.IsList())
@@ -284,7 +229,7 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                         }
                         else if (method.ReturnType.IsEnum)
                             DrawEnumValues(method.ReturnType, $"{id}_method_{index}");
-                    }
+                    });
                 }
 
                 if (docs?.Description != null)

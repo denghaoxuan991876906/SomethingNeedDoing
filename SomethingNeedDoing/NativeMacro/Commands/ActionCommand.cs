@@ -10,6 +10,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <remarks>
 /// Initializes a new instance of the <see cref="ActionCommand"/> class.
 /// </remarks>
+[GenericDoc(
+    "Execute a game action",
+    ["actionName"],
+    ["/action \"Basic Synthesis\"", "/action \"Basic Touch\" <condition.good>", "/action \"Basic Synthesis\" <errorif.actiontimeout>"]
+)]
 public class ActionCommand(string text, string actionName) : MacroCommandBase(text)
 {
     /// <inheritdoc/>
@@ -75,7 +80,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
             }
             catch (TimeoutException)
             {
-                if (C.StopMacroIfActionTimeout)
+                if (ErrorIfModifier?.Condition == Modifiers.ErrorCondition.ActionTimeout)
                     throw new MacroTimeoutException("Did not receive a timely response");
             }
             finally

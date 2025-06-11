@@ -5,6 +5,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <summary>
 /// Targets the nearest enemy.
 /// </summary>
+[GenericDoc(
+    "Target the nearest enemy",
+    [],
+    ["/targetenemy", "/targetenemy <errorif.targetnotfound>"]
+)]
 public class TargetEnemyCommand(string text) : MacroCommandBase(text)
 {
     /// <inheritdoc/>
@@ -19,7 +24,7 @@ public class TargetEnemyCommand(string text) : MacroCommandBase(text)
                 .OrderBy(o => Vector3.Distance(o.Position, Player.Position))
                 .FirstOrDefault(o => o.IsTargetable && o.IsHostile() && !o.IsDead);
 
-            if (obj == null && C.StopMacroIfTargetNotFound)
+            if (obj == null && ErrorIfModifier?.Condition == Modifiers.ErrorCondition.TargetNotFound)
                 throw new MacroException("Could not find target");
 
             if (obj != null)

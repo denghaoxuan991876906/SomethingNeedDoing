@@ -60,6 +60,9 @@ public abstract class MacroCommandBase(string text) : IMacroCommand
     public ItemQualityModifier? ItemQualityModifier { get; set; }
 
     /// <inheritdoc/>
+    public ErrorIfModifier? ErrorIfModifier { get; set; }
+
+    /// <inheritdoc/>
     public abstract Task Execute(MacroContext context, CancellationToken token);
 
     /// <summary>

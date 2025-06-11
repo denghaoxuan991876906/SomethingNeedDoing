@@ -6,6 +6,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <summary>
 /// Uses a key item from the inventory.
 /// </summary>
+[GenericDoc(
+    "Use a key item from your inventory",
+    ["itemName"],
+    ["/keyitem \"Wondrous Tails\"", "/keyitem \"Wondrous Tails\" <errorif.itemnotfound>"]
+)]
 public class KeyItemCommand(string text, string itemName) : MacroCommandBase(text)
 {
     /// <inheritdoc/>
@@ -22,7 +27,7 @@ public class KeyItemCommand(string text, string itemName) : MacroCommandBase(tex
 
         if (count == 0)
         {
-            if (C.StopMacroIfItemNotFound)
+            if (ErrorIfModifier?.Condition == Modifiers.ErrorCondition.ItemNotFound)
                 throw new MacroException("You do not have that item");
             return;
         }

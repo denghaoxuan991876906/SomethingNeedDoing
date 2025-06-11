@@ -9,6 +9,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <summary>
 /// Equips an item from inventory or armory chest.
 /// </summary>
+[GenericDoc(
+    "Equip an item from inventory or armory chest",
+    ["itemId"],
+    ["/equip 12345", "/equip 12345 <errorif.itemnotfound>"]
+)]
 public class EquipItemCommand(string text, uint itemId) : MacroCommandBase(text)
 {
     private static int EquipAttemptLoops = 0;

@@ -69,6 +69,11 @@ public interface IMacroCommand
     ItemQualityModifier? ItemQualityModifier { get; set; }
 
     /// <summary>
+    /// Gets or sets the error if modifier for the command.
+    /// </summary>
+    ErrorIfModifier? ErrorIfModifier { get; set; }
+
+    /// <summary>
     /// Executes the command with the given context and cancellation token.
     /// </summary>
     /// <param name="context">The context in which the command is executing.</param>

@@ -12,6 +12,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <remarks>
 /// Initializes a new instance of the <see cref="ClickCommand"/> class.
 /// </remarks>
+[GenericDoc(
+    "Click a pre-defined button in an addon or window.",
+    ["addonName", "methodName", "values"],
+    ["/click SelectYesNo_Yes", "/click SelectString[0].Select <errorif.addonnotfound>"]
+)]
 public class ClickCommand(string text, string addonName, string methodName, string[] values) : MacroCommandBase(text)
 {
     /// <inheritdoc/>

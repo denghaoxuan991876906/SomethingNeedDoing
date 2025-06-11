@@ -29,7 +29,7 @@ public static unsafe class Game
             itemId += 1_000_000;
 
         var result = agent->UseItem(itemId);
-        if (result != 0 && C.StopMacroIfCantUseItem)
+        if (result != 0)
             throw new MacroException("Failed to use item");
     }
 

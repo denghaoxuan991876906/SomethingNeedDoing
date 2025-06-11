@@ -5,6 +5,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <summary>
 /// Uses an item from the inventory.
 /// </summary>
+[GenericDoc(
+    "Use an item from your inventory",
+    ["itemName"],
+    ["/item \"Potion\"", "/item \"Potion\" <hq>", "/item \"Potion\" <errorif.itemnotfound>"]
+)]
 public class ItemCommand(string text, string itemName) : MacroCommandBase(text)
 {
     /// <inheritdoc/>
@@ -21,7 +26,7 @@ public class ItemCommand(string text, string itemName) : MacroCommandBase(text)
 
         if (count == 0)
         {
-            if (C.StopMacroIfItemNotFound)
+            if (ErrorIfModifier?.Condition == Modifiers.ErrorCondition.ItemNotFound)
                 throw new MacroException("You do not have that item");
             return;
         }

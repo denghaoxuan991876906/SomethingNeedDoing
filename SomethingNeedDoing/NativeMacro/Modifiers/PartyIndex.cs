@@ -6,6 +6,11 @@ namespace SomethingNeedDoing.NativeMacro.Modifiers;
 /// <summary>
 /// Modifier for specifying party member indices.
 /// </summary>
+[GenericDoc(
+    "Specify party member indices",
+    ["index"],
+    ["/ac Cure <party.1>"]
+)]
 public class PartyIndexModifier(string text, int index) : MacroModifierBase(text)
 {
     private static readonly Regex Regex = new(@"(?<modifier><(?<index>[1-8])>)", RegexOptions.Compiled | RegexOptions.IgnoreCase);

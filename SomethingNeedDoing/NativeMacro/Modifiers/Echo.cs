@@ -5,6 +5,11 @@ namespace SomethingNeedDoing.NativeMacro.Modifiers;
 /// <summary>
 /// Modifier for controlling loop count echo behavior.
 /// </summary>
+[GenericDoc(
+    "Echo the amount of loops remaining after executing a /loop command.",
+    [],
+    ["/loop 10 <echo>"]
+)]
 public class EchoModifier(string text, bool shouldEcho) : MacroModifierBase(text)
 {
     private static readonly Regex Regex = new(@"(?<modifier><echo>)", RegexOptions.Compiled | RegexOptions.IgnoreCase);

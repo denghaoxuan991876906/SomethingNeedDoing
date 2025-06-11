@@ -9,6 +9,11 @@ namespace SomethingNeedDoing.NativeMacro.Modifiers;
 /// <remarks>
 /// Initializes a new instance of the <see cref="WaitModifier"/> class.
 /// </remarks>
+[GenericDoc(
+    "Specify wait duration after a command",
+    ["wait", "until"],
+    ["/ac Groundwork <wait.3>", "ac Groundwork <wait.3.5", "/ac Groundwork <wait.1-5>", "/ac Groundwork <wait.1.5-5.5>"]
+)]
 public class WaitModifier(string text, int waitDuration, int maxWaitDuration = 0) : MacroModifierBase(text)
 {
     private static readonly Regex Regex = new(@"(?<modifier><wait\.(?<wait>\d+(?:\.\d+)?)(?:-(?<until>\d+(?:\.\d+)?))?>)", RegexOptions.Compiled | RegexOptions.IgnoreCase);

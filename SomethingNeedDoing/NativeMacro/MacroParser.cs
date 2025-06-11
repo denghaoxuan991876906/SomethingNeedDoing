@@ -235,8 +235,9 @@ public class MacroParser
                 case ItemQualityModifier qualityMod:
                     command.ItemQualityModifier = qualityMod;
                     break;
-                default:
-                    throw new ArgumentException($"Unknown modifier type: {macroModifier.GetType().Name}");
+                case ErrorIfModifier errorIfMod:
+                    command.ErrorIfModifier = errorIfMod;
+                    break;
             }
         }
     }
@@ -442,76 +443,22 @@ public class MacroParser
     /// <returns>The created modifier.</returns>
     private IMacroModifier CreateModifier(ModifierInfo info, CommandParseInfo commandInfo)
     {
+        var text = info.OriginalText;
         return info.Name.ToLowerInvariant() switch
         {
-            "wait" => CreateWaitModifier(info),
+            "wait" => WaitModifier.TryParse(ref text, out var waitModifier) ? waitModifier : throw new MacroSyntaxError($"Invalid wait modifier: {info.Parameter}"),
             "echo" => new EchoModifier(info.OriginalText, true),
             "unsafe" => new UnsafeModifier(info.OriginalText, true),
-            "condition" => CreateConditionModifier(info),
-            "maxwait" => CreateMaxWaitModifier(info),
-            "index" => CreateIndexModifier(info),
-            "list" => CreateListIndexModifier(info),
-            "party" => CreatePartyIndexModifier(info),
-            "distance" => CreateDistanceModifier(info),
+            "condition" => ConditionModifier.TryParse(ref text, out var conditionModifier) ? conditionModifier : throw new MacroSyntaxError($"Invalid condition modifier: {info.Parameter}"),
+            "maxwait" => MaxWaitModifier.TryParse(ref text, out var maxWaitModifier) ? maxWaitModifier : throw new MacroSyntaxError($"Invalid maxwait modifier: {info.Parameter}"),
+            "index" => IndexModifier.TryParse(ref text, out var indexModifier) ? indexModifier : throw new MacroSyntaxError($"Invalid index modifier: {info.Parameter}"),
+            "list" => ListIndexModifier.TryParse(ref text, out var listIndexModifier) ? listIndexModifier : throw new MacroSyntaxError($"Invalid list index modifier: {info.Parameter}"),
+            "party" => PartyIndexModifier.TryParse(ref text, out var partyIndexModifier) ? partyIndexModifier : throw new MacroSyntaxError($"Invalid party index modifier: {info.Parameter}"),
+            "distance" => DistanceModifier.TryParse(ref text, out var distanceModifier) ? distanceModifier : throw new MacroSyntaxError($"Invalid distance modifier: {info.Parameter}"),
             "hq" => new ItemQualityModifier(info.OriginalText, true),
+            "errorif" => ErrorIfModifier.TryParse(ref text, out var errorIfModifier) ? errorIfModifier : throw new MacroSyntaxError($"Invalid error condition: {info.Parameter}"),
             _ => throw new ArgumentException($"Unknown modifier type: {info.Name}")
         };
-    }
-
-    private WaitModifier CreateWaitModifier(ModifierInfo info)
-    {
-        var parts = info.Parameter.Split('-');
-        var waitDuration = (int)(float.Parse(parts[0], CultureInfo.InvariantCulture) * 1000);
-        var maxWaitDuration = parts.Length > 1 ? (int)(float.Parse(parts[1], CultureInfo.InvariantCulture) * 1000) : 0;
-
-        if (waitDuration > maxWaitDuration && maxWaitDuration > 0)
-            throw new MacroSyntaxError("Until value cannot be lower than the wait value");
-
-        return new WaitModifier(info.OriginalText, waitDuration, maxWaitDuration);
-    }
-
-    private MaxWaitModifier CreateMaxWaitModifier(ModifierInfo info)
-    {
-        var waitSeconds = float.Parse(info.Parameter, CultureInfo.InvariantCulture);
-        var waitMs = (int)(waitSeconds * 1000);
-        return new MaxWaitModifier(info.OriginalText, waitMs);
-    }
-
-    private ConditionModifier CreateConditionModifier(ModifierInfo info)
-    {
-        var isNegated = info.Parameter.StartsWith('!');
-        var conditionsText = isNegated ? info.Parameter[1..] : info.Parameter;
-        var conditions = conditionsText
-            .Split(',')
-            .Select(c => c.Trim())
-            .Where(c => !string.IsNullOrEmpty(c))
-            .ToArray();
-
-        return new ConditionModifier(info.OriginalText, conditions, isNegated);
-    }
-
-    private IndexModifier CreateIndexModifier(ModifierInfo info)
-    {
-        var index = int.Parse(info.Parameter, CultureInfo.InvariantCulture);
-        return new IndexModifier(info.OriginalText, index);
-    }
-
-    private ListIndexModifier CreateListIndexModifier(ModifierInfo info)
-    {
-        var index = int.Parse(info.Parameter, CultureInfo.InvariantCulture);
-        return new ListIndexModifier(info.OriginalText, index);
-    }
-
-    private PartyIndexModifier CreatePartyIndexModifier(ModifierInfo info)
-    {
-        var index = int.Parse(info.Parameter, CultureInfo.InvariantCulture);
-        return new PartyIndexModifier(info.OriginalText, index);
-    }
-
-    private DistanceModifier CreateDistanceModifier(ModifierInfo info)
-    {
-        var distance = float.Parse(info.Parameter, CultureInfo.InvariantCulture);
-        return new DistanceModifier(info.OriginalText, distance);
     }
     #endregion
 }

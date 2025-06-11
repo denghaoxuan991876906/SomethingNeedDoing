@@ -5,6 +5,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <summary>
 /// Requires specific crafting conditions to be met.
 /// </summary>
+[GenericDoc(
+    "Require a certain effect to be present before continuing",
+    ["conditions"],
+    ["/require \"Well Fed\""]
+)]
 public class RequireCommand(string text, string[] conditions) : RequireCommandBase(text)
 {
     /// <inheritdoc/>

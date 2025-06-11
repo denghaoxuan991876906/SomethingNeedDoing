@@ -7,6 +7,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <summary>
 /// Holds keyboard keys down until released.
 /// </summary>
+[GenericDoc(
+    "Hold keyboard keys down until released",
+    ["keys", "modifiers"],
+    ["/hold W", "/hold CONTROL+MENU+SHIFT+NUMPAD0"]
+)]
 public class HoldCommand(string text, VirtualKey[] keys, VirtualKey[] modifiers) : MacroCommandBase(text)
 {
     /// <inheritdoc/>

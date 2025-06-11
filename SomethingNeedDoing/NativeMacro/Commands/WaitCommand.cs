@@ -8,6 +8,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <remarks>
 /// Initializes a new instance of the <see cref="WaitCommand"/> class.
 /// </remarks>
+[GenericDoc(
+    "Wait for a specified duration",
+    ["duration"],
+    ["/wait 1", "/wait 1-2"]
+)]
 public class WaitCommand(string text) : MacroCommandBase(text)
 {
     /// <inheritdoc/>

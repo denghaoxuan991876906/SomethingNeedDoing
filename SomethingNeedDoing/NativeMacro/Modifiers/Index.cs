@@ -6,6 +6,11 @@ namespace SomethingNeedDoing.NativeMacro.Modifiers;
 /// <summary>
 /// Modifier for specifying object indices for targeting and interaction.
 /// </summary>
+[GenericDoc(
+    "Specify object indices for targeting and interaction",
+    ["index"],
+    ["/target \"Zodiark\" <index.1>", "/interact \"Y'shtola\" <index.2>"]
+)]
 public class IndexModifier(string text, int index) : MacroModifierBase(text)
 {
     private static readonly Regex Regex = new(@"(?<modifier><index\.(?<index>\d+)>)", RegexOptions.Compiled | RegexOptions.IgnoreCase);

@@ -8,6 +8,11 @@ namespace SomethingNeedDoing.NativeMacro.Modifiers;
 /// <remarks>
 /// Initializes a new instance of the <see cref="ConditionModifier"/> class.
 /// </remarks>
+[GenericDoc(
+    "Require a crafting condition to perform the action specified. This is taken from the Synthesis window and may be localized to your client language.",
+    ["conditions"],
+    ["/ac Observe <condition.poor>", "/ac \"Precise Touch\" <condition.good,excellent>", "/ac \"Byregot's Blessing\" <condition.not.poor>", "/ac \"Byregot's Blessing\" <condition.!poor>"]
+)]
 public class ConditionModifier(string text, string[] conditions, bool isNegated) : MacroModifierBase(text)
 {
     private static readonly Regex Regex = new(@"(?<modifier><condition\.(?<not>(not\.|\!))?(?<names>[^>]+)>)", RegexOptions.Compiled | RegexOptions.IgnoreCase);

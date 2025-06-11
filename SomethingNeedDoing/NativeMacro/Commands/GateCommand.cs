@@ -5,6 +5,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <summary>
 /// Controls crafting loop execution with a gate count.
 /// </summary>
+[GenericDoc(
+    "Similar to loop but used at the start of a macro with an infinite /loop at the end. Allows a certain amount of executions before stopping the macro.",
+    ["gateCount"],
+    ["/gate 10", "/gate 10 <echo>"]
+)]
 public class GateCommand(string text, int gateCount) : MacroCommandBase(text)
 {
     private readonly int startingCrafts = gateCount;

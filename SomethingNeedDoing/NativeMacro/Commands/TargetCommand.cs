@@ -9,6 +9,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <remarks>
 /// Initializes a new instance of the <see cref="TargetCommand"/> class.
 /// </remarks>
+[GenericDoc(
+    "Target a game object by name",
+    ["targetName"],
+    ["/target \"Target Name\"", "/target \"Target Name\" <errorif.targetnotfound>", "/target \"Target Name\" <1>"]
+)]
 public class TargetCommand(string text, string targetName) : MacroCommandBase(text)
 {
     /// <inheritdoc/>
@@ -28,7 +33,7 @@ public class TargetCommand(string text, string targetName) : MacroCommandBase(te
                         .Skip(ListIndexModifier?.Index ?? 0)
                         .FirstOrDefault();
 
-            if (target == null && C.StopMacroIfTargetNotFound)
+            if (target == null && ErrorIfModifier?.Condition == Modifiers.ErrorCondition.TargetNotFound)
                 throw new MacroException("Could not find target");
 
             if (target != null)

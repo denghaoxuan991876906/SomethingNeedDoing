@@ -6,6 +6,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <summary>
 /// Executes another macro from within the current macro.
 /// </summary>
+[GenericDoc(
+    "Start a macro from within another macro",
+    ["macroName"],
+    ["/runmacro \"Macro Name\"", "/runmacro \"Macro Name\" <wait.1>"]
+)]
 public class RunMacroCommand(string text, string macroName, IMacroScheduler scheduler) : MacroCommandBase(text)
 {
     /// <inheritdoc/>

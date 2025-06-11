@@ -6,6 +6,11 @@ namespace SomethingNeedDoing.NativeMacro.Modifiers;
 /// <summary>
 /// Modifier for specifying list indices for multi-target operations.
 /// </summary>
+[GenericDoc(
+    "Specify list indices for multi-target operations",
+    ["index"],
+    ["/target \"Right Arm\" <list.1>", "/target \"Right Arm\" <list.2>"]
+)]
 public class ListIndexModifier(string text, int index) : MacroModifierBase(text)
 {
     private static readonly Regex Regex = new(@"(?<modifier><list\.(?<index>\d+)>)", RegexOptions.Compiled | RegexOptions.IgnoreCase);

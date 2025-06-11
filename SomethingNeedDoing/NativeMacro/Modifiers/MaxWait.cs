@@ -6,6 +6,11 @@ namespace SomethingNeedDoing.NativeMacro.Modifiers;
 /// <summary>
 /// Modifier for specifying maximum wait times for operations.
 /// </summary>
+[GenericDoc(
+    "For certain commands, the maximum time to wait for a certain state to be achieved. By default, this is 5 seconds.",
+    ["wait"],
+    ["/waitaddon RecipeNote <maxwait.10>"]
+)]
 public class MaxWaitModifier(string text, int maxWaitMs) : MacroModifierBase(text)
 {
     private static readonly Regex Regex = new(@"(?<modifier><maxwait\.(?<wait>\d+(?:\.\d+)?)>)", RegexOptions.Compiled | RegexOptions.IgnoreCase);

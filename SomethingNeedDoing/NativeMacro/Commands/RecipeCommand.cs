@@ -6,6 +6,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <summary>
 /// Opens the recipe window to a specific recipe.
 /// </summary>
+[GenericDoc(
+    "Open the recipe window to a specific recipe",
+    ["recipeName"],
+    ["/recipe \"Tsai tou Vounou\"", "/recipe \"Tsai tou Vounou\" <errorif.addonnotfound>"]
+)]
 public class RecipeCommand(string text, string recipeName) : MacroCommandBase(text)
 {
     /// <inheritdoc/>

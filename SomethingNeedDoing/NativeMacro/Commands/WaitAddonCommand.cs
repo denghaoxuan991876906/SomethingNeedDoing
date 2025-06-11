@@ -9,6 +9,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <remarks>
 /// Initializes a new instance of the <see cref="WaitAddonCommand"/> class.
 /// </remarks>
+[GenericDoc(
+    "Wait for a specific addon to be visible",
+    ["addonName"],
+    ["/waitaddon \"Synthesis\"", "/waitaddon \"Synthesis\" <maxwait.5>"]
+)]
 public class WaitAddonCommand(string text, string addonName) : MacroCommandBase(text)
 {
     private const int CHECK_INTERVAL = 250;

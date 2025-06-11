@@ -9,6 +9,11 @@ namespace SomethingNeedDoing.NativeMacro.Modifiers;
 /// <remarks>
 /// Initializes a new instance of the <see cref="UnsafeModifier"/> class.
 /// </remarks>
+[GenericDoc(
+    "Prevent the /action command from waiting for a positive server response and attempting to execute the command anyways",
+    [],
+    ["/ac \"Tricks of the Trade\" <unsafe>"]
+)]
 public class UnsafeModifier(string text, bool isUnsafe) : MacroModifierBase(text)
 {
     private static readonly Regex Regex = new(@"(?<modifier><unsafe>)", RegexOptions.Compiled | RegexOptions.IgnoreCase);

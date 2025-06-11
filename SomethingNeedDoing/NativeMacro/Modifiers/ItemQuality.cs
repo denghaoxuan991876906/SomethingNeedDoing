@@ -5,6 +5,11 @@ namespace SomethingNeedDoing.NativeMacro.Modifiers;
 /// <summary>
 /// Modifier for specifying high-quality items.
 /// </summary>
+[GenericDoc(
+    "Specify high-quality items",
+    [],
+    ["/item Calamari Ripieni <hq>"]
+)]
 public class ItemQualityModifier(string text, bool isHq) : MacroModifierBase(text)
 {
     private static readonly Regex Regex = new(@"(?<modifier><hq>)", RegexOptions.Compiled | RegexOptions.IgnoreCase);

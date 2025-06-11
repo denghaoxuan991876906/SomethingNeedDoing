@@ -6,6 +6,11 @@ namespace SomethingNeedDoing.NativeMacro.Modifiers;
 /// <summary>
 /// Modifier for specifying maximum distance for targeting and interaction.
 /// </summary>
+[GenericDoc(
+    "Specify maximum distance for targeting and interaction",
+    ["distance"],
+    ["/target \"Zodiark\" <distance.3>", "/interact \"Y'shtola\" <distance.5.5>"]
+)]
 public class DistanceModifier(string text, float distance) : MacroModifierBase(text)
 {
     private static readonly Regex Regex = new(@"(?<modifier><distance\.(?<distance>\d+(?:\.\d+)?)>)", RegexOptions.Compiled | RegexOptions.IgnoreCase);

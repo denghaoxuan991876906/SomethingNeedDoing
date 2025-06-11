@@ -7,6 +7,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <summary>
 /// Releases held keyboard keys.
 /// </summary>
+[GenericDoc(
+    "Release held keyboard keys",
+    ["keys", "modifiers"],
+    ["/release W", "/release CONTROL+MENU+SHIFT+NUMPAD0"]
+)]
 public class ReleaseCommand(string text, VirtualKey[] keys, VirtualKey[] modifiers) : MacroCommandBase(text)
 {
     /// <inheritdoc/>

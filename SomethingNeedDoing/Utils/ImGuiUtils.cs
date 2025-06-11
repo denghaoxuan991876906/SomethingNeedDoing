@@ -1,10 +1,8 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Colors;
-using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace SomethingNeedDoing.Utils;
 public static class ImGuiUtils
@@ -191,5 +189,27 @@ public static class ImGuiUtils
         using var font = ImRaii.PushFont(contentFont ?? ImGui.GetFont());
         using (ImRaii.PushIndent(condition: indentContent))
             content();
+    }
+
+    public static void CollapsibleSection(string id, Action content, bool sameLine = true, bool indentContent = true)
+    {
+        if (sameLine) ImGui.SameLine();
+
+        var storageId = ImGui.GetID($"##{id}_open");
+        var isOpen = ImGui.GetStateStorage().GetBool(storageId, false);
+
+        ImGui.TextColored(ImGuiColors.DalamudGrey, isOpen ? "▼" : "▶");
+
+        if (ImGui.IsItemClicked())
+        {
+            isOpen = !isOpen;
+            ImGui.GetStateStorage().SetBool(storageId, isOpen);
+        }
+
+        if (isOpen)
+        {
+            using var _ = ImRaii.PushIndent(condition: indentContent);
+            content();
+        }
     }
 }

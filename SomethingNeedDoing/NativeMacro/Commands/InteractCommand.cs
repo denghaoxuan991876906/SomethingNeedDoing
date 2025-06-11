@@ -5,6 +5,11 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 /// <summary>
 /// Interacts with the current target.
 /// </summary>
+[GenericDoc(
+    "Interact with the current target",
+    [],
+    ["/interact", "/interact <errorif.targetnotfound>"]
+)]
 public class InteractCommand(string text) : MacroCommandBase(text)
 {
     /// <inheritdoc/>

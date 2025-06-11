@@ -104,14 +104,6 @@ public class Config : IEzConfig
     public int BeepCount { get; set; } = 3;
     #endregion
 
-    #region Error Conditions
-    public bool StopMacroIfActionTimeout { get; set; } = true;
-    public bool StopMacroIfItemNotFound { get; set; } = true;
-    public bool StopMacroIfCantUseItem { get; set; } = true;
-    public bool StopMacroIfTargetNotFound { get; set; } = true;
-    public bool StopMacroIfAddonNotFound { get; set; } = true;
-    #endregion
-
     #region AutoRetainer Integration
     public List<ulong> ARCharacterPostProcessExcludedCharacters { get; set; } = [];
     #endregion
