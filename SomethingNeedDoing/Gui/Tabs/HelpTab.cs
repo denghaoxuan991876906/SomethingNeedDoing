@@ -13,7 +13,6 @@ public class HelpTab(HelpLuaTab _luaTab, HelpCliTab _cliTab, HelpCommandsTab _co
             ("Lua", _luaTab.DrawTab, null, false),
             ("Cli", _cliTab.DrawTab, null, false),
             ("Clicks", HelpClicksTab.DrawTab, null, false),
-            ("Keys & Sends", HelpKeysTab.DrawTab, null, false),
-            ("Conditions", HelpConditionsTab.DrawTab, null, false));
+            ("Keys & Sends", HelpKeysTab.DrawTab, null, false));
     }
 }

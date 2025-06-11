@@ -1,5 +1,4 @@
 ﻿using Dalamud.Interface;
-using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using SomethingNeedDoing.Services;
@@ -9,37 +8,31 @@ public class HelpCliTab(CommandService cmds)
 {
     public void DrawTab()
     {
-        using var font = ImRaii.PushFont(UiBuilder.MonoFont);
+        ImGuiUtils.Section("Command Line Interface", () => ImGui.TextWrapped("The following commands can be used in chat or your macro text."));
 
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "Command Line Interface (CLI)");
-        ImGui.TextWrapped("The following commands can be used in chat or your macro text.");
-        ImGui.Separator();
+        ImGuiUtils.Section("Main Command", () => ImGui.TextUnformatted(cmds.MainCommand), contentFont: UiBuilder.MonoFont);
 
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "Main Command:");
-        ImGui.TextUnformatted(cmds.MainCommand);
-        ImGui.Spacing();
+        ImGuiUtils.Section("Aliases", () => cmds.Aliases.Each(ImGui.TextUnformatted), contentFont: UiBuilder.MonoFont);
 
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "Aliases:");
-        cmds.Aliases.Each(ImGui.TextUnformatted);
-        ImGui.Separator();
-
-        // Command reference table
-        using var table = ImRaii.Table("CommandsTable", 2, ImGuiTableFlags.BordersOuter | ImGuiTableFlags.BordersInner);
-        if (!table) return;
-
-        ImGui.TableSetupColumn("Command", ImGuiTableColumnFlags.WidthFixed, 180 * ImGuiHelpers.GlobalScale);
-        ImGui.TableSetupColumn("Description", ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableHeadersRow();
-
-        foreach (var (name, desc) in cmds.GetCommandData())
+        ImGuiUtils.Section("Commands", () =>
         {
-            ImGui.TableNextRow();
+            using var table = ImRaii.Table("CommandsTable", 2, ImGuiTableFlags.BordersOuter | ImGuiTableFlags.BordersInner);
+            if (!table) return;
 
-            ImGui.TableSetColumnIndex(0);
-            ImGui.TextUnformatted($"{cmds.Aliases[0]} {name}");
+            ImGui.TableSetupColumn("Command", ImGuiTableColumnFlags.WidthFixed, 180 * ImGuiHelpers.GlobalScale);
+            ImGui.TableSetupColumn("Description", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableHeadersRow();
 
-            ImGui.TableSetColumnIndex(1);
-            ImGui.TextWrapped(desc);
-        }
+            foreach (var (name, desc) in cmds.GetCommandData())
+            {
+                ImGui.TableNextRow();
+
+                ImGui.TableSetColumnIndex(0);
+                ImGui.TextUnformatted($"{cmds.Aliases[0]} {name}");
+
+                ImGui.TableSetColumnIndex(1);
+                ImGui.TextWrapped(desc);
+            }
+        }, contentFont: UiBuilder.MonoFont);
     }
 }
