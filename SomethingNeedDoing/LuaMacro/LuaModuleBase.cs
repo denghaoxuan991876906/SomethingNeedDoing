@@ -1,4 +1,5 @@
-﻿using SomethingNeedDoing.Core.Interfaces;
+﻿using ECommons;
+using SomethingNeedDoing.Core.Interfaces;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -11,6 +12,10 @@ public abstract class LuaModuleBase : ILuaModule
     public abstract string ModuleName { get; }
     public ILuaModule? ParentModule { get; set; }
     public virtual Type? ParentType => null;
+
+    private LuaModuleManager? _moduleManager;
+    internal void SetModuleManager(LuaModuleManager manager) => _moduleManager = manager;
+    protected T? GetModule<T>() where T : class, ILuaModule => _moduleManager?.GetModule<T>();
 
     public virtual void Register(NLua.Lua lua)
     {

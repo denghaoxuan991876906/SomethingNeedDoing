@@ -16,16 +16,17 @@ public class LuaModuleManager
     {
         _documentation = documentation;
         RegisterModule(new ActionsModule());
-        RegisterModule(new InstancesModule());
-        RegisterModule(new EntityModule());
-        RegisterModule(new IPCModule());
-        RegisterModule(new ExcelModule());
         RegisterModule(new AddonModule());
-        RegisterModule(new PlayerModule());
+        RegisterModule(new DalamudModule());
+        RegisterModule(new EntityModule());
+        RegisterModule(new ExcelModule());
+        RegisterModule(new FateModule());
         RegisterModule(new InstancedContentModule());
+        RegisterModule(new InstancesModule());
+        RegisterModule(new IPCModule());
+        RegisterModule(new PlayerModule());
         RegisterModule(new QuestsModule());
         RegisterModule(new SystemModule());
-        //RegisterModule(new FateModule());
     }
 
     public void RegisterAll(Lua lua) => _modules.ForEach(m => m.Register(lua));
@@ -33,12 +34,14 @@ public class LuaModuleManager
 
     public void RegisterModule(ILuaModule module)
     {
-        if (module is LuaModuleBase baseModule && baseModule.ParentType != null)
+        if (module is LuaModuleBase baseModule)
+            baseModule.SetModuleManager(this);
+        if (module is LuaModuleBase baseModule2 && baseModule2.ParentType != null)
         {
-            if (_modules.FirstOrDefault(m => m.GetType() == baseModule.ParentType) is { } parent)
-                baseModule.ParentModule = parent;
+            if (_modules.FirstOrDefault(m => m.GetType() == baseModule2.ParentType) is { } parent)
+                baseModule2.ParentModule = parent;
             else
-                throw new InvalidOperationException($"Parent module of type {baseModule.ParentType.Name} not found for {module.GetType().Name}");
+                throw new InvalidOperationException($"Parent module of type {baseModule2.ParentType.Name} not found for {module.GetType().Name}");
         }
 
         _modules.Add(module);
