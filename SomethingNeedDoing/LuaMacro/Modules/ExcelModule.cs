@@ -2,6 +2,7 @@
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
 using Lumina.Text.ReadOnly;
+using NLua;
 using SomethingNeedDoing.Core.Interfaces;
 using System.Reflection;
 
@@ -14,8 +15,8 @@ public class ExcelModule : LuaModuleBase
     private const BindingFlags PropertyFlags = BindingFlags.Public | BindingFlags.Instance |
                                                BindingFlags.IgnoreCase | BindingFlags.DeclaredOnly;
 
-    [LuaFunction]
-    public SheetWrapper? this[string name] => GetSheet(name);
+    [LuaFunction("__index")]
+    public SheetWrapper? this[LuaTable table, string key] => GetSheet(key);
 
     [LuaFunction]
     public SheetWrapper? GetSheet(string name)

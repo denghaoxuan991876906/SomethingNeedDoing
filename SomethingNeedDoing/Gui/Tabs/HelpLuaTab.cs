@@ -165,6 +165,8 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
             using var __ = ImRaii.PushIndent();
             foreach (var (prop, index) in wrapperProperties.WithIndex())
             {
+                if (prop.Name == "Item" && prop.GetIndexParameters() is { Length: > 0 }) continue;
+
                 var docs = prop.GetCustomAttributes(typeof(LuaDocsAttribute), true).Cast<LuaDocsAttribute>().FirstOrDefault();
                 var fullChain = string.IsNullOrEmpty(parentChain) ? prop.Name : $"{parentChain}.{prop.Name}";
 

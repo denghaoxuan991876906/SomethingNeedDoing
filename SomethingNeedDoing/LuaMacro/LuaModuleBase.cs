@@ -1,6 +1,7 @@
 ﻿using SomethingNeedDoing.Core.Interfaces;
 using System.Linq.Expressions;
 using System.Reflection;
+using SomethingNeedDoing.Attributes;
 
 namespace SomethingNeedDoing.LuaMacro;
 /// <summary>
@@ -22,14 +23,39 @@ public abstract class LuaModuleBase : ILuaModule
         foreach (var method in GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance))
         {
             if (method.GetCustomAttribute<LuaFunctionAttribute>() is not { } attr) continue;
-            lua[$"{modulePath}.{attr.Name ?? method.Name}"] = CreateDelegate(method);
+            var name = attr.Name ?? method.Name;
+            lua[$"{modulePath}.{name}"] = CreateDelegate(method);
+
+            if (name.StartsWith("__"))
+                RegisterMetamethod(lua, modulePath, name);
         }
 
         // Register all properties marked with LuaFunction attribute as getter functions
         foreach (var property in GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             if (property.GetCustomAttribute<LuaFunctionAttribute>() is not { } attr) continue;
-            lua[$"{modulePath}.{attr.Name ?? property.Name}"] = CreateDelegate(property.GetMethod!);
+            var name = attr.Name ?? property.Name;
+            lua[$"{modulePath}.{name}"] = CreateDelegate(property.GetMethod!);
+
+            if (name.StartsWith("__"))
+                RegisterMetamethod(lua, modulePath, name);
+        }
+    }
+
+    private static void RegisterMetamethod(NLua.Lua lua, string modulePath, string name)
+    {
+        var metaPath = $"{modulePath}.__metatable";
+        var table = lua.GetTable(metaPath);
+        if (table == null)
+        {
+            lua.NewTable(metaPath);
+            lua.DoString($"setmetatable({modulePath}, {metaPath})");
+            table = lua.GetTable(metaPath);
+        }
+
+        if (table != null)
+        {
+            lua.DoString($"{metaPath}.{name} = function(...) return {modulePath}.{name}(...) end");
         }
     }
 
