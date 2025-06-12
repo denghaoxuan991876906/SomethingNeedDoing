@@ -1,5 +1,4 @@
-﻿using Dalamud.Interface.Colors;
-using Dalamud.Interface.Utility.Raii;
+﻿using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Gui.Modals;
 
@@ -74,7 +73,7 @@ public static class SettingsTab
             if (useCraftLoopTemplate)
             {
                 var craftLoopTemplate = C.CraftLoopTemplate;
-                if (ImGui.InputTextMultiline("CraftLoop Template", ref craftLoopTemplate, 1000, new System.Numerics.Vector2(0, 100)))
+                if (ImGui.InputTextMultiline("CraftLoop Template", ref craftLoopTemplate, 1000, new Vector2(0, 100)))
                 {
                     C.CraftLoopTemplate = craftLoopTemplate;
                     C.Save();
@@ -171,20 +170,14 @@ public static class SettingsTab
             }
         });
 
-        ImGui.Separator();
-        ImGui.Spacing();
-
-        // Import/Export Section
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "Legacy Macro Import");
-        ImGui.Spacing();
-
-        // Instructions for import
-        ImGui.TextWrapped($"Import macros from the old version of {P.Name}. These are not guaranteed to work any more but can be imported as a reference.\n" +
+        ImGuiUtils.Section("Legacy Macro Import", () =>
+        {
+            ImGui.TextWrapped($"Import macros from the old version of {P.Name}. These are not guaranteed to work any more but can be imported as a reference.\n" +
             "You can copy an old config to clipboard and click the import button, or it will automatically attempt to find the old config file.");
-        ImGui.Spacing();
+            ImGui.Spacing();
 
-        // Import button with better label
-        if (ImGuiUtils.IconButton(FontAwesomeHelper.IconImport, "Import"))
-            MigrationModal.Open(ImGui.GetClipboardText());
+            if (ImGuiUtils.IconButton(FontAwesomeHelper.IconImport, "Import"))
+                MigrationModal.Open(ImGui.GetClipboardText());
+        });
     }
 }

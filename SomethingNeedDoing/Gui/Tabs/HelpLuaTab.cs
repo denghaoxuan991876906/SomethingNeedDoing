@@ -11,12 +11,7 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
 {
     public void DrawTab()
     {
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "Lua Scripting");
-        ImGui.TextWrapped(
-            "SomethingNeedDoing supports Lua scripting for advanced automation. " +
-            "Lua scripts can do everything native macros can do and much more.");
-
-        ImGui.Separator();
+        ImGuiUtils.Section("Lua Scripting", () => ImGui.TextWrapped($"Below are all of the functions and properties provided by the framework. Click any to copy the full call path to clipboard."));
 
         foreach (var module in luaDocs.GetModules())
         {

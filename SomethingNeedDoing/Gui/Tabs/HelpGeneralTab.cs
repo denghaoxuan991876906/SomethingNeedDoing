@@ -7,10 +7,11 @@ public static class HelpGeneralTab
 {
     public static void DrawTab()
     {
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "Something Need Doing - Macro Helper");
-
-        ImGui.TextWrapped($"{P.Name} is an expansion of the native macro system, with smart helpers, additional commands and modifiers, and unlimited macros.");
-        ImGui.TextWrapped("It also supports scripting with Lua, so you can write macros that are more complex than the native system can handle.");
+        ImGuiUtils.Section(P.Name, () =>
+        {
+            ImGui.TextWrapped($"{P.Name} is an expansion of the native macro system, with smart helpers, additional commands and modifiers, and unlimited macros.");
+            ImGui.TextWrapped("It also supports scripting with Lua, so you can write macros that are more complex than the native system can handle.");
+        });
 
         ImGuiUtils.Section("Status Monitoring", () =>
         {

@@ -5,8 +5,6 @@ public class HelpTab(HelpLuaTab _luaTab, HelpCliTab _cliTab, HelpCommandsTab _co
 {
     public void Draw()
     {
-        ImGui.Dummy(new Vector2(0, 5)); // padding
-
         ImGuiEx.EzTabBar("Tabs",
             ("General", HelpGeneralTab.DrawTab, null, false),
             ("Commands", _commandsTab.DrawTab, null, false),

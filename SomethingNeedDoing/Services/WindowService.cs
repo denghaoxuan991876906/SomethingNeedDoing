@@ -7,11 +7,12 @@ public class WindowService : IDisposable
     private readonly WindowSystem _ws;
     private readonly MainWindow _mainWindow;
 
-    public WindowService(WindowSystem ws, MainWindow mainWindow)
+    public WindowService(WindowSystem ws, MainWindow mainWindow, MacroStatusWindow statusWindow)
     {
         _ws = ws;
         _mainWindow = mainWindow;
         _ws.AddWindow(_mainWindow);
+        _ws.AddWindow(statusWindow);
         Svc.PluginInterface.UiBuilder.Draw += _ws.Draw;
     }
 

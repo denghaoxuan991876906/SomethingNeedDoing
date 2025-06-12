@@ -1,7 +1,7 @@
 ﻿using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
-using ECommons.Automation.UIInput;
-using ECommons.ImGuiMethods;
+using ECommons.UIHelpers.AddonMasterImplementations;
+using System.Reflection;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 public static class HelpClicksTab
@@ -17,17 +17,18 @@ public static class HelpClicksTab
         ImGuiUtils.Section("Available Clicks", () =>
         {
             using var _ = ImRaii.Child("ClicksList", new(-1, 300), true);
-            foreach (var name in ClickHelper.GetAvailableClicks())
+            foreach (var name in typeof(AddonMaster).Assembly.GetTypes()
+            .Where(type => type.FullName!.StartsWith($"{typeof(AddonMaster).FullName}+") && type.DeclaringType == typeof(AddonMaster))
+            .SelectMany(type => type.GetMembers()
+                .Where(m => (m is MethodInfo info && !info.IsSpecialName && info.DeclaringType != typeof(object)) || (m is PropertyInfo prop && prop.GetAccessors().Length > 0 && prop.PropertyType.IsClass && prop.PropertyType.Namespace == type.Namespace))
+                .Select(member => $"{(member is MethodInfo ? "m" : "p")}{type.Name} {member.Name}")))
             {
                 var isProperty = name.StartsWith('p');
-                var displayName = isProperty ? name[1..] : name;
                 var color = isProperty ? ImGuiColors.DalamudRed : ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
 
                 using var textColor = ImRaii.PushColor(ImGuiCol.Text, color);
-                if (ImGui.Selectable($"/click {displayName}"))
-                    ImGui.SetClipboardText($"/click {displayName}");
-
-                ImGuiEx.Tooltip(isProperty ? "This is a property with methods. Cannot be called directly." : "Click to copy to clipboard");
+                if (ImGui.Selectable($"/click {name[1..]}"))
+                    Copy($"/click {name[1..]}");
             }
         });
     }

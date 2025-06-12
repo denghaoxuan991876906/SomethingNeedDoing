@@ -11,14 +11,21 @@ namespace SomethingNeedDoing.Gui;
 /// <summary>
 /// Macro editor with IDE-like features
 /// </summary>
-public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, MacroStatusWindow? statusWindow = null)
+public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, MacroStatusWindow statusWindow)
 {
     private readonly IMacroScheduler _scheduler = scheduler;
     private readonly GitMacroManager _gitManager = gitManager;
-    private readonly MacroStatusWindow? _statusWindow = statusWindow;
+    private readonly MacroStatusWindow _statusWindow = statusWindow;
     private bool _showLineNumbers = true;
     private bool _highlightSyntax = true;
-    private bool _isCheckingForUpdates;
+    private UpdateState _updateState = UpdateState.Unknown;
+
+    private enum UpdateState
+    {
+        Unknown,
+        None,
+        Available
+    }
 
     public void Draw(IMacro? macro)
     {
@@ -97,52 +104,30 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
 
     private void DrawEditorToolbar(IMacro macro)
     {
-        using var toolbar = ImRaii.Child("ToolbarChild", new Vector2(-1, ImGui.GetFrameHeight() * 1.5f), false);
+        using var toolbar = ImRaii.Child("ToolbarChild", new Vector2(-1, ImGui.GetFrameHeight() * 2f), false);
         if (!toolbar) return;
 
+        ImGui.Spacing();
+        ImGui.Spacing();
         DrawActionButtons(macro);
-        DrawRightAlignedControls();
+        DrawRightAlignedControls(macro);
     }
 
     private void DrawActionButtons(IMacro macro)
     {
         var group = new ImGuiEx.EzButtonGroup();
-        var baseStyle = new ImGuiEx.EzButtonGroup.ButtonStyle() { NoButtonBg = true, TextColor = ImGuiUtils.Colours.Gold };
+        var baseStyle = new ImGuiEx.EzButtonGroup.ButtonStyle() { TextColor = ImGuiColors.DalamudGrey };
         group.AddIconOnly(FontAwesomeIcon.PlayCircle, () => _scheduler.StartMacro(macro), "Run", baseStyle);
-        group.AddIconOnly(FontAwesomeIcon.PauseCircle, () => _scheduler.PauseMacro(macro.Id), "Pause", baseStyle + new ImGuiEx.EzButtonGroup.ButtonStyle() { NoButtonBg = true, Condition = () => _scheduler.GetMacroState(macro.Id) == MacroState.Running });
+        group.AddIconOnly(FontAwesomeIcon.PauseCircle, () => _scheduler.PauseMacro(macro.Id), "Pause",
+            baseStyle + new ImGuiEx.EzButtonGroup.ButtonStyle() { NoButtonBg = true, Condition = () => _scheduler.GetMacroState(macro.Id) == MacroState.Running });
         group.AddIconOnly(FontAwesomeIcon.StopCircle, () => _scheduler.StopMacro(macro.Id), "Stop", baseStyle);
-        group.AddIconOnly(FontAwesomeIcon.Clipboard, () => ImGui.SetClipboardText(macro.Content), "Copy", baseStyle);
+        group.AddIconOnly(FontAwesomeIcon.Clipboard, () => Copy(macro.Content), "Copy", baseStyle);
         group.Draw();
-        ImGui.SameLine();
-        if (macro is ConfigMacro { IsGitMacro: true } configMacro)
-        {
-            if (_isCheckingForUpdates)
-            {
-                using (ImRaii.Disabled())
-                    ImGuiUtils.Button(new Vector4(0.2f, 0.4f, 0.8f, 1.0f), FontAwesomeIcon.Sync, "Checking...");
-            }
-            else if (ImGuiUtils.Button(new Vector4(0.2f, 0.4f, 0.8f, 1.0f), FontAwesomeIcon.Sync, "Check for updates"))
-            {
-                _isCheckingForUpdates = true;
-                Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _gitManager.CheckForUpdates(configMacro);
-                    }
-                    finally
-                    {
-                        _isCheckingForUpdates = false;
-                    }
-                });
-            }
-        }
     }
 
-    private void DrawRightAlignedControls()
+    private void DrawRightAlignedControls(IMacro macro)
     {
-        var windowWidth = ImGui.GetWindowWidth();
-        ImGui.SameLine(windowWidth - 120);
+        ImGui.SameLine(ImGui.GetWindowWidth() - (macro is ConfigMacro { IsGitMacro: true } ? 145 : 120));
 
         using var _ = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
 
@@ -156,12 +141,9 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         {
             if (ImGuiUtils.IconButton(statusIcon, macroCount > 0 ? $"{macroCount} running" : "No macros running"))
             {
-                if (_statusWindow != null)
-                {
-                    _statusWindow.IsOpen = !_statusWindow.IsOpen;
-                    if (_statusWindow.IsOpen)
-                        _statusWindow.BringToFront();
-                }
+                _statusWindow.IsOpen = !_statusWindow.IsOpen;
+                if (_statusWindow.IsOpen)
+                    _statusWindow.BringToFront();
             }
         }
 
@@ -176,6 +158,36 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
             _highlightSyntax ? FontAwesomeHelper.IconCheck : FontAwesomeHelper.IconXmark,
             "Syntax Highlighting (not currently available)"))
             _highlightSyntax = !_highlightSyntax;
+
+        if (macro is ConfigMacro { IsGitMacro: true } configMacro)
+        {
+            ImGui.SameLine();
+            var (updateIndicator, updateColor, tooltip) = _updateState switch
+            {
+                UpdateState.None => ("0", ImGuiColors.DalamudGrey, "No updates available"),
+                UpdateState.Available => ("1", ImGuiColors.DPSRed, "Update available (click to update)"),
+                _ => ("?", ImGuiColors.DalamudGrey, "Check for updates")
+            };
+
+            if (ImGuiUtils.IconButtonWithNotification(FontAwesomeIcon.Bell, updateIndicator, updateColor, tooltip))
+            {
+                if (_updateState == UpdateState.Available)
+                    Task.Run(async () => await _gitManager.UpdateMacro(configMacro));
+                else
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _gitManager.CheckForUpdates(configMacro);
+                            _updateState = configMacro.GitInfo.HasUpdate ? UpdateState.Available : UpdateState.None;
+                        }
+                        catch
+                        {
+                            _updateState = UpdateState.Unknown;
+                        }
+                    });
+            }
+        }
     }
 
     private void DrawCodeEditor(IMacro macro, float height)

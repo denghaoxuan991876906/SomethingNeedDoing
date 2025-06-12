@@ -19,10 +19,7 @@ public class MacroStatusWindow : Window
     // Time tracking for animation
     private float _elapsedSeconds = 0;
 
-    public MacroStatusWindow(IMacroScheduler scheduler, MacroHierarchyManager hierarchyManager)
-        : base("Macros Status###SND_MacroStatus",
-            ImGuiWindowFlags.AlwaysAutoResize |
-            ImGuiWindowFlags.NoScrollbar)
+    public MacroStatusWindow(IMacroScheduler scheduler, MacroHierarchyManager hierarchyManager) : base($"{nameof(MacroStatusWindow)}###{P.Name}", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoScrollbar)
     {
         _scheduler = scheduler;
         _hierarchyManager = hierarchyManager;

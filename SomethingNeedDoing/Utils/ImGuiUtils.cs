@@ -212,4 +212,24 @@ public static class ImGuiUtils
             content();
         }
     }
+
+    public static bool IconButtonWithNotification(FontAwesomeIcon icon, string notification, Vector4 notificationColor, string tooltip = "", Vector2 size = default)
+    {
+        var pressed = ImGuiEx.IconButton(icon, size: size);
+        var drawList = ImGui.GetWindowDrawList();
+
+        var circleRadius = 6f;
+        var circleCenter = new Vector2(ImGui.GetItemRectMax().X, ImGui.GetItemRectMin().Y);
+
+        drawList.AddCircleFilled(circleCenter, circleRadius, notificationColor.ToUint());
+
+        var textSize = ImGui.CalcTextSize(notification);
+        var textPos = circleCenter - textSize / 2;
+        drawList.AddText(textPos, ImGuiColors.DalamudWhite.ToUint(), notification);
+
+        if (tooltip != string.Empty)
+            ImGuiEx.Tooltip(tooltip);
+
+        return pressed;
+    }
 }
