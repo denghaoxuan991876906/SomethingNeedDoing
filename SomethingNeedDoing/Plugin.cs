@@ -17,7 +17,6 @@ public sealed class Plugin : IDalamudPlugin
     private readonly ServiceProvider _serviceProvider;
 
     /*
-     * move the check for updates to right align?
      * fix line numbers not scrolling
      * get rid of changing cfg by command?
      */

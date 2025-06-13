@@ -16,6 +16,11 @@ public class Config : IEzConfig
     #region General Settings
     public XivChatType ChatType { get; set; } = XivChatType.Debug;
     public XivChatType ErrorChatType { get; set; } = XivChatType.Urgent;
+
+    /// <summary>
+    /// Gets or sets whether pausing a macro should also pause its child macros.
+    /// </summary>
+    public bool PropagatePauseToChildren { get; set; } = true;
     public bool HasCompletedTutorial { get; set; } = false;
     public bool AcknowledgedLegacyWarning { get; set; } = false;
     #endregion

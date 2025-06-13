@@ -44,8 +44,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _luaEngine = luaEngine;
         _triggerEventManager = triggerEventManager;
 
-        // Set the scheduler on the engines
-        _nativeEngine.Scheduler = this;
+        _nativeEngine.Scheduler = this; // TODO: find a way around this
         _luaEngine.Scheduler = this;
 
         _nativeEngine.MacroError += OnEngineError;
@@ -57,7 +56,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _nativeEngine.MacroStepCompleted += OnMacroStepCompleted;
         _luaEngine.MacroStepCompleted += OnMacroStepCompleted;
 
-        // Initialize disableable plugins
         foreach (var plugin in disableablePlugins)
             _disableablePlugins[plugin.InternalName] = plugin;
 
@@ -218,9 +216,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         macro.StateChanged += OnMacroStateChanged;
         var state = new MacroExecutionState(macro);
 
-        // Register function-level triggers when macro starts
         RegisterFunctionTriggers(macro);
-
         state.ExecutionTask = Task.Run(async () =>
         {
             try
@@ -273,6 +269,19 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             state.PauseEvent.Reset();
             state.Macro.State = MacroState.Paused;
             await SetPluginStates(state.Macro, true);
+
+            if (C.PropagatePauseToChildren)
+            {
+                var children = _macroHierarchy.GetChildMacros(macroId);
+                foreach (var child in children)
+                {
+                    if (_macroStates.TryGetValue(child.Id, out var childState))
+                    {
+                        childState.PauseEvent.Reset();
+                        child.State = MacroState.Paused;
+                    }
+                }
+            }
         }
     }
 
@@ -284,6 +293,19 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             state.PauseEvent.Set();
             state.Macro.State = MacroState.Running;
             await SetPluginStates(state.Macro, false);
+
+            if (C.PropagatePauseToChildren)
+            {
+                var children = _macroHierarchy.GetChildMacros(macroId);
+                foreach (var child in children)
+                {
+                    if (_macroStates.TryGetValue(child.Id, out var childState))
+                    {
+                        childState.PauseEvent.Set();
+                        child.State = MacroState.Running;
+                    }
+                }
+            }
         }
     }
 
@@ -296,9 +318,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             state.Macro.StateChanged -= OnMacroStateChanged;
             state.Macro.State = MacroState.Completed;
 
-            // Unregister function-level triggers when macro stops
             UnregisterFunctionTriggers(state.Macro);
-
             await SetPluginStates(state.Macro, true);
 
             if (_macroStates.TryRemove(macroId, out var removedState))
@@ -319,7 +339,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 _triggerEventManager.UnregisterAllTriggers(configMacro);
 
             UnregisterFunctionTriggers(state.Macro);
-
             state.CancellationSource.Cancel();
             state.CancellationSource.Dispose();
             state.Macro.StateChanged -= OnMacroStateChanged;
@@ -426,14 +445,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     {
         // If this is a temporary macro, find its parent
         var parts = e.MacroId.Split("_");
-        if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro)
-        {
-            // Propagate error state to parent
-            if (e.NewState == MacroState.Error)
-                parentMacro.State = MacroState.Error;
-        }
+        if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro && e.NewState == MacroState.Error)
+            parentMacro.State = MacroState.Error;
 
-        // Raise the event for all subscribers
         MacroStateChanged?.Invoke(sender, e);
 
         if (e.NewState is MacroState.Completed or MacroState.Error)
@@ -446,11 +460,8 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     tempMacro.StateChanged -= OnMacroStateChanged;
             }
 
-            // First stop the macro to handle execution cancellation and plugin states
-            StopMacro(e.MacroId);
-
-            // Then do a thorough cleanup of all triggers and state
-            CleanupMacro(e.MacroId);
+            StopMacro(e.MacroId); // handle local cancellations/state
+            CleanupMacro(e.MacroId); // cleanup triggers/state
         }
     }
 

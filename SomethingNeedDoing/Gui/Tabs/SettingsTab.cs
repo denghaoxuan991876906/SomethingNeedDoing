@@ -24,6 +24,14 @@ public static class SettingsTab
                 C.ErrorChatType = errorChannel;
                 C.Save();
             }
+
+            var propagatePause = C.PropagatePauseToChildren;
+            if (ImGui.Checkbox("Propagate Pause to Child Macros", ref propagatePause))
+            {
+                C.PropagatePauseToChildren = propagatePause;
+                C.Save();
+            }
+            ImGuiEx.Tooltip("When enabled, pausing a macro will also pause any child macros it spawns. Resuming will also resume the child macros.");
         });
 
         ImGuiUtils.Section("Crafting Settings", () =>
