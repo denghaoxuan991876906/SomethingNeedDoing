@@ -32,6 +32,7 @@ public class MainWindow : Window
         CreateFolderModal.DrawModal();
         RenameModal.DrawModal();
         MigrationModal.DrawModal();
+        FirstTimeWarningModal.DrawModal();
         _versionHistoryModal.Draw();
 
         using var _ = ImRaii.TabBar("Tabs");

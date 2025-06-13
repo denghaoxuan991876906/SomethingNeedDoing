@@ -17,6 +17,7 @@ public class Config : IEzConfig
     public XivChatType ChatType { get; set; } = XivChatType.Debug;
     public XivChatType ErrorChatType { get; set; } = XivChatType.Urgent;
     public bool HasCompletedTutorial { get; set; } = false;
+    public bool AcknowledgedLegacyWarning { get; set; } = false;
     #endregion
 
     #region Crafting Settings

@@ -1,5 +1,4 @@
-﻿using ECommons;
-using SomethingNeedDoing.Core.Interfaces;
+﻿using SomethingNeedDoing.Core.Interfaces;
 using System.Linq.Expressions;
 using System.Reflection;
 
