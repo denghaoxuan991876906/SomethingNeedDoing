@@ -323,7 +323,7 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                             var isGit = macroId.StartsWith("git://");
                             var displayName = isGit ? macroId[6..] : macroId;
 
-                            ImGuiEx.Text(isGit ? ImGuiColors.ParsedBlue : ImGuiColors.DalamudWhite, isGit ? FontAwesomeIcon.CloudDownloadAlt : FontAwesomeIcon.FileAlt, displayName);
+                            ImGuiEx.IconWithText(isGit ? ImGuiColors.ParsedBlue : ImGuiColors.DalamudWhite, isGit ? FontAwesomeIcon.CloudDownloadAlt : FontAwesomeIcon.FileAlt, displayName);
 
                             ImGui.SameLine(ImGui.GetContentRegionAvail().X - 30);
                             if (ImGuiUtils.IconButton(FontAwesomeIcon.Trash, "Remove dependency"))
