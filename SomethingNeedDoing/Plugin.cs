@@ -16,10 +16,6 @@ public sealed class Plugin : IDalamudPlugin
 
     private readonly ServiceProvider _serviceProvider;
 
-    /*
-     * fix line numbers not scrolling
-     */
-
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
         P = this;

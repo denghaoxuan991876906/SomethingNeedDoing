@@ -141,16 +141,21 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
 
     private void DrawCodeEditor(IMacro macro, float height)
     {
-        using var group = ImRaii.Group();
         var lineNumberWidth = CalculateLineNumberWidth(macro.Content);
         var lineHeight = ImGui.GetTextLineHeight();
         var editorPadding = 5.0f;
 
-        if (_showLineNumbers)
-            DrawLineNumbers(macro.Content, lineNumberWidth, height, lineHeight, editorPadding);
+        // Use a single scrollable child window that contains both line numbers and text editor
+        using var scrollableChild = ImRaii.Child("CodeEditorScrollable", new Vector2(0, height), false, ImGuiWindowFlags.HorizontalScrollbar);
+        if (!scrollableChild) return;
 
-        ImGui.SameLine(0, 0);
-        DrawTextEditor(macro, height, editorPadding);
+        if (_showLineNumbers)
+        {
+            DrawLineNumbers(macro.Content, lineNumberWidth, lineHeight, editorPadding);
+            ImGui.SameLine(0, 0);
+        }
+
+        DrawTextEditor(macro, lineHeight, editorPadding);
     }
 
     private float CalculateLineNumberWidth(string content) => content.Split('\n').Length switch
@@ -160,25 +165,25 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         _ => 40
     };
 
-    private void DrawLineNumbers(string content, float width, float height, float lineHeight, float padding)
+    private void DrawLineNumbers(string content, float width, float height, float padding)
     {
         using var _ = ImRaii.PushColor(ImGuiCol.ChildBg, new Vector4(0.1f, 0.1f, 0.1f, 1.0f)).Push(ImGuiCol.Text, ImGuiColors.DalamudGrey);
-        using var __ = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0)).Push(ImGuiStyleVar.WindowPadding, new Vector2(0, padding));
+        using var __ = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, new Vector2(0, 0)).Push(ImGuiStyleVar.WindowPadding, new Vector2(padding, padding));
 
-        using var child = ImRaii.Child("LineNumbers", new Vector2(width, height), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+        var lines = content.Split('\n');
+        var calculatedHeight = lines.Length * height + padding * 2;
+        var availableHeight = ImGui.GetContentRegionAvail().Y;
+        var totalHeight = Math.Max(calculatedHeight, availableHeight);
 
-        if (child)
+        // Create a child window for line numbers that doesn't scroll independently
+        using var child = ImRaii.Child("LineNumbers", new Vector2(width, totalHeight), true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+        if (!child) return;
+
+        for (var i = 0; i < lines.Length; i++)
         {
-            var startY = ImGui.GetCursorPosY();
-            var lines = content.Split('\n');
-
-            for (var i = 0; i < lines.Length; i++)
-            {
-                ImGui.SetCursorPosY(startY + (i * lineHeight));
-                var textWidth = ImGui.CalcTextSize($"{i + 1}").X;
-                ImGui.SetCursorPosX(width - textWidth - 6);
-                ImGui.Text($"{i + 1}");
-            }
+            var textWidth = ImGui.CalcTextSize($"{i + 1}").X;
+            ImGui.SetCursorPosX(width - textWidth - 6);
+            ImGui.Text($"{i + 1}");
         }
     }
 
@@ -187,22 +192,18 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         using var _ = ImRaii.PushColor(ImGuiCol.FrameBg, new Vector4(0.15f, 0.15f, 0.15f, 1.0f));
         using var __ = ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(5, padding));
 
-        var flags = ImGuiInputTextFlags.AllowTabInput;
+        var lines = macro.Content.Split('\n');
+        var totalHeight = Math.Max(lines.Length * height + padding * 2, ImGui.GetContentRegionAvail().Y);
         var editorWidth = ImGui.GetContentRegionAvail().X;
 
         if (macro is ConfigMacro configMacro)
         {
             var contents = configMacro.Content;
-            if (ImGui.InputTextMultiline("##MacroEditor", ref contents, 1_000_000, new Vector2(editorWidth, height), flags))
+            if (ImGui.InputTextMultiline("##MacroEditor", ref contents, 1_000_000, new Vector2(editorWidth, totalHeight), ImGuiInputTextFlags.AllowTabInput))
             {
                 configMacro.Content = contents;
                 C.Save();
             }
-        }
-        else if (macro is ConfigMacro m)
-        {
-            var contents = m.Content;
-            ImGui.InputTextMultiline("##MacroEditor", ref contents, 1_000_000, new Vector2(editorWidth, height), flags | ImGuiInputTextFlags.ReadOnly);
         }
     }
 
