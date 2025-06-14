@@ -18,7 +18,6 @@ public sealed class Plugin : IDalamudPlugin
 
     /*
      * fix line numbers not scrolling
-     * get rid of changing cfg by command?
      */
 
     public Plugin(IDalamudPluginInterface pluginInterface)
