@@ -31,7 +31,7 @@ public class StatusWindow : Window
                 _minimised = !_minimised;
                 _minimiseBtn!.Icon = _minimised ? FontAwesomeIcon.WindowMaximize : FontAwesomeIcon.Minus;
             },
-            ShowTooltip = () => { using var _ = ImRaii.Tooltip(); ImGuiEx.Text(_minimised ? "Maximise" : "Minimise"); },
+            ShowTooltip = () => { using var _ = ImRaii.Tooltip(); ImGuiEx.Text(_minimised ? "Show All Macros" : "Show Running Macros Only"); },
             AvailableClickthrough = true,
         };
         TitleBarButtons.Add(_minimiseBtn);
@@ -47,17 +47,14 @@ public class StatusWindow : Window
             DrawMacro(parent);
 
             if (_macroHierarchy.GetChildMacros(parent.Id) is { Count: > 0 } children)
-            {
-                ImGui.Indent(20);
                 foreach (var childMacro in children)
-                    DrawMacro(childMacro);
-                ImGui.Unindent(20);
-            }
+                    DrawMacro(childMacro, true);
         }
     }
 
-    private void DrawMacro(IMacro macro)
+    private void DrawMacro(IMacro macro, bool indent = false)
     {
+        using var _ = ImRaii.PushIndent(condition: indent); // TODO: this doesn't work?
         var (statusColor, statusIcon) = GetStatusInfo(macro.State);
         ImGuiEx.Icon(statusColor, statusIcon);
         ImGui.SameLine();
