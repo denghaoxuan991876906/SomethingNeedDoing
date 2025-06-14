@@ -2,6 +2,7 @@
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
+using SomethingNeedDoing.Core.Interfaces;
 using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.Utils;
@@ -10,6 +11,19 @@ public static class ImGuiUtils
     public static class Colours
     {
         public static EzColor Gold => new(0.847f, 0.733f, 0.49f);
+    }
+
+    public static class Icons
+    {
+        public const FontAwesomeIcon NativeMacro = FontAwesomeIcon.FileCode;
+        public const FontAwesomeIcon LuaMacro = FontAwesomeIcon.Moon;
+        public const FontAwesomeIcon GitMacro = FontAwesomeIcon.CodeBranch;
+        public static FontAwesomeIcon GetMacroIcon(IMacro macro) => macro switch
+        {
+            ConfigMacro { IsGitMacro: true } => GitMacro,
+            { Type: MacroType.Lua } => LuaMacro,
+            _ => NativeMacro
+        };
     }
 
     public static bool IconButton(FontAwesomeIcon icon, string tooltip = "", string id = "SNDButton", Vector2 size = default, bool disabled = false, bool active = false)

@@ -1,5 +1,4 @@
 ﻿using Dalamud.Interface;
-using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using ECommons.ImGuiMethods;
@@ -18,7 +17,8 @@ public class MainWindow : Window
     private bool ClickedHeaderLastFrame;
     private bool ClickedHeaderCurrentFrame;
 
-    public MainWindow(IMacroScheduler scheduler, MacroEditor macroEditor, MacroSettingsSection macroSettings, HelpTab helpTab, VersionHistoryModal versionHistoryModal) : base($"{nameof(MainWindow)}###{P.Name}", ImGuiWindowFlags.NoScrollbar)
+    public MainWindow(IMacroScheduler scheduler, MacroEditor macroEditor, MacroSettingsSection macroSettings, HelpTab helpTab, VersionHistoryModal versionHistoryModal)
+        : base($"{nameof(MainWindow)}###{P.Name}_{nameof(MainWindow)}", ImGuiWindowFlags.NoScrollbar)
     {
         _helpTab = helpTab;
         _macrosTab = new MacrosTab(scheduler, macroSettings, macroEditor);

@@ -488,10 +488,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
 
     private void DeleteFolder(string folderPath)
     {
-        var macrosInFolder = C.GetMacrosInFolder(folderPath).ToList();
-        var macroCount = macrosInFolder.Count;
-
-        foreach (var macro in macrosInFolder)
+        foreach (var macro in C.GetMacrosInFolder(folderPath).ToList())
         {
             if (macro is ConfigMacro configMacro)
                 configMacro.FolderPath = string.Empty;

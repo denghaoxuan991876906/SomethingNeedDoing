@@ -1,6 +1,7 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Interface.Windowing;
 using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Managers;
@@ -11,11 +12,10 @@ namespace SomethingNeedDoing.Gui;
 /// <summary>
 /// Macro editor with IDE-like features
 /// </summary>
-public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, MacroStatusWindow statusWindow)
+public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, WindowSystem ws)
 {
     private readonly IMacroScheduler _scheduler = scheduler;
     private readonly GitMacroManager _gitManager = gitManager;
-    private readonly MacroStatusWindow _statusWindow = statusWindow;
     private bool _showLineNumbers = true;
     private bool _highlightSyntax = true;
     private UpdateState _updateState = UpdateState.Unknown;
@@ -38,7 +38,6 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
             return;
         }
 
-        DrawMacroHeader(macro);
         DrawEditorToolbar(macro);
         ImGui.Separator();
 
@@ -54,52 +53,6 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         var textSize = ImGui.CalcTextSize(text);
         ImGui.SetCursorPos(ImGui.GetCursorPos() + center - textSize / 2);
         ImGui.TextColored(ImGuiColors.DalamudGrey, text);
-    }
-
-    private void DrawMacroHeader(IMacro macro)
-    {
-        using var group = ImRaii.Group();
-        var macroState = _scheduler.GetMacroState(macro.Id);
-        if (macroState == MacroState.Unknown) return;
-
-        var (statusColor, statusIcon) = GetStatusInfo(macroState);
-        var contentWidth = ImGui.GetContentRegionAvail().X;
-        ImGui.SameLine(contentWidth - 300);
-
-        using (ImRaii.PushFont(UiBuilder.IconFont))
-            ImGui.TextColored(statusColor, statusIcon.ToIconString());
-
-        ImGui.SameLine(0, 5);
-        ImGui.TextColored(statusColor, macroState.ToString());
-
-        if (macroState is MacroState.Running or MacroState.Paused)
-            DrawControlButtons(macro, macroState);
-    }
-
-    private (Vector4 color, FontAwesomeIcon icon) GetStatusInfo(MacroState state) => state switch
-    {
-        MacroState.Running => (ImGuiColors.HealerGreen, FontAwesomeIcon.Play),
-        MacroState.Paused => (ImGuiColors.DalamudOrange, FontAwesomeIcon.Pause),
-        MacroState.Error => (ImGuiColors.DalamudRed, FontAwesomeIcon.ExclamationTriangle),
-        MacroState.Completed => (ImGuiColors.ParsedBlue, FontAwesomeIcon.CheckCircle),
-        _ => (ImGuiColors.DalamudGrey, FontAwesomeIcon.Circle)
-    };
-
-    private void DrawControlButtons(IMacro macro, MacroState state)
-    {
-        ImGui.SameLine(0, 10);
-        if (ImGuiUtils.IconButton(state == MacroState.Paused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause,
-            state == MacroState.Paused ? "Resume" : "Pause"))
-        {
-            if (state == MacroState.Paused)
-                _scheduler.ResumeMacro(macro.Id);
-            else
-                _scheduler.PauseMacro(macro.Id);
-        }
-
-        ImGui.SameLine(0, 5);
-        if (ImGuiUtils.IconButton(FontAwesomeIcon.Stop, "Stop"))
-            _scheduler.StopMacro(macro.Id);
     }
 
     private void DrawEditorToolbar(IMacro macro)
@@ -140,11 +93,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         using (ImRaii.PushColor(ImGuiCol.Text, statusColor))
         {
             if (ImGuiUtils.IconButton(statusIcon, macroCount > 0 ? $"{macroCount} running" : "No macros running"))
-            {
-                _statusWindow.IsOpen = !_statusWindow.IsOpen;
-                if (_statusWindow.IsOpen)
-                    _statusWindow.BringToFront();
-            }
+                ws.Toggle<StatusWindow>();
         }
 
         ImGui.SameLine();

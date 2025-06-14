@@ -6,13 +6,15 @@ public class WindowService : IDisposable
 {
     private readonly WindowSystem _ws;
     private readonly MainWindow _mainWindow;
+    private readonly StatusWindow _runningMacrosWindow;
 
-    public WindowService(WindowSystem ws, MainWindow mainWindow, MacroStatusWindow statusWindow)
+    public WindowService(WindowSystem ws, MainWindow mainWindow, StatusWindow runningMacrosWindow)
     {
         _ws = ws;
         _mainWindow = mainWindow;
+        _runningMacrosWindow = runningMacrosWindow;
         _ws.AddWindow(_mainWindow);
-        _ws.AddWindow(statusWindow);
+        _ws.AddWindow(_runningMacrosWindow);
         Svc.PluginInterface.UiBuilder.Draw += _ws.Draw;
     }
 

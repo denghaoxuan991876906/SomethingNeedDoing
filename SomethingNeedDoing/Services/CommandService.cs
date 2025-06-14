@@ -43,8 +43,9 @@ public class CommandService
         var helpCommand = new SubCommand("help", "Show the help window.", _ => ShowHelp(), false);
         var resumeCommand = new SubCommand("resume", "Resume the given paused macro.", HandleResumeCommand);
         var cfgCommand = new SubCommand("cfg", "Change a configuration value.", HandleConfigCommand);
+        var statusCommand = new SubCommand("status", "Toggle the running macros window.", _ => ToggleStatusWindow());
 
-        _rootCommand.SubCommands.AddRange([runCommand, pauseCommand, stopCommand, helpCommand, resumeCommand, cfgCommand]);
+        _rootCommand.SubCommands.AddRange([runCommand, pauseCommand, stopCommand, helpCommand, resumeCommand, cfgCommand, statusCommand]);
 
         RegisterCommands();
     }
@@ -154,4 +155,5 @@ public class CommandService
     }
 
     private void ToggleMainWindow() => _windowSystem.Toggle<MainWindow>();
+    private void ToggleStatusWindow() => _windowSystem.Toggle<StatusWindow>();
 }
