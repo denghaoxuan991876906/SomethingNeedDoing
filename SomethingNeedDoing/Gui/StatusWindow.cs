@@ -15,7 +15,7 @@ public class StatusWindow : Window
     private readonly TitleBarButton _minimiseBtn;
     private bool _minimised;
 
-    public StatusWindow(IMacroScheduler scheduler, MacroHierarchyManager macroHierarchy) : base($"{nameof(StatusWindow)}###{P.Name}_{nameof(StatusWindow)}", ImGuiWindowFlags.NoScrollbar)
+    public StatusWindow(IMacroScheduler scheduler, MacroHierarchyManager macroHierarchy) : base($"{P.Name} - Macro Status###{P.Name}_{nameof(StatusWindow)}", ImGuiWindowFlags.NoScrollbar)
     {
         _scheduler = scheduler;
         _macroHierarchy = macroHierarchy;

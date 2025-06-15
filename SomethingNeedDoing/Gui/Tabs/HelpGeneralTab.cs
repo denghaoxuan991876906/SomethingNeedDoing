@@ -15,7 +15,7 @@ public static class HelpGeneralTab
 
         ImGuiUtils.Section("Status Monitoring", () =>
         {
-            ImGui.TextWrapped("The Status Window provides real-time information about running macros.");
+            ImGui.TextWrapped("That status window shows all currently running macros and their current state");
             ImGui.Spacing();
 
             ImGuiEx.Text(ImGuiColors.DalamudOrange, "Macro States");
@@ -54,7 +54,7 @@ public static class HelpGeneralTab
         ImGuiUtils.Section("Git Integration", () =>
         {
             ImGui.TextWrapped("Macros can now be connected to a github url and auto converted into a \"Git Macro\"");
-            ImGui.TextWrapped("Git macros support auto updating when a new version is released (checked on startup), and going between versions via the version history modal (found in the Macro Settings section");
+            ImGui.TextWrapped("Git macros support auto updating when a new version is released (checked on startup), and going between versions via the version history modal (found in the Macro Settings section)");
             ImGui.TextWrapped("A macro is automatically identified as a git macro when it has a repository url in its metadata. To convert a git macro back into a local macro, simply wipe the url or click the Reset Git Data button in the settings");
         });
     }
