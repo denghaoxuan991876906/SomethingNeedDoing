@@ -270,10 +270,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             state.Macro.State = MacroState.Paused;
             await SetPluginStates(state.Macro, true);
 
-            if (C.PropagatePauseToChildren)
+            if (C.PropagateControlsToChildren)
             {
-                var children = _macroHierarchy.GetChildMacros(macroId);
-                foreach (var child in children)
+                foreach (var child in _macroHierarchy.GetChildMacros(macroId))
                 {
                     if (_macroStates.TryGetValue(child.Id, out var childState))
                     {
@@ -294,10 +293,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             state.Macro.State = MacroState.Running;
             await SetPluginStates(state.Macro, false);
 
-            if (C.PropagatePauseToChildren)
+            if (C.PropagateControlsToChildren)
             {
-                var children = _macroHierarchy.GetChildMacros(macroId);
-                foreach (var child in children)
+                foreach (var child in _macroHierarchy.GetChildMacros(macroId))
                 {
                     if (_macroStates.TryGetValue(child.Id, out var childState))
                     {
@@ -320,6 +318,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
             UnregisterFunctionTriggers(state.Macro);
             await SetPluginStates(state.Macro, true);
+
+            if (C.PropagateControlsToChildren)
+                foreach (var child in _macroHierarchy.GetChildMacros(macroId))
+                    StopMacro(child.Id);
 
             if (_macroStates.TryRemove(macroId, out var removedState))
                 removedState.Dispose();

@@ -25,13 +25,13 @@ public static class SettingsTab
                 C.Save();
             }
 
-            var propagatePause = C.PropagatePauseToChildren;
-            if (ImGui.Checkbox("Propagate Pause to Child Macros", ref propagatePause))
+            var propagatePause = C.PropagateControlsToChildren;
+            if (ImGui.Checkbox("Propagate Controls to Child Macros", ref propagatePause))
             {
-                C.PropagatePauseToChildren = propagatePause;
+                C.PropagateControlsToChildren = propagatePause;
                 C.Save();
             }
-            ImGuiEx.Tooltip("When enabled, pausing a macro will also pause any child macros it spawns. Resuming will also resume the child macros.");
+            ImGuiEx.Tooltip("When enabled, pausing, resuming and stopping macros will also pause, resume and stop the child macros.");
         });
 
         ImGuiUtils.Section("Crafting Settings", () =>

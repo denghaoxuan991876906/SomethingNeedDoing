@@ -20,7 +20,7 @@ public class Config : IEzConfig
     /// <summary>
     /// Gets or sets whether pausing a macro should also pause its child macros.
     /// </summary>
-    public bool PropagatePauseToChildren { get; set; } = true;
+    public bool PropagateControlsToChildren { get; set; } = true;
     public bool HasCompletedTutorial { get; set; } = false;
     public bool AcknowledgedLegacyWarning { get; set; } = false;
     #endregion
