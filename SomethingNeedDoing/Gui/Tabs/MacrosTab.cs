@@ -159,7 +159,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         if (_state.ExpandedFolders.Contains(folderPath))
             flags |= ImGuiTreeNodeFlags.DefaultOpen;
 
-        ImGuiX.Icon(FontAwesomeHelper.IconFolder);
+        ImGuiEx.Icon(FontAwesomeHelper.IconFolder);
         ImGui.SameLine();
 
         using var tree = ImRaii.TreeNode($"{folderPath} ({folderCount})##folder_{folderPath}", flags);
@@ -281,7 +281,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         var icon = macro.IsGitMacro ? FontAwesomeHelper.IconGitMacro :
             macro.Type == MacroType.Lua ? FontAwesomeHelper.IconLuaMacro : FontAwesomeHelper.IconNativeMacro;
 
-        ImGuiX.Icon(icon);
+        ImGuiEx.Icon(icon);
         ImGui.SameLine();
 
         var displayName = showFolder ? $"{macro.Name} [{macro.FolderPath}]" : macro.Name;
@@ -307,22 +307,22 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         ImGui.TextColored(ImGuiColors.DalamudViolet, macro.Name);
         ImGui.Separator();
 
-        if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconPlay, "Run"))
+        if (ImGuiUtils.IconMenuItem(FontAwesomeHelper.IconPlay, "Run"))
         {
             scheduler.StartMacro(macro);
             ImGui.CloseCurrentPopup();
         }
 
-        if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconCopy, "Copy Content"))
+        if (ImGuiUtils.IconMenuItem(FontAwesomeHelper.IconCopy, "Copy Content"))
         {
             ImGui.SetClipboardText(macro.Content);
             ImGui.CloseCurrentPopup();
         }
 
-        if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconRename, "Rename"))
+        if (ImGuiUtils.IconMenuItem(FontAwesomeHelper.IconRename, "Rename"))
             RenameModal.Open(macro);
 
-        if (ImGuiX.IconMenuItem(FontAwesomeHelper.IconDelete, "Delete"))
+        if (ImGuiUtils.IconMenuItem(FontAwesomeHelper.IconDelete, "Delete"))
         {
             var currentFolderId = _state.SelectedFolderId;
             var expandedFoldersCopy = new HashSet<string>(_state.ExpandedFolders);

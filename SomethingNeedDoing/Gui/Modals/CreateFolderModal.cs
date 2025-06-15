@@ -1,4 +1,5 @@
 ﻿using Dalamud.Interface.Utility.Raii;
+using ECommons.ImGuiMethods;
 
 namespace SomethingNeedDoing.Gui.Modals;
 public static class CreateFolderModal
@@ -33,7 +34,7 @@ public static class CreateFolderModal
         using var popup = ImRaii.PopupModal($"CreateFolderPopup##{nameof(CreateFolderModal)}", ref IsOpen, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoTitleBar);
         if (!popup) return;
 
-        ImGuiX.Icon(FontAwesomeHelper.IconFolder);
+        ImGuiEx.Icon(FontAwesomeHelper.IconFolder);
         ImGui.SameLine();
         ImGui.Text("Create New Folder");
         ImGui.Separator();

@@ -1,4 +1,5 @@
 ﻿using Dalamud.Interface.Utility.Raii;
+using ECommons.ImGuiMethods;
 
 namespace SomethingNeedDoing.Gui.Modals;
 public static class CreateMacroModal
@@ -35,7 +36,7 @@ public static class CreateMacroModal
         using var popup = ImRaii.PopupModal($"CreateMacroPopup##{nameof(CreateMacroModal)}", ref IsOpen, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoTitleBar);
         if (!popup) return;
 
-        ImGuiX.Icon(FontAwesomeHelper.IconNew);
+        ImGuiEx.Icon(FontAwesomeHelper.IconNew);
         ImGui.SameLine();
         ImGui.Text("Create New Macro");
         ImGui.Separator();

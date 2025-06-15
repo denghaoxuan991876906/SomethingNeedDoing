@@ -246,4 +246,53 @@ public static class ImGuiUtils
 
         return pressed;
     }
+
+    /// <summary>
+    /// Creates a menu item with an icon and text.
+    /// </summary>
+    /// <param name="icon">The icon to use.</param>
+    /// <param name="label">The text to display next to the icon.</param>
+    /// <param name="selected">Whether the item is selected.</param>
+    /// <param name="enabled">Whether the item is enabled.</param>
+    /// <returns>True if the menu item was clicked.</returns>
+    public static bool IconMenuItem(FontAwesomeIcon icon, string label, bool selected = false, bool enabled = true)
+    {
+        // Create a unique ID for this menu item
+        var menuId = $"##Menu_{icon}_{label}";
+
+        // Use simple approach: create a MenuItem with just an ID, then overlay text
+        var result = ImGui.MenuItem(menuId, string.Empty, selected, enabled);
+
+        // Only draw the icon and text if we should be rendering them
+        // (this prevents drawing when the menu is closed)
+        if (ImGui.IsItemVisible())
+        {
+            // Get position for drawing
+            var itemX = ImGui.GetItemRectMin().X;
+            var itemY = ImGui.GetItemRectMin().Y;
+            var itemHeight = ImGui.GetItemRectSize().Y;
+
+            // Backup cursor position
+            var cursorPos = ImGui.GetCursorPos();
+
+            // Center content vertically
+            var offsetY = (itemHeight - ImGui.GetTextLineHeight()) * 0.5f;
+
+            // Draw icon with icon font - position at start of item
+            ImGui.SetCursorScreenPos(new Vector2(itemX + 5, itemY + offsetY));
+            ImGui.PushFont(UiBuilder.IconFont);
+            ImGui.Text(icon.ToIconString());
+            var iconWidth = ImGui.CalcTextSize(icon.ToIconString()).X;
+            ImGui.PopFont();
+
+            // Draw the label after the icon
+            ImGui.SetCursorScreenPos(new Vector2(itemX + 10 + iconWidth, itemY + offsetY));
+            ImGui.Text(label);
+
+            // Restore cursor position
+            ImGui.SetCursorPos(cursorPos);
+        }
+
+        return result;
+    }
 }
