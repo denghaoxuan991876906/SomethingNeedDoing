@@ -70,13 +70,20 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
     {
         var group = new ImGuiEx.EzButtonGroup();
         var baseStyle = new ImGuiEx.EzButtonGroup.ButtonStyle() { TextColor = ImGuiColors.DalamudGrey };
-        group.AddIconOnly(FontAwesomeIcon.PlayCircle, () => _scheduler.StartMacro(macro), "Run", baseStyle);
-        group.AddIconOnly(FontAwesomeIcon.PauseCircle, () => _scheduler.PauseMacro(macro.Id), "Pause",
-            baseStyle + new ImGuiEx.EzButtonGroup.ButtonStyle() { NoButtonBg = true, Condition = () => _scheduler.GetMacroState(macro.Id) == MacroState.Running });
+        var startBtn = GetStartOrResumeAction(macro);
+        group.AddIconOnly(FontAwesomeIcon.PlayCircle, () => startBtn.action(), startBtn.tooltip, baseStyle);
+        group.AddIconOnly(FontAwesomeIcon.PauseCircle, () => _scheduler.PauseMacro(macro.Id), "Pause", baseStyle + new ImGuiEx.EzButtonGroup.ButtonStyle() { Condition = () => _scheduler.GetMacroState(macro.Id) is MacroState.Running });
         group.AddIconOnly(FontAwesomeIcon.StopCircle, () => _scheduler.StopMacro(macro.Id), "Stop", baseStyle);
         group.AddIconOnly(FontAwesomeIcon.Clipboard, () => Copy(macro.Content), "Copy", baseStyle);
         group.Draw();
     }
+
+    private (Action action, string tooltip) GetStartOrResumeAction(IMacro macro)
+        => _scheduler.GetMacroState(macro.Id) switch
+        {
+            MacroState.Paused => (() => _scheduler.ResumeMacro(macro.Id), "Resume"),
+            _ => (() => _scheduler.StartMacro(macro), "Start")
+        };
 
     private void DrawRightAlignedControls(IMacro macro)
     {
