@@ -81,6 +81,8 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
 
             lua.LoadCLRPackage();
             lua.LoadFStrings();
+            lua.LoadPackageSearcherSnippet();
+            lua.LoadRequirePaths();
             lua.LoadErrorHandler();
             lua.SetTriggerEventData(triggerArgs);
             lua.RegisterClass<Svc>();

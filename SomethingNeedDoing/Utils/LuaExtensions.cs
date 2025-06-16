@@ -23,6 +23,14 @@ public static class LuaExtensions
         lua.DoString(@$"{typeof(T).Name} = luanet.import_type('{typeof(T).FullName}')()");
     }
 
+    public static void LoadPackageSearcherSnippet(this Lua lua) => lua.DoString(LuaCodeSnippets.PackageSearchersSnippet);
+
+    public static void LoadRequirePaths(this Lua lua)
+    {
+        foreach (var path in C.LuaRequirePaths)
+            lua.DoString($"table.insert(snd.require.paths, '{path}')");
+    }
+
     /// <summary>
     /// Gets detailed error information from a Lua error.
     /// </summary>
