@@ -19,4 +19,11 @@ public unsafe class PlayerModule : LuaModuleBase
 
     [LuaFunction] public JobWrapper Job => new(Player.JobId);
     [LuaFunction] public JobWrapper GetJob(uint classJobId) => new(classJobId);
+
+    [LuaFunction] public bool IsMoving => Player.IsMoving;
+    [LuaFunction] public bool IsInDuty => Player.IsInDuty;
+    [LuaFunction] public bool IsOnIsland => Player.IsOnIsland;
+    [LuaFunction] public bool CanMount => Player.CanMount;
+    [LuaFunction] public bool CanFly => Player.CanFly;
+    [LuaFunction] public bool Revivable => Player.Revivable;
 }
