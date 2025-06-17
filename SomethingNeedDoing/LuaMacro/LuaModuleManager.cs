@@ -23,6 +23,7 @@ public class LuaModuleManager
         RegisterModule(new FateModule());
         RegisterModule(new InstancedContentModule());
         RegisterModule(new InstancesModule());
+        RegisterModule(new InventoryModule());
         RegisterModule(new IPCModule());
         RegisterModule(new PlayerModule());
         RegisterModule(new QuestsModule());
