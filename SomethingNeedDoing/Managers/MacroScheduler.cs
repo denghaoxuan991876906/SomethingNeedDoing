@@ -7,6 +7,7 @@ using Dalamud.Plugin.Services;
 using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro;
+using SomethingNeedDoing.LuaMacro.Wrappers;
 using SomethingNeedDoing.NativeMacro;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
@@ -524,15 +525,39 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         Svc.ClientState.Logout += OnLogout;
     }
 
+    private long _combatStart = 0;
+    private void OnFrameworkUpdate(IFramework framework)
+    {
+        if (Svc.Condition[ConditionFlag.InCombat])
+        {
+            if (_combatStart == 0)
+            {
+                _combatStart = DateTime.Now.Ticks;
+                var startTimestamp = _combatStart;
+                var opponents = Svc.Objects.Where(o => o.TargetObjectId == Player.Object.GameObjectId).Select(o => new EntityWrapper(o));
+                _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnCombatStart, new { startTimestamp, opponents });
+                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Combat started against {string.Join(", ", opponents.Select(o => o.Name))} at {startTimestamp}");
+            }
+        }
+        else
+        {
+            if (_combatStart != 0)
+            {
+                var endTimestamp = DateTime.Now.Ticks;
+                var duration = TimeSpan.FromTicks(endTimestamp - _combatStart).TotalSeconds;
+                _combatStart = 0;
+                _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnCombatEnd, new { endTimestamp, duration });
+                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Combat ended at {endTimestamp} in {duration:F2} seconds");
+            }
+        }
+
+        _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnUpdate);
+    }
+
     private void OnAddonEvent(AddonEvent type, AddonArgs args)
     {
         var eventData = new { type, args };
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnAddonEvent, eventData);
-    }
-
-    private void OnFrameworkUpdate(IFramework framework)
-    {
-        _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnUpdate);
     }
 
     private void OnConditionChange(ConditionFlag flag, bool value)
