@@ -15,6 +15,7 @@ public unsafe class PlayerModule : LuaModuleBase
 
     [LuaFunction] public uint FishingBait => Ps->FishingBait;
 
+    [LuaFunction] public EntityWrapper Entity => new(Player.Object);
     [LuaFunction] public FreeCompanyWrapper FreeCompany => new();
 
     [LuaFunction] public JobWrapper Job => new(Player.JobId);

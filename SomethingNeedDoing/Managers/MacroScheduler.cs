@@ -557,35 +557,41 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private void OnAddonEvent(AddonEvent type, AddonArgs args)
     {
         var eventData = new { type, args };
+        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnAddonEvent)}] fired [{type}, {args}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnAddonEvent, eventData);
     }
 
     private void OnConditionChange(ConditionFlag flag, bool value)
     {
         var eventData = new { flag, value };
+        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnConditionChange)}] fired [{flag}, {value}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnConditionChange, eventData);
     }
 
     private void OnTerritoryChanged(ushort territoryType)
     {
         var eventData = new { territoryType };
+        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnTerritoryChanged)}] fired [{territoryType}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnTerritoryChange, eventData);
     }
 
     private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
         var eventData = new { type, timestamp, sender, message, isHandled };
+        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnChatMessage)}] fired [{type}, {timestamp}, {sender}, {message}, {isHandled}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnChatMessage, eventData);
     }
 
     private void OnLogin()
     {
+        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnLogin)}] fired");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnLogin);
     }
 
     private void OnLogout(int type, int code)
     {
         var eventData = new { type, code };
+        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnLogout)}] fired [{type}, {code}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnLogout, eventData);
     }
 
