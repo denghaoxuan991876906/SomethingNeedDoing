@@ -79,6 +79,15 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                             Svc.Log.Error($"Failed to write metadata to macro {selectedMacro.Name}");
                     }
                     ImGuiEx.Tooltip("Writes the current metadata (author, version, description, dependencies, triggers) to the macro content. If metadata already exists, it will be updated.");
+
+                    ImGui.SameLine();
+
+                    if (ImGui.Button("Read Metadata from Content"))
+                    {
+                        selectedMacro.Metadata = metadataParser.ParseMetadata(selectedMacro.Content);
+                        C.Save();
+                    }
+                    ImGuiEx.Tooltip("Reads metadata (author, version, description, dependencies, triggers) from the macro content and updates the settings.");
                 }
 
                 ImGui.Spacing();
