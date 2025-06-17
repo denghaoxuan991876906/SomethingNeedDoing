@@ -1,6 +1,7 @@
 ﻿using NLua;
 using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Interfaces;
+using SomethingNeedDoing.Utils;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -93,7 +94,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                 try
                 {
                     // Execute the script
-                    var results = lua.LoadEntryPointWrappedScript(macro.Macro.Content);
+                    var results = lua.LoadEntryPointWrappedScript(macro.Macro.ContentSansMetadata());
                     if (results.Length == 0 || results[0] is not LuaFunction func)
                         throw new LuaException("Failed to load Lua script: No function returned");
 

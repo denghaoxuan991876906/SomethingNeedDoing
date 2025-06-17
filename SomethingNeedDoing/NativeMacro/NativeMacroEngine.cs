@@ -1,5 +1,6 @@
 ﻿using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Interfaces;
+using SomethingNeedDoing.Utils;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -51,7 +52,7 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
 
         var state = new MacroExecutionState(macro)
         {
-            Commands = parser.Parse(macro.Content, Scheduler),
+            Commands = parser.Parse(macro.ContentSansMetadata(), Scheduler),
             CurrentLoop = 0,
             LoopCount = loopCount == 0 ? 1 : loopCount
         };
