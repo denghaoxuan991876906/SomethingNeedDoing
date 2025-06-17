@@ -186,7 +186,7 @@ public class MacroParser
             "equipitem" => ParseEquipItemCommand(info.Parameters),
             "targetenemy" => ParseTargetEnemyCommand(info.Parameters),
             "waitaddon" => ParseWaitAddonCommand(info.Parameters),
-            _ => ParseNativeCommand(info.Parameters),
+            _ => ParseNativeCommand(info),
         };
     }
 
@@ -243,7 +243,7 @@ public class MacroParser
     }
 
     #region Command Parsing
-    private NativeCommand ParseNativeCommand(string parameters) => new(parameters);
+    private NativeCommand ParseNativeCommand(CommandParseInfo info) => new($"/{info.CommandName} {info.Parameters}".TrimEnd());
 
     private TargetCommand ParseTargetCommand(string parameters)
     {
