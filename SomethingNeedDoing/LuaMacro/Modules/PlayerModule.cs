@@ -26,4 +26,5 @@ public unsafe class PlayerModule : LuaModuleBase
     [LuaFunction] public bool CanMount => Player.CanMount;
     [LuaFunction] public bool CanFly => Player.CanFly;
     [LuaFunction] public bool Revivable => Player.Revivable;
+    [LuaFunction] public bool Available => Player.Available;
 }

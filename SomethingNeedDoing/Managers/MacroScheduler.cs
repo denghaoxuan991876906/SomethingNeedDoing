@@ -320,7 +320,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             await SetPluginStates(state.Macro, true);
 
             if (C.PropagateControlsToChildren)
-                foreach (var child in _macroHierarchy.GetChildMacros(macroId))
+                foreach (var child in _macroHierarchy.GetChildMacros(macroId).ToList())
                     StopMacro(child.Id);
 
             if (_macroStates.TryRemove(macroId, out var removedState))
