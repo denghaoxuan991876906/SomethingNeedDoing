@@ -45,4 +45,5 @@ public unsafe class EntityWrapper : IWrapper
     [LuaDocs] public void SetAsTarget() => Svc.Targets.Target = Dalamud;
     [LuaDocs] public void SetAsFocusTarget() => Svc.Targets.FocusTarget = Dalamud;
     [LuaDocs] public void ClearTarget() => Svc.Targets.Target = null;
+    [LuaDocs] public void Interact() => Game.Interact(Dalamud);
 }

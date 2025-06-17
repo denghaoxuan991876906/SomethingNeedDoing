@@ -43,7 +43,7 @@ public class MacroParser
     {
         // First pass: Extract modifiers from the text
         var (textWithoutModifiers, modifiers) = ExtractModifiers(text);
-        Svc.Log.Debug($"Extracted modifiers: {string.Join(", ", modifiers)}. Leftover text: [{textWithoutModifiers}]");
+        Svc.Log.Verbose($"Extracted modifiers: {string.Join(", ", modifiers)}. Leftover text: [{textWithoutModifiers}]");
 
         // Second pass: Parse the command structure without modifiers
         var commandInfo = ParseCommandStructure(textWithoutModifiers) ?? throw new MacroSyntaxError(text);
