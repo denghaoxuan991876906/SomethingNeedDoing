@@ -18,6 +18,4 @@ ui:
 - show status of currently open macro
 
 bugs:
-- not all metadata is being written/read
 - temp macros are added to the stack before the first finishes
-- /target "name" doesn't work?

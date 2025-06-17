@@ -62,6 +62,25 @@ public class GitMacroMetadataParser(IGitService gitService)
         if (macro.Metadata.TriggerEvents.Any())
             metadataBlock.AppendLine($"triggers: {string.Join(", ", macro.Metadata.TriggerEvents)}");
 
+        if (macro.Metadata.PluginDependecies.Any())
+            metadataBlock.AppendLine($"plugin_dependencies: {string.Join(", ", macro.Metadata.PluginDependecies)}");
+
+        if (macro.Metadata.PluginsToDisable.Any())
+            metadataBlock.AppendLine($"plugins_to_disable: {string.Join(", ", macro.Metadata.PluginsToDisable)}");
+
+        if (macro.Metadata.CraftingLoop)
+        {
+            metadataBlock.AppendLine($"crafting_loop: true");
+            metadataBlock.AppendLine($"craft_loop_count: {macro.Metadata.CraftLoopCount}");
+        }
+
+        if (macro.Metadata.AddonEventConfig != null)
+        {
+            metadataBlock.AppendLine($"addon_event:");
+            metadataBlock.AppendLine($"  addon_name: {macro.Metadata.AddonEventConfig.AddonName}");
+            metadataBlock.AppendLine($"  event_type: {macro.Metadata.AddonEventConfig.EventType}");
+        }
+
         metadataBlock.AppendLine("--[[End Metadata]]");
 
         var match = MetadataBlockRegex.Match(macro.Content);
@@ -123,6 +142,36 @@ public class GitMacroMetadataParser(IGitService gitService)
                     break;
                 case "triggers":
                     ParseTriggers(value, metadata);
+                    break;
+                case "plugin_dependencies":
+                    metadata.PluginDependecies = value.Split(',')
+                        .Select(p => p.Trim())
+                        .Where(p => !string.IsNullOrEmpty(p))
+                        .ToArray();
+                    break;
+                case "plugins_to_disable":
+                    metadata.PluginsToDisable = value.Split(',')
+                        .Select(p => p.Trim())
+                        .Where(p => !string.IsNullOrEmpty(p))
+                        .ToArray();
+                    break;
+                case "crafting_loop":
+                    metadata.CraftingLoop = value.ToLower() == "true";
+                    break;
+                case "craft_loop_count":
+                    if (int.TryParse(value, out var count))
+                        metadata.CraftLoopCount = count;
+                    break;
+                case "addon_event":
+                    metadata.AddonEventConfig = new AddonEventConfig();
+                    break;
+                case "addon_name":
+                    if (metadata.AddonEventConfig != null)
+                        metadata.AddonEventConfig.AddonName = value;
+                    break;
+                case "event_type":
+                    if (metadata.AddonEventConfig != null && Enum.TryParse<AddonEvent>(value, true, out var eventType))
+                        metadata.AddonEventConfig.EventType = eventType;
                     break;
             }
         }
