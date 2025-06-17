@@ -1,4 +1,5 @@
-﻿using SomethingNeedDoing.Core.Interfaces;
+﻿using NLua;
+using SomethingNeedDoing.Core.Interfaces;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -16,11 +17,14 @@ public abstract class LuaModuleBase : ILuaModule
     internal void SetModuleManager(LuaModuleManager manager) => _moduleManager = manager;
     protected T? GetModule<T>() where T : class, ILuaModule => _moduleManager?.GetModule<T>();
 
+    private readonly Dictionary<string, Delegate> _propertyDelegateMap = [];
+
     public virtual void Register(NLua.Lua lua)
     {
         // Create module table
         var modulePath = GetModulePath();
         lua.DoString($"{modulePath} = {{}}");
+        RegisterMetaTable(lua, modulePath);
 
         // Register all methods marked with LuaFunction attribute
         foreach (var method in GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance))
@@ -28,38 +32,40 @@ public abstract class LuaModuleBase : ILuaModule
             if (method.GetCustomAttribute<LuaFunctionAttribute>() is not { } attr) continue;
             var name = attr.Name ?? method.Name;
             lua[$"{modulePath}.{name}"] = CreateDelegate(method);
-
-            if (name.StartsWith("__"))
-                RegisterMetamethod(lua, modulePath, name);
         }
 
-        // Register all properties marked with LuaFunction attribute as getter functions
+        // Register all properties marked with LuaFunction attribute as getter functions for the metatable
         foreach (var property in GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             if (property.GetCustomAttribute<LuaFunctionAttribute>() is not { } attr) continue;
             var name = attr.Name ?? property.Name;
-            lua[$"{modulePath}.{name}"] = CreateDelegate(property.GetMethod!);
-
-            if (name.StartsWith("__"))
-                RegisterMetamethod(lua, modulePath, name);
+            _propertyDelegateMap[name] = CreateDelegate(property.GetMethod!);
         }
     }
 
-    private static void RegisterMetamethod(NLua.Lua lua, string modulePath, string name)
+    protected virtual object? MetaIndex(LuaTable table, string key) => null;
+
+    private object? MetatableOnIndex(LuaTable table, string key)
     {
-        var metaPath = $"{modulePath}.__metatable";
-        var table = lua.GetTable(metaPath);
-        if (table == null)
+        if (_propertyDelegateMap.TryGetValue(key, out var propertyFunc))
+            return propertyFunc.DynamicInvoke();
+        return MetaIndex(table, key);
+    }
+    
+    private void RegisterMetaTable(NLua.Lua lua, string modulePath)
+    {
+        var metaPath = $"{modulePath}.__mt";
+        var metaTable = lua.GetTable(metaPath);
+        if (metaTable == null)
         {
             lua.NewTable(metaPath);
             lua.DoString($"setmetatable({modulePath}, {metaPath})");
-            table = lua.GetTable(metaPath);
+            metaTable = lua.GetTable(metaPath);
         }
-
-        if (table != null)
-        {
-            lua.DoString($"{metaPath}.{name} = function(...) return {modulePath}.{name}(...) end");
-        }
+        
+        const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
+        metaTable[nameof(MetatableOnIndex)] = CreateDelegate(typeof(LuaModuleBase).GetMethod(nameof(MetatableOnIndex), flags)!);
+        lua.DoString($"{metaPath}.__index = function(...) return {metaPath}.{nameof(MetatableOnIndex)}(...) end");
     }
 
     public string GetModulePath()

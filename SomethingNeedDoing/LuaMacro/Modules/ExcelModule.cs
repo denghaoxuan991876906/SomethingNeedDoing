@@ -12,8 +12,7 @@ public class ExcelModule : LuaModuleBase
 {
     public override string ModuleName => "Excel";
 
-    [LuaFunction("__index")]
-    public ExcelSheetWrapper? this[LuaTable table, string key] => GetSheet(key);
+    protected override object? MetaIndex(LuaTable table, string key) => GetSheet(key);
 
     [LuaFunction]
     public ExcelSheetWrapper? GetSheet(string sheetName)
