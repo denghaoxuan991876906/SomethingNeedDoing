@@ -2,6 +2,7 @@ using SomethingNeedDoing.Core.Interfaces;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Text;
+using Dalamud.Game.Addon.Lifecycle;
 
 namespace SomethingNeedDoing.Core.Github;
 
@@ -166,8 +167,7 @@ public class GitMacroMetadataParser(IGitService gitService)
                     metadata.AddonEventConfig = new AddonEventConfig();
                     break;
                 case "addon_name":
-                    if (metadata.AddonEventConfig != null)
-                        metadata.AddonEventConfig.AddonName = value;
+                    metadata.AddonEventConfig?.AddonName = value;
                     break;
                 case "event_type":
                     if (metadata.AddonEventConfig != null && Enum.TryParse<AddonEvent>(value, true, out var eventType))

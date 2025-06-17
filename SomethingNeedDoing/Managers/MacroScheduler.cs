@@ -479,6 +479,13 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Processing temporary macro {macro.Id} with parts: {string.Join(", ", parts)}");
                 if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro)
                 {
+                    // Check if the parent macro is already running (may cause infinite loops if it doesn't)
+                    if (parentMacro.State == MacroState.Running)
+                    {
+                        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Parent macro {parentMacro.Id} is already running, skipping trigger");
+                        return;
+                    }
+
                     Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Found parent macro {parentMacro.Id} for temporary macro {macro.Id}");
                     _macroHierarchy.RegisterTemporaryMacro(parentMacro, macro);
 
@@ -491,8 +498,15 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     Svc.Log.Warning($"[{nameof(MacroScheduler)}] Could not find parent macro {parts[0]} for temporary macro {macro.Id}");
             }
             else
-                // For regular macros, just start them
+            {
+                // don't let an infinte loop of it starting itself happen
+                if (macro.State == MacroState.Running)
+                {
+                    Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Macro {macro.Id} is already running, skipping trigger");
+                    return;
+                }
                 _ = StartMacro(macro, e);
+            }
         }
     }
 
