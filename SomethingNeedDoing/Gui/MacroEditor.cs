@@ -69,12 +69,11 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
     private void DrawActionButtons(IMacro macro)
     {
         var group = new ImGuiEx.EzButtonGroup();
-        var baseStyle = new ImGuiEx.EzButtonGroup.ButtonStyle() { TextColor = ImGuiColors.DalamudGrey };
         var startBtn = GetStartOrResumeAction(macro);
-        group.AddIconOnly(FontAwesomeIcon.PlayCircle, () => startBtn.action(), startBtn.tooltip, baseStyle);
-        group.AddIconOnly(FontAwesomeIcon.PauseCircle, () => _scheduler.PauseMacro(macro.Id), "Pause", baseStyle + new ImGuiEx.EzButtonGroup.ButtonStyle() { Condition = () => _scheduler.GetMacroState(macro.Id) is MacroState.Running });
-        group.AddIconOnly(FontAwesomeIcon.StopCircle, () => _scheduler.StopMacro(macro.Id), "Stop", baseStyle);
-        group.AddIconOnly(FontAwesomeIcon.Clipboard, () => Copy(macro.Content), "Copy", baseStyle);
+        group.AddIconOnly(FontAwesomeIcon.PlayCircle, () => startBtn.action(), startBtn.tooltip);
+        group.AddIconOnly(FontAwesomeIcon.PauseCircle, () => _scheduler.PauseMacro(macro.Id), "Pause", new() { Condition = () => _scheduler.GetMacroState(macro.Id) is MacroState.Running });
+        group.AddIconOnly(FontAwesomeIcon.StopCircle, () => _scheduler.StopMacro(macro.Id), "Stop");
+        group.AddIconOnly(FontAwesomeIcon.Clipboard, () => Copy(macro.Content), "Copy");
         group.Draw();
     }
 
