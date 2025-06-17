@@ -24,7 +24,8 @@ public class MacroParser
         @"<list\.(?<list>\d+)>" + "|" +                                         // List modifier
         @"<(?<party>[1-8])>" + "|" +                                            // Party index modifier
         @"<distance\.(?<distance>\d+(?:\.\d+)?)>" + "|" +                       // Distance modifier
-        @"<hq>" +                                                               // Item quality modifier
+        @"<hq>" + "|" +                                                         // Item quality modifier
+        @"<errorif\.(?<errorif>[^>]+)>" +                                       // ErrorIf modifier
         @")",
         RegexOptions.Compiled | RegexOptions.IgnoreCase
     );
@@ -42,6 +43,7 @@ public class MacroParser
     {
         // First pass: Extract modifiers from the text
         var (textWithoutModifiers, modifiers) = ExtractModifiers(text);
+        Svc.Log.Debug($"Extracted modifiers: {string.Join(", ", modifiers)}. Leftover text: [{textWithoutModifiers}]");
 
         // Second pass: Parse the command structure without modifiers
         var commandInfo = ParseCommandStructure(textWithoutModifiers) ?? throw new MacroSyntaxError(text);
@@ -121,6 +123,12 @@ public class MacroParser
                 modifierName = "unsafe";
             else if (modifierText == "<hq>")
                 modifierName = "hq";
+            else if (match.Groups["errorif"].Success)
+            {
+                modifierName = "errorif";
+                modifierParam = match.Groups["errorif"].Value;
+                Svc.Log.Debug($"Found errorif modifier with param: {modifierParam}");
+            }
             else
             {
                 Svc.Log.Warning($"Unknown modifier: {modifierText}");

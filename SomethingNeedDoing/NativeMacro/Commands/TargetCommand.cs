@@ -24,12 +24,13 @@ public class TargetCommand(string text, string targetName) : MacroCommandBase(te
     {
         await context.RunOnFramework(() =>
         {
+            Svc.Log.Verbose($"Searching for target [{targetName}] with modifiers: idx:{IndexModifier?.Index.ToString() ?? "null"}, party:{PartyIndexModifier?.Index.ToString() ?? "null"}, list:{ListIndexModifier?.Index.ToString() ?? "null"}");
             IGameObject? target;
             if (PartyIndexModifier is { Index: var index })
                 target = Svc.Party[index - 1]?.GameObject;
             else
                 target = Svc.Objects.OrderBy(o => Player.DistanceTo(o))
-                        .Where(obj => obj.Name.TextValue.Equals(targetName, StringComparison.InvariantCultureIgnoreCase) && obj.IsTargetable && (IndexModifier?.Index <= 0 || obj.ObjectIndex == IndexModifier?.Index))
+                        .Where(obj => obj.Name.TextValue.Contains(targetName, StringComparison.InvariantCultureIgnoreCase) && obj.IsTargetable && (IndexModifier == null || IndexModifier.Index <= 0 || obj.ObjectIndex == IndexModifier.Index))
                         .Skip(ListIndexModifier?.Index ?? 0)
                         .FirstOrDefault();
 
