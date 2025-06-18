@@ -2,6 +2,7 @@
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.Interop;
+using NLua;
 using SomethingNeedDoing.Core.Interfaces;
 using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
@@ -9,6 +10,7 @@ namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class InventoryModule : LuaModuleBase
 {
     public override string ModuleName => "Inventory";
+    protected override object? MetaIndex(LuaTable table, string key) => GetInventoryContainer(Enum.Parse<InventoryType>(key));
 
     [LuaFunction] public InventoryContainerWrapper GetInventoryContainer(InventoryType container) => new(container);
     [LuaFunction] public InventoryItemWrapper GetInventoryItem(InventoryType container, int slot) => new(container, slot);
