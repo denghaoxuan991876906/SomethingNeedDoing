@@ -5,6 +5,7 @@ using SomethingNeedDoing.Gui;
 
 namespace SomethingNeedDoing.Services;
 
+[Changelog("12.9", ChangelogType.Added, "stop/pause/resume all")]
 public class CommandService
 {
     public string MainCommand => "/somethingneeddoing";
@@ -29,21 +30,25 @@ public class CommandService
         _macroScheduler = macroScheduler;
         _windowSystem = windowSystem;
 
-        _rootCommand = new("", "Open the main window", _ => ToggleMainWindow());
+        _rootCommand = new("", "Open the main window", _ => _windowSystem.Toggle<MainWindow>());
         var runCommand = new SubCommand("run", "Run a macro, the name must be unique.", HandleRunCommand);
         runCommand.SubCommands.Add(new("loop", "Run a macro and then loop N times, the name must be unique.", HandleRunLoopCommand));
 
         var pauseCommand = new SubCommand("pause", "Pause the given executing macro.", HandlePauseCommand);
         pauseCommand.SubCommands.Add(new("loop", "Pause the given executing macro at the next loop point.", HandlePauseLoopCommand));
+        pauseCommand.SubCommands.Add(new("all", "Pause all running macros.", _ => HandlePauseAllCommand()));
+
+        var resumeCommand = new SubCommand("resume", "Resume the given paused macro.", HandleResumeCommand);
+        resumeCommand.SubCommands.Add(new("all", "Resume all paused macros.", _ => HandleResumeAllCommand()));
 
         var stopCommand = new SubCommand("stop", "Stop the given executing macro.", HandleStopCommand);
         stopCommand.SubCommands.Add(new("loop", "Stop the given executing macro at the next loop point.", HandleStopLoopCommand));
+        stopCommand.SubCommands.Add(new("all", "Stop all running macros.", _ => _macroScheduler.StopAllMacros()));
 
         var helpCommand = new SubCommand("help", "Show the help window.", _ => ShowHelp(), false);
-        var resumeCommand = new SubCommand("resume", "Resume the given paused macro.", HandleResumeCommand);
         //var cfgCommand = new SubCommand("cfg", "Change a configuration value.", HandleConfigCommand);
-        var statusCommand = new SubCommand("status", "Toggle the running macros window.", _ => ToggleStatusWindow());
-        var changelogCommand = new SubCommand("changelog", "Toggle the changelog window.", _ => ToggleChangelogWindow());
+        var statusCommand = new SubCommand("status", "Toggle the running macros window.", _ => _windowSystem.Toggle<StatusWindow>());
+        var changelogCommand = new SubCommand("changelog", "Toggle the changelog window.", _ => _windowSystem.Toggle<ChangelogWindow>());
 
         _rootCommand.SubCommands.AddRange([runCommand, pauseCommand, stopCommand, helpCommand, resumeCommand, statusCommand, changelogCommand]);
 
@@ -114,6 +119,7 @@ public class CommandService
             foreach (var subCmd in cmd.SubCommands)
                 Svc.Chat.PrintMessage($"{MainCommand} {cmd.Command} {subCmd.Command} - {subCmd.Description}");
         }
+        Svc.Chat.PrintMessage($"{MainCommand} id <macro name> - Get the macro ID for a macro name.");
     }
 
     private void HandleRunCommand(string arguments)
@@ -137,11 +143,64 @@ public class CommandService
             _ = _macroScheduler.StartMacro(macro, loopCount);
     }
 
-    private void HandlePauseCommand(string arguments) => _macroScheduler.PauseMacro(arguments);
-    private void HandlePauseLoopCommand(string arguments) => _macroScheduler.PauseAtNextLoop(arguments);
-    private void HandleResumeCommand(string arguments) => _macroScheduler.ResumeMacro(arguments);
-    private void HandleStopCommand(string arguments) => _macroScheduler.StopMacro(arguments);
-    private void HandleStopLoopCommand(string arguments) => _macroScheduler.StopAtNextLoop(arguments);
+    private void HandlePauseCommand(string arguments)
+    {
+        var macroName = arguments.Trim('"');
+        if (C.GetMacroByName(macroName) is { } macro)
+            _macroScheduler.PauseMacro(macro.Id);
+        else
+            Svc.Chat.PrintError($"Macro '{macroName}' not found.");
+    }
+
+    private void HandlePauseLoopCommand(string arguments)
+    {
+        var macroName = arguments.Trim('"');
+        if (C.GetMacroByName(macroName) is { } macro)
+            _macroScheduler.PauseAtNextLoop(macro.Id);
+        else
+            Svc.Chat.PrintError($"Macro '{macroName}' not found.");
+    }
+
+    private void HandlePauseAllCommand()
+    {
+        foreach (var macro in _macroScheduler.GetMacros())
+            _macroScheduler.PauseMacro(macro.Id);
+        Svc.Chat.PrintMessage("All running macros paused.");
+    }
+
+    private void HandleResumeCommand(string arguments)
+    {
+        var macroName = arguments.Trim('"');
+        if (C.GetMacroByName(macroName) is { } macro)
+            _macroScheduler.ResumeMacro(macro.Id);
+        else
+            Svc.Chat.PrintError($"Macro '{macroName}' not found.");
+    }
+
+    private void HandleResumeAllCommand()
+    {
+        foreach (var macro in _macroScheduler.GetMacros())
+            _macroScheduler.ResumeMacro(macro.Id);
+        Svc.Chat.PrintMessage("All paused macros resumed.");
+    }
+
+    private void HandleStopCommand(string arguments)
+    {
+        var macroName = arguments.Trim('"');
+        if (C.GetMacroByName(macroName) is { } macro)
+            _macroScheduler.StopMacro(macro.Id);
+        else
+            Svc.Chat.PrintError($"Macro '{macroName}' not found.");
+    }
+
+    private void HandleStopLoopCommand(string arguments)
+    {
+        var macroName = arguments.Trim('"');
+        if (C.GetMacroByName(macroName) is { } macro)
+            _macroScheduler.StopAtNextLoop(macro.Id);
+        else
+            Svc.Chat.PrintError($"Macro '{macroName}' not found.");
+    }
 
     private void HandleConfigCommand(string arguments)
     {
@@ -153,8 +212,4 @@ public class CommandService
         }
         C.SetProperty(args[0], args[1]);
     }
-
-    private void ToggleMainWindow() => _windowSystem.Toggle<MainWindow>();
-    private void ToggleStatusWindow() => _windowSystem.Toggle<StatusWindow>();
-    private void ToggleChangelogWindow() => _windowSystem.Toggle<ChangelogWindow>();
 }

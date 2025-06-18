@@ -67,6 +67,11 @@ public interface IMacroScheduler
     void StopMacro(string macroId);
 
     /// <summary>
+    /// Stops all running macros.
+    /// </summary>
+    void StopAllMacros();
+
+    /// <summary>
     /// Checks if the macro should pause at the current loop point.
     /// </summary>
     /// <param name="macroId">The ID of the macro to check.</param>

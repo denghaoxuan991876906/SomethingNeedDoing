@@ -19,8 +19,7 @@ public unsafe class InstancedContentModule : LuaModuleBase
 
     public class OccultCrescentWrapper(InstancedContentModule parentModule) : IWrapper
     {
-        [LuaDocs] public List<DynamicEventWrapper> Events
-            => [.. PublicContentOccultCrescent.GetInstance()->DynamicEventContainer.Events.ToArray().Select(e => new DynamicEventWrapper(e, parentModule))];
+        [LuaDocs] public List<DynamicEventWrapper> Events => [.. PublicContentOccultCrescent.GetInstance()->DynamicEventContainer.Events.ToArray().Select(e => new DynamicEventWrapper(e, parentModule))];
         [LuaDocs] public MKDDataWrapper MKDData => new(PublicContentOccultCrescent.GetMKDData());
         [LuaDocs] public OccultCrescentStateWrapper OccultCrescentState => new(PublicContentOccultCrescent.GetState());
         [LuaDocs] public List<EntityWrapper>? ChainTargets => [.. Svc.Objects.OfType<IBattleChara>().Where(o => PublicContentOccultCrescent.IsChainTarget(o.Character())).Select(o => new EntityWrapper(o))];

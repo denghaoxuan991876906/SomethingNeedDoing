@@ -358,9 +358,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _enginesByMacroId.TryRemove(macroId, out _);
     }
 
-    /// <summary>
-    /// Stops all running macros.
-    /// </summary>
+    /// <inheritdoc/>
     public void StopAllMacros() => _enginesByMacroId.Keys.Each(StopMacro);
 
     /// <inheritdoc/>

@@ -10,9 +10,7 @@ git stuff:
 general:
 - add /task command, takes in the name of some task and does the thing, main macro waits for its completion
 - depend/conflict with plugin specific settings (e.g. ST or pandora individual tweaks)
-- commands take name instead of id for macros
 - fix lua require paths (accept all types of slashes)
-- stop all command (or default to all if no name given?)
 
 ui:
 - indicate in the lua docs if a field has a setter
