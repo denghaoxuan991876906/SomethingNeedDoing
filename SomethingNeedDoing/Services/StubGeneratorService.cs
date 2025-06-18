@@ -6,7 +6,7 @@ using System.Text;
 
 namespace SomethingNeedDoing.Services;
 
-public class StubGeneratorService : IDisposable
+public class StubGeneratorService
 {
     public StubGeneratorService(LuaDocumentation luaDocs)
     {
@@ -329,9 +329,5 @@ public class StubGeneratorService : IDisposable
     private string GetStubPath(string filename)
     {
         return Path.Combine(Svc.PluginInterface.ConfigDirectory.FullName, filename);
-    }
-
-    public void Dispose()
-    {
     }
 }
