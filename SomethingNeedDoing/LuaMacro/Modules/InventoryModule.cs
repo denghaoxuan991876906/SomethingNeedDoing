@@ -15,8 +15,8 @@ public unsafe class InventoryModule : LuaModuleBase
     [LuaFunction] public InventoryContainerWrapper GetInventoryContainer(InventoryType container) => new(container);
     [LuaFunction] public InventoryItemWrapper GetInventoryItem(InventoryType container, int slot) => new(container, slot);
 
-    [LuaFunction] public unsafe int GetItemCount(uint itemId) => InventoryManager.Instance()->GetInventoryItemCount(itemId % 500_000, itemId % 500_000 != itemId);
-    [LuaFunction] public unsafe int GetHqItemCount(uint itemId) => InventoryManager.Instance()->GetInventoryItemCount(itemId % 500_000, true);
+    [LuaFunction][Changelog("12.9")] public unsafe int GetItemCount(uint itemId) => InventoryManager.Instance()->GetInventoryItemCount(itemId % 500_000, itemId % 500_000 != itemId);
+    [LuaFunction][Changelog("12.9")] public unsafe int GetHqItemCount(uint itemId) => InventoryManager.Instance()->GetInventoryItemCount(itemId % 500_000, true);
 
     [LuaFunction]
     public unsafe InventoryItemWrapper? GetInventoryItem(uint itemId)
