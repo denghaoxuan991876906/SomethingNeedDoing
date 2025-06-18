@@ -31,6 +31,8 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private readonly NLuaMacroEngine _luaEngine;
     private readonly TriggerEventManager _triggerEventManager;
 
+    private readonly HashSet<string> _functionTriggersRegistered = new();
+
     /// <inheritdoc/>
     public event EventHandler<MacroStateChangedEventArgs>? MacroStateChanged;
 
@@ -140,9 +142,11 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// <param name="macro">The macro to register function triggers for.</param>
     private void RegisterFunctionTriggers(IMacro macro)
     {
+        if (macro is TemporaryMacro) return;
+        if (_functionTriggersRegistered.Contains(macro.Id)) return;
         if (macro.Type == MacroType.Lua)
         {
-            // Look for function definitions in the format "function OnEventName()"
+            // match "function OnEventName()"
             var matches = Regex.Matches(macro.Content, @"function\s+(\w+)\s*\(");
             foreach (Match match in matches)
             {
@@ -152,7 +156,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         }
         else
         {
-            // Look for commands in the format "/OnEventName"
+            // match "/OnEventName"
             var matches = Regex.Matches(macro.Content, @"^/\s*(\w+)", RegexOptions.Multiline);
             foreach (Match match in matches)
             {
@@ -160,6 +164,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 _triggerEventManager.RegisterFunctionTrigger(macro, functionName);
             }
         }
+        _functionTriggersRegistered.Add(macro.Id);
     }
 
     /// <summary>
@@ -168,9 +173,11 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// <param name="macro">The macro to unregister function triggers for.</param>
     private void UnregisterFunctionTriggers(IMacro macro)
     {
+        if (macro is TemporaryMacro) return;
+        if (!_functionTriggersRegistered.Contains(macro.Id)) return;
         if (macro.Type == MacroType.Lua)
         {
-            // Look for function definitions in the format "function OnEventName()"
+            // match "function OnEventName()"
             var matches = Regex.Matches(macro.Content, @"function\s+(\w+)\s*\(");
             foreach (Match match in matches)
             {
@@ -180,7 +187,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         }
         else
         {
-            // Look for commands in the format "/OnEventName"
+            // match "/OnEventName"
             var matches = Regex.Matches(macro.Content, @"^/\s*(\w+)", RegexOptions.Multiline);
             foreach (Match match in matches)
             {
@@ -188,6 +195,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 _triggerEventManager.UnregisterFunctionTrigger(macro, functionName);
             }
         }
+        _functionTriggersRegistered.Remove(macro.Id);
     }
 
     /// <inheritdoc/>
@@ -480,13 +488,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Processing temporary macro {macro.Id} with parts: {string.Join(", ", parts)}");
                 if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro)
                 {
-                    // Check if the parent macro is already running (may cause infinite loops if it doesn't)
-                    if (parentMacro.State == MacroState.Running)
-                    {
-                        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Parent macro {parentMacro.Id} is already running, skipping trigger");
-                        return;
-                    }
-
                     Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Found parent macro {parentMacro.Id} for temporary macro {macro.Id}");
                     _macroHierarchy.RegisterTemporaryMacro(parentMacro, macro);
 
@@ -556,28 +557,28 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnAddonEvent(AddonEvent type, AddonArgs args)
     {
-        var eventData = new { type, args };
+        var eventData = new Dictionary<string, object> { { "type", type }, { "args", args } };
         Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnAddonEvent)}] fired [{type}, {args}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnAddonEvent, eventData);
     }
 
     private void OnConditionChange(ConditionFlag flag, bool value)
     {
-        var eventData = new { flag, value };
+        var eventData = new Dictionary<string, object> { { "flag", flag }, { "value", value } };
         Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnConditionChange)}] fired [{flag}, {value}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnConditionChange, eventData);
     }
 
     private void OnTerritoryChanged(ushort territoryType)
     {
-        var eventData = new { territoryType };
+        var eventData = new Dictionary<string, object> { { "territoryType", territoryType } };
         Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnTerritoryChanged)}] fired [{territoryType}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnTerritoryChange, eventData);
     }
 
     private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
-        var eventData = new { type, timestamp, sender, message, isHandled };
+        var eventData = new Dictionary<string, object> { { "type", type }, { "timestamp", timestamp }, { "sender", sender }, { "message", message }, { "isHandled", isHandled } };
         Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnChatMessage)}] fired [{type}, {timestamp}, {sender}, {message}, {isHandled}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnChatMessage, eventData);
     }
@@ -590,7 +591,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnLogout(int type, int code)
     {
-        var eventData = new { type, code };
+        var eventData = new Dictionary<string, object> { { "type", type }, { "code", code } };
         Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnLogout)}] fired [{type}, {code}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnLogout, eventData);
     }

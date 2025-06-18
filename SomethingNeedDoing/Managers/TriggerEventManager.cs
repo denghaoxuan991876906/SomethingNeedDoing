@@ -97,11 +97,13 @@ public class TriggerEventManager : IDisposable
                     _eventHandlers[TriggerEvent.OnAddonEvent] = [];
 
                 var triggerFunction = new TriggerFunction(macro, functionName, TriggerEvent.OnAddonEvent);
-                if (!_eventHandlers[TriggerEvent.OnAddonEvent].Contains(triggerFunction))
+                if (_eventHandlers[TriggerEvent.OnAddonEvent].Contains(triggerFunction))
                 {
-                    Svc.Log.Debug($"Registering OnAddonEvent trigger for macro {macro.Name} function {functionName} (Addon: {parts[1]}, Event: {parts[2]})");
-                    _eventHandlers[TriggerEvent.OnAddonEvent].Add(triggerFunction);
+                    Svc.Log.Debug($"[TriggerEventManager] Function trigger already registered for macro {macro.Name} function {functionName} (Addon: {parts[1]}, Event: {parts[2]})");
+                    return;
                 }
+                Svc.Log.Debug($"[TriggerEventManager] Registering OnAddonEvent trigger for macro {macro.Name} function {functionName} (Addon: {parts[1]}, Event: {parts[2]})");
+                _eventHandlers[TriggerEvent.OnAddonEvent].Add(triggerFunction);
                 return;
             }
         }
@@ -117,11 +119,13 @@ public class TriggerEventManager : IDisposable
                     _eventHandlers[eventType] = [];
 
                 var triggerFunction = new TriggerFunction(macro, functionName, eventType);
-                if (!_eventHandlers[eventType].Contains(triggerFunction))
+                if (_eventHandlers[eventType].Contains(triggerFunction))
                 {
-                    Svc.Log.Debug($"Registering trigger event {eventType} for macro {macro.Name} function {functionName}");
-                    _eventHandlers[eventType].Add(triggerFunction);
+                    Svc.Log.Debug($"[TriggerEventManager] Function trigger already registered for macro {macro.Name} function {functionName} event {eventType}");
+                    return;
                 }
+                Svc.Log.Debug($"[TriggerEventManager] Registering trigger event {eventType} for macro {macro.Name} function {functionName}");
+                _eventHandlers[eventType].Add(triggerFunction);
                 return;
             }
         }
@@ -199,6 +203,8 @@ public class TriggerEventManager : IDisposable
         if (!_eventHandlers.TryGetValue(eventType, out var handlers))
             return;
 
+        Svc.Log.Verbose($"[TriggerEventManager] Handlers for {eventType}: {string.Join(", ", handlers.Select(h => $"{h.Macro.Name}:{h.FunctionName}"))}");
+
         var args = new TriggerEventArgs(eventType, data);
         foreach (var triggerFunction in handlers.ToList())
         {
@@ -222,31 +228,23 @@ public class TriggerEventManager : IDisposable
                 }
                 else
                 {
-                    // Function-level trigger: extract just the function's content
                     string functionContent;
                     if (triggerFunction.Macro.Type == MacroType.Lua)
                     {
                         Svc.Log.Verbose($"Looking for function {triggerFunction.FunctionName} in macro {triggerFunction.Macro.Name}");
 
-                        // Look for function definition in the format "function OnEventName()" or "function OnEventName(args)"
-                        var match = Regex.Match(triggerFunction.Macro.Content, $@"function\s+{triggerFunction.FunctionName}\s*\([^)]*\)\s*\n(.*?)(?=\n\s*end\s*$|\n\s*function\s+\w+\s*\()", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+                        // get only the function body between 'function ...' and the matching 'end', nothing after
+                        var match = Regex.Match(triggerFunction.Macro.Content, $@"function\s+{triggerFunction.FunctionName}\s*\([^)]*\)\s*\n(.*?)\n\s*end", RegexOptions.Singleline | RegexOptions.IgnoreCase);
                         if (!match.Success)
                         {
-                            // Try a simpler pattern that just looks for the function body
-                            match = Regex.Match(triggerFunction.Macro.Content, $@"function\s+{triggerFunction.FunctionName}\s*\([^)]*\)\s*\n(.*?)\n\s*end", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-                            if (!match.Success)
-                            {
-                                Svc.Log.Error($"Could not find function {triggerFunction.FunctionName} in macro {triggerFunction.Macro.Name}");
-                                continue;
-                            }
+                            Svc.Log.Error($"Could not find function {triggerFunction.FunctionName} in macro {triggerFunction.Macro.Name}");
+                            continue;
                         }
-                        // Extract the function body and wrap it in a function call
                         var functionBody = match.Groups[1].Value.Trim();
-                        functionContent = $"function {triggerFunction.FunctionName}()\n{functionBody}\nend\n{triggerFunction.FunctionName}()";
+                        functionContent = functionBody;
                     }
                     else
-                        // For native macros, just use the entire content
-                        functionContent = triggerFunction.Macro.Content;
+                        functionContent = triggerFunction.Macro.Content; // natives just use the whole macro
 
                     // Create a temporary macro with the parent macro's ID
                     var tempMacroId = $"{triggerFunction.Macro.Id}_{triggerFunction.FunctionName}_{Guid.NewGuid()}";

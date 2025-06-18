@@ -18,6 +18,7 @@ ui:
 - way to bulk change macro settings (move to folder, change language, etc)
 - show status of currently open macro
 - make propagation work in the status window
+- new macro add via url directly
 
 triggers:
 - on enter fate
@@ -29,3 +30,4 @@ bugs:
 
 modules:
 - eorzea timestamp stuff
+- autoretainer api
