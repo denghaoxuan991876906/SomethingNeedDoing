@@ -56,6 +56,7 @@ public class ChangelogWindow : Window
     private void AddGeneralChangelogs()
     {
         Add("12.8", "Fixed recursive spawning of temporary macros caused by function-level trigger events");
+        Add("12.9", "Added pause/resume/stop all commands");
     }
 
     private void Add(string version, string description)
@@ -109,7 +110,7 @@ public class ChangelogWindow : Window
             foreach (var root in rootClassNames)
             {
                 if (!classGroupDict.TryGetValue(root, out var classGroup)) continue;
-                using var tree = ImRaii.TreeNode(classGroup.ClassName);
+                using var tree = ImRaii.TreeNode(classGroup.ClassName, ImGuiTreeNodeFlags.DefaultOpen);
                 if (!tree) continue;
                 var visited = new HashSet<string> { classGroup.ClassName };
                 foreach (var memberEntry in classGroup.Members.Values)
@@ -118,7 +119,7 @@ public class ChangelogWindow : Window
             foreach (var classGroup in classGroups)
             {
                 if (rootClassNames.Contains(classGroup.ClassName) || allReachableTypes.Contains(classGroup.ClassName) || classGroup.Members.Count == 0) continue;
-                using var tree = ImRaii.TreeNode(classGroup.ClassName);
+                using var tree = ImRaii.TreeNode(classGroup.ClassName, ImGuiTreeNodeFlags.DefaultOpen);
                 if (!tree) continue;
                 var visited = new HashSet<string> { classGroup.ClassName };
                 foreach (var memberEntry in classGroup.Members.Values)
@@ -154,7 +155,7 @@ public class ChangelogWindow : Window
 
         if (hasReturnTypeData)
         {
-            using var tree = ImRaii.TreeNode(label);
+            using var tree = ImRaii.TreeNode(label, ImGuiTreeNodeFlags.DefaultOpen);
             if (tree)
             {
                 foreach (var entry in memberEntry.Entries)

@@ -21,17 +21,20 @@ public class AutoDuty : IPC
     [LuaFunction(
         description: "Sets a configuration value",
         parameterDescriptions: ["key", "value"])]
-    public readonly Func<string, string> SetConfig = null!;
+    [Changelog("12.9", ChangelogType.Fixed)]
+    public readonly Action<string, string> SetConfig = null!;
 
     [EzIPC]
     [LuaFunction(
         description: "Runs a specific duty",
-        parameterDescriptions: ["dutyId", "count"])]
-    public readonly Func<uint, int, bool> Run = null!;
+        parameterDescriptions: ["territoryType", "loops", "bareMode"])]
+    [Changelog("12.9", ChangelogType.Fixed)]
+    public readonly Action<uint, int, bool> Run = null!;
 
     [EzIPC]
-    [LuaFunction(description: "Starts the auto duty process")]
-    public readonly Func<bool> Start = null!;
+    [LuaFunction(description: "Starts the auto duty process", parameterDescriptions: ["startFromZero"])]
+    [Changelog("12.9", ChangelogType.Fixed)]
+    public readonly Action<bool> Start = null!;
 
     [EzIPC]
     [LuaFunction(description: "Stops the auto duty process")]

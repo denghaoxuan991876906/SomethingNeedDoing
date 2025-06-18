@@ -5,7 +5,6 @@ using SomethingNeedDoing.Gui;
 
 namespace SomethingNeedDoing.Services;
 
-[Changelog("12.9", ChangelogType.Added, "stop/pause/resume all")]
 public class CommandService
 {
     public string MainCommand => "/somethingneeddoing";
