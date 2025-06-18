@@ -28,4 +28,8 @@ public unsafe class PlayerModule : LuaModuleBase
     [LuaFunction] public bool CanFly => Player.CanFly;
     [LuaFunction] public bool Revivable => Player.Revivable;
     [LuaFunction] public bool Available => Player.Available;
+
+    [LuaFunction]
+    [Changelog("12.8")]
+    public bool IsBusy => Player.IsBusy;
 }

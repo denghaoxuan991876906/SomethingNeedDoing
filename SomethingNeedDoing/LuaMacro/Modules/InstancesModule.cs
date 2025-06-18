@@ -56,4 +56,112 @@ public unsafe class InstancesModule : LuaModuleBase
         [LuaDocs] public byte Sex => data.Sex;
         [LuaDocs] public JobWrapper Job => new(data.Job);
     }
+
+    [LuaFunction]
+    [Changelog("12.8")]
+    public MapWrapper Map => new();
+    public class MapWrapper : IWrapper
+    {
+        [LuaDocs]
+        [Changelog("12.8")]
+        public bool IsFlagMarkerSet => AgentMap.Instance()->IsFlagMarkerSet;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public FlagWrapper Flag => new(AgentMap.Instance()->FlagMapMarker);
+    }
+
+    public class FlagWrapper(FlagMapMarker data) : IWrapper
+    {
+        [LuaDocs]
+        [Changelog("12.8")]
+        public uint TerritoryId => data.TerritoryId;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public uint MapId => data.MapId;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public float XFloat => data.XFloat;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public float YFloat => data.YFloat;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public Vector2 Vector2 => new(XFloat, YFloat);
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public Vector3 Vector3 => new(XFloat, 0, YFloat); // TODO use navmesh PointOnFloor
+    }
+
+    public class MapMarkerDataWrapper(MapMarkerData data) : IWrapper
+    {
+        [LuaDocs]
+        [Changelog("12.8")]
+        public uint LevelId => data.LevelId;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public uint ObjectiveId => data.ObjectiveId;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public string TooltipString => data.TooltipString->ToString();
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public uint IconId => data.IconId;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public Vector3 Position => data.Position;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public float Radius => data.Radius;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public uint MapId => data.MapId;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public uint PlaceNameZoneId => data.PlaceNameZoneId;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public uint PlaceNameId => data.PlaceNameId;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public int EndTimestamp => data.EndTimestamp;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public ushort RecommendedLevel => data.RecommendedLevel;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public ushort TerritoryTypeId => data.TerritoryTypeId;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public ushort DataId => data.DataId;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public byte MarkerType => data.MarkerType;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public sbyte EventState => data.EventState;
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public byte Flags => data.Flags;
+    }
 }

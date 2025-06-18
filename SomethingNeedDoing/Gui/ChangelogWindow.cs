@@ -1,0 +1,157 @@
+﻿using Dalamud.Interface.Utility.Raii;
+using Dalamud.Interface.Windowing;
+using SomethingNeedDoing.Documentation;
+using System.Reflection;
+
+namespace SomethingNeedDoing.Gui;
+
+public class ChangelogWindow : Window
+{
+    private readonly Dictionary<string, List<ChangelogClassGroup>> _versionedGroups = [];
+    private readonly List<string> _sortedVersions = [];
+
+    public ChangelogWindow() : base($"{P.Name} - Changelog###{P.Name}_{nameof(ChangelogWindow)}", ImGuiWindowFlags.NoScrollbar)
+    {
+        Size = new(600, 400);
+        SizeCondition = ImGuiCond.FirstUseEver;
+        var asm = typeof(ChangelogWindow).Assembly;
+        var allTypes = asm.GetTypes();
+        var allEntries = allTypes.SelectMany(type =>
+            type.GetCustomAttributes<ChangelogAttribute>().Select(attr => new ChangelogEntry(attr, type.Name, type, "Class"))
+            .Concat(type.GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+                .SelectMany(member => member.GetCustomAttributes<ChangelogAttribute>()
+                    .Select(attr => new ChangelogEntry(attr, type.Name, type, member.MemberType.ToString(), member)))))
+            .ToList();
+        foreach (var versionGroup in allEntries.GroupBy(e => e.Version))
+        {
+            var classGroups = versionGroup.GroupBy(e => e.ParentClass)
+                .Select(classGroup =>
+                {
+                    var classType = allTypes.FirstOrDefault(t => t.Name == classGroup.Key);
+                    if (classType == null) return null;
+                    var members = classGroup.Where(e => e.MemberType != "Class").ToList();
+                    return new ChangelogClassGroup
+                    {
+                        ClassName = classGroup.Key,
+                        Members = members.ToDictionary(e => e.TargetName, e => new ChangelogMemberEntry
+                        {
+                            Name = e.TargetName,
+                            ReturnType = e.MemberInfo is PropertyInfo pi ? pi.PropertyType : e.MemberInfo is MethodInfo mi ? mi.ReturnType : null,
+                            Entries = [e]
+                        })
+                    };
+                })
+                .Where(cg => cg != null)
+                .ToList()!;
+            _versionedGroups[versionGroup.Key] = classGroups;
+        }
+        _sortedVersions = [.. _versionedGroups.Keys.OrderByDescending(v => v)];
+
+        var currentVersion = Svc.PluginInterface.Manifest.AssemblyVersion.ToString(2);
+        if (_sortedVersions.Count > 0 && _sortedVersions[0] == currentVersion && _versionedGroups[_sortedVersions[0]].Any(cg => cg.Members.Count > 0))
+            IsOpen = true;
+    }
+
+    public override void Draw()
+    {
+        foreach (var version in _sortedVersions)
+        {
+            if (!ImGui.CollapsingHeader($"Version {version}")) continue;
+            var classGroups = _versionedGroups[version];
+            var classGroupDict = classGroups.ToDictionary(cg => cg.ClassName, cg => cg);
+            var usedAsReturnType = classGroups.SelectMany(cg => cg.Members.Values)
+                .Select(m => m.ReturnType?.Name).Where(rt => !string.IsNullOrEmpty(rt)).ToHashSet();
+            var rootClassNames = classGroups.Where(cg => !usedAsReturnType.Contains(cg.ClassName) || cg.Members.Count == 0)
+                .Select(cg => cg.ClassName).ToList();
+            var allReachableTypes = new HashSet<string>();
+            foreach (var root in rootClassNames)
+            {
+                var visited = new HashSet<string>();
+                CollectReachableTypes(root, classGroupDict, visited);
+                foreach (var t in visited) allReachableTypes.Add(t);
+            }
+            foreach (var root in rootClassNames)
+            {
+                if (!classGroupDict.TryGetValue(root, out var classGroup)) continue;
+                using var tree = ImRaii.TreeNode(classGroup.ClassName);
+                if (!tree) continue;
+                var visited = new HashSet<string> { classGroup.ClassName };
+                foreach (var memberEntry in classGroup.Members.Values)
+                    DrawMemberWithReturnTypeRecursive(memberEntry, classGroupDict, visited, allReachableTypes);
+            }
+            foreach (var classGroup in classGroups)
+            {
+                if (rootClassNames.Contains(classGroup.ClassName) || allReachableTypes.Contains(classGroup.ClassName) || classGroup.Members.Count == 0) continue;
+                using var tree = ImRaii.TreeNode(classGroup.ClassName);
+                if (!tree) continue;
+                var visited = new HashSet<string> { classGroup.ClassName };
+                foreach (var memberEntry in classGroup.Members.Values)
+                    DrawMemberWithReturnTypeRecursive(memberEntry, classGroupDict, visited, allReachableTypes);
+            }
+        }
+    }
+
+    private static void CollectReachableTypes(string className, Dictionary<string, ChangelogClassGroup> classGroupDict, HashSet<string> visited)
+    {
+        if (!classGroupDict.TryGetValue(className, out var classGroup) || !visited.Add(className)) return;
+        foreach (var member in classGroup.Members.Values)
+            if (member.ReturnType is { Name.Length: > 0, Name: var name } && classGroupDict.ContainsKey(name))
+                CollectReachableTypes(name, classGroupDict, visited);
+    }
+
+    private static void DrawMemberWithReturnTypeRecursive(ChangelogMemberEntry memberEntry, Dictionary<string, ChangelogClassGroup> classGroupDict, HashSet<string> visited, HashSet<string> allReachableTypes)
+    {
+        var returnType = memberEntry.ReturnType;
+        var returnTypeName = returnType?.Name;
+        var hasReturnTypeData = returnType != null && classGroupDict.ContainsKey(returnTypeName) && classGroupDict[returnTypeName].Members.Count > 0 && !visited.Contains(returnTypeName);
+        var label = memberEntry.Name + (returnType != null ? $" → {LuaTypeConverter.GetLuaType(returnType).TypeName}" : "");
+        if (hasReturnTypeData)
+        {
+            using var tree = ImRaii.TreeNode(label);
+            if (tree)
+            {
+                foreach (var entry in memberEntry.Entries)
+                    if (!string.IsNullOrEmpty(entry.Description))
+                        using (ImRaii.TextWrapPos(0f))
+                            ImGui.TextUnformatted(entry.Description);
+                visited.Add(returnTypeName!);
+                foreach (var subMember in classGroupDict[returnTypeName!].Members.Values)
+                    DrawMemberWithReturnTypeRecursive(subMember, classGroupDict, visited, allReachableTypes);
+                visited.Remove(returnTypeName!);
+            }
+        }
+        else
+        {
+            ImGui.BulletText(label);
+            foreach (var entry in memberEntry.Entries)
+                if (!string.IsNullOrEmpty(entry.Description))
+                    using (ImRaii.TextWrapPos(0f))
+                        ImGui.TextUnformatted(entry.Description);
+        }
+    }
+
+    private class ChangelogClassGroup
+    {
+        public string ClassName = string.Empty;
+        public Dictionary<string, ChangelogMemberEntry> Members = [];
+    }
+
+    private class ChangelogMemberEntry
+    {
+        public string Name = string.Empty;
+        public Type? ReturnType;
+        public List<ChangelogEntry> Entries = [];
+    }
+
+    private class ChangelogEntry(ChangelogAttribute attr, string parentClass, Type declaringType, string memberType, MemberInfo? memberInfo = null)
+    {
+        public string Version = attr.Version;
+        public ChangelogType ChangeType = attr.ChangeType;
+        public string ParentClass = parentClass;
+        public string TargetName = memberInfo?.Name ?? parentClass;
+        public string? Description = attr.Description;
+        public string MemberType = memberType;
+        public Type? DeclaringType = declaringType;
+        public MemberInfo? MemberInfo = memberInfo;
+    }
+}

@@ -1,8 +1,12 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Component.GUI;
+using FFXIVClientStructs.Interop;
 using SomethingNeedDoing.Core.Interfaces;
+using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;
-public class InventoryModule : LuaModuleBase
+public unsafe class InventoryModule : LuaModuleBase
 {
     public override string ModuleName => "Inventory";
 
@@ -21,6 +25,38 @@ public class InventoryModule : LuaModuleBase
                     return new(container, i);
         }
         return null;
+    }
+
+    [LuaFunction]
+    [Changelog("12.8")]
+    public List<InventoryItemWrapper> GetItemsInNeedOfRepairs(int durability = 0)
+    {
+        List<InventoryItemWrapper> list = [];
+        var container = InventoryManager.Instance()->GetInventoryContainer(InventoryType.EquippedItems);
+        for (var i = 0; i < container->Size; i++)
+        {
+            var item = container->GetInventorySlot(i);
+            if (item is null) continue;
+            if (Convert.ToInt32(Convert.ToDouble(item->Condition) / 30000.0 * 100.0) <= durability)
+                list.Add(new(item));
+        }
+        return list;
+    }
+
+    [LuaFunction]
+    [Changelog("12.8")]
+    public List<InventoryItemWrapper> GetSpiritbondedItems()
+    {
+        List<InventoryItemWrapper> list = [];
+        var container = InventoryManager.Instance()->GetInventoryContainer(InventoryType.EquippedItems);
+        for (var i = 0; i < container->Size; i++)
+        {
+            var item = container->GetInventorySlot(i);
+            if (item is null) continue;
+            if (item->SpiritbondOrCollectability / 100 == 100)
+                list.Add(new(item));
+        }
+        return list;
     }
 
     public unsafe class InventoryContainerWrapper(InventoryType container) : IWrapper
@@ -77,5 +113,21 @@ public class InventoryModule : LuaModuleBase
         [LuaDocs] public int Slot => Item->Slot;
 
         [LuaDocs] public void Use() => Game.UseItem(ItemId, IsHighQuality);
+
+        [LuaDocs]
+        [Changelog("12.8")]
+        public void Desynth()
+        {
+            if (GetRow<Sheets.Item>(ItemId)?.Desynth == 0)
+                return;
+
+            AgentSalvage.Instance()->SalvageItem(Item);
+            var retval = new AtkValue();
+            Span<AtkValue> param = [
+                new AtkValue { Type = ValueType.Int, Int = 0 },
+            new AtkValue { Type = ValueType.Bool, Byte = 1 }
+            ];
+            AgentSalvage.Instance()->AgentInterface.ReceiveEvent(&retval, param.GetPointer(0), 2, 1);
+        }
     }
 }

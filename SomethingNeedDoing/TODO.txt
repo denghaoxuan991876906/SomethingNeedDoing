@@ -10,12 +10,22 @@ git stuff:
 general:
 - add /task command, takes in the name of some task and does the thing, main macro waits for its completion
 - depend/conflict with plugin specific settings (e.g. ST or pandora individual tweaks)
+- commands take name instead of id for macros
 
 ui:
 - indicate in the lua docs if a field has a setter
 - have the language option be in the editor too
 - way to bulk change macro settings (move to folder, change language, etc)
 - show status of currently open macro
+- make propagation work in the status window
+
+triggers:
+- on enter fate
+- on target change
 
 bugs:
 - temp macros are added to the stack before the first finishes
+- check autoduty run ipc
+
+modules:
+- eorzea timestamp stuff

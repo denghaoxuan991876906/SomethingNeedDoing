@@ -30,7 +30,6 @@ public class CommandService
         _windowSystem = windowSystem;
 
         _rootCommand = new("", "Open the main window", _ => ToggleMainWindow());
-
         var runCommand = new SubCommand("run", "Run a macro, the name must be unique.", HandleRunCommand);
         runCommand.SubCommands.Add(new("loop", "Run a macro and then loop N times, the name must be unique.", HandleRunLoopCommand));
 
@@ -44,8 +43,9 @@ public class CommandService
         var resumeCommand = new SubCommand("resume", "Resume the given paused macro.", HandleResumeCommand);
         //var cfgCommand = new SubCommand("cfg", "Change a configuration value.", HandleConfigCommand);
         var statusCommand = new SubCommand("status", "Toggle the running macros window.", _ => ToggleStatusWindow());
+        var changelogCommand = new SubCommand("changelog", "Toggle the changelog window.", _ => ToggleChangelogWindow());
 
-        _rootCommand.SubCommands.AddRange([runCommand, pauseCommand, stopCommand, helpCommand, resumeCommand, statusCommand]);
+        _rootCommand.SubCommands.AddRange([runCommand, pauseCommand, stopCommand, helpCommand, resumeCommand, statusCommand, changelogCommand]);
 
         RegisterCommands();
     }
@@ -156,4 +156,5 @@ public class CommandService
 
     private void ToggleMainWindow() => _windowSystem.Toggle<MainWindow>();
     private void ToggleStatusWindow() => _windowSystem.Toggle<StatusWindow>();
+    private void ToggleChangelogWindow() => _windowSystem.Toggle<ChangelogWindow>();
 }
