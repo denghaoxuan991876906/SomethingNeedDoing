@@ -47,9 +47,45 @@ public class ChangelogWindow : Window
         }
         _sortedVersions = [.. _versionedGroups.Keys.OrderByDescending(v => v)];
 
+        AddGeneralChangelogs();
         var currentVersion = Svc.PluginInterface.Manifest.AssemblyVersion.ToString(2);
         if (_sortedVersions.Count > 0 && _sortedVersions[0] == currentVersion && _versionedGroups[_sortedVersions[0]].Any(cg => cg.Members.Count > 0))
             IsOpen = true;
+    }
+
+    private void AddGeneralChangelogs()
+    {
+        Add("12.8", "Fixed recursive spawning of temporary macros caused by function-level trigger events");
+    }
+
+    private void Add(string version, string description)
+    {
+        var attr = new ChangelogAttribute(version, ChangelogType.Changed, description);
+        var entry = new ChangelogEntry(attr, "General", typeof(ChangelogWindow), "General", null);
+
+        if (!_versionedGroups.TryGetValue(version, out var classGroups))
+        {
+            classGroups = [];
+            _versionedGroups[version] = classGroups;
+        }
+        var generalGroup = classGroups.FirstOrDefault(g => g.ClassName == "General");
+        if (generalGroup == null)
+        {
+            generalGroup = new ChangelogClassGroup { ClassName = "General" };
+            classGroups.Add(generalGroup);
+        }
+        if (!generalGroup.Members.TryGetValue("General", out var memberEntry))
+        {
+            memberEntry = new ChangelogMemberEntry { Name = "General" };
+            generalGroup.Members["General"] = memberEntry;
+        }
+        memberEntry.Entries.Add(entry);
+
+        if (!_sortedVersions.Contains(version))
+        {
+            _sortedVersions.Add(version);
+            _sortedVersions.Sort((a, b) => string.Compare(b, a, StringComparison.Ordinal));
+        }
     }
 
     public override void Draw()
@@ -105,6 +141,17 @@ public class ChangelogWindow : Window
         var returnTypeName = returnType?.Name;
         var hasReturnTypeData = returnType != null && classGroupDict.ContainsKey(returnTypeName) && classGroupDict[returnTypeName].Members.Count > 0 && !visited.Contains(returnTypeName);
         var label = memberEntry.Name + (returnType != null ? $" → {LuaTypeConverter.GetLuaType(returnType).TypeName}" : "");
+
+        // I can't wait for something to legitimately be named general and mess this up
+        if (memberEntry.Name == "General" && classGroupDict.TryGetValue("General", out var cg) && cg.Members["General"] == memberEntry)
+        {
+            foreach (var entry in memberEntry.Entries)
+                if (!string.IsNullOrEmpty(entry.Description))
+                    using (ImRaii.TextWrapPos(0f))
+                        ImGui.TextUnformatted($"{entry.Description}");
+            return;
+        }
+
         if (hasReturnTypeData)
         {
             using var tree = ImRaii.TreeNode(label);
@@ -113,7 +160,7 @@ public class ChangelogWindow : Window
                 foreach (var entry in memberEntry.Entries)
                     if (!string.IsNullOrEmpty(entry.Description))
                         using (ImRaii.TextWrapPos(0f))
-                            ImGui.TextUnformatted(entry.Description);
+                            ImGui.TextUnformatted($"{entry.ChangeType} {entry.Description}");
                 visited.Add(returnTypeName!);
                 foreach (var subMember in classGroupDict[returnTypeName!].Members.Values)
                     DrawMemberWithReturnTypeRecursive(subMember, classGroupDict, visited, allReachableTypes);
@@ -126,7 +173,7 @@ public class ChangelogWindow : Window
             foreach (var entry in memberEntry.Entries)
                 if (!string.IsNullOrEmpty(entry.Description))
                     using (ImRaii.TextWrapPos(0f))
-                        ImGui.TextUnformatted(entry.Description);
+                        ImGui.TextUnformatted($"{entry.ChangeType} {entry.Description}");
         }
     }
 
