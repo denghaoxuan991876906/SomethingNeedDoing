@@ -24,5 +24,4 @@ triggers:
 - on target change
 
 modules:
-- eorzea timestamp stuff
 - autoretainer api
