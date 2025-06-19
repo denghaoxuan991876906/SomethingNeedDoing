@@ -2,7 +2,6 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using ECommons.Configuration;
 using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Gui.Modals;
