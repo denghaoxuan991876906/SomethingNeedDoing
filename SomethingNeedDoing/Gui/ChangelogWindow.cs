@@ -59,6 +59,8 @@ public class ChangelogWindow : Window
         Add("12.9", "Added pause/resume/stop all commands");
         Add("12.10", "Added a lua stub generator (outputs in config directory, used for script linting) by Faye");
         Add("12.10", "Fixed native macro execution where waits weren't being applied properly");
+        Add("12.11", "Fixed /loop");
+        Add("12.11", "Fixed craft skip trigger on non craft actions");
     }
 
     private void Add(string version, string description)

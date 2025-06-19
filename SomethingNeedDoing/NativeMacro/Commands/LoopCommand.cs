@@ -43,18 +43,16 @@ public class LoopCommand(string text, int loopCount, IMacroScheduler scheduler) 
                 }
             }
 
-            loopsRemaining--;
-
-            if (loopsRemaining < 0)
-            {
-                loopsRemaining = loopCount;
+            if (loopsRemaining <= 0)
                 return;
-            }
         }
 
         context.Loop();
         scheduler.CheckLoopPause(context.Macro.Id);
         scheduler.CheckLoopStop(context.Macro.Id);
+
+        if (loopsRemaining != MaxLoops)
+            loopsRemaining--;
 
         await Task.Delay(10, token);
         await PerformWait(token);

@@ -80,7 +80,7 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
                 var totalSteps = state.Commands.Count;
                 var currentStep = 0;
 
-                foreach (var command in state.Commands)
+                while (currentStep < state.Commands.Count)
                 {
                     token.ThrowIfCancellationRequested();
 
@@ -101,13 +101,22 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
                         return;
                     }
 
+                    var command = state.Commands[currentStep];
+                    var context = new MacroContext(state.Macro);
+
                     if (command.RequiresFrameworkThread)
-                        await Svc.Framework.RunOnTick(() => command.Execute(new MacroContext(state.Macro), token), cancellationToken: token);
+                        await Svc.Framework.RunOnTick(() => command.Execute(context, token), cancellationToken: token);
                     else
-                        await command.Execute(new MacroContext(state.Macro), token);
+                        await command.Execute(context, token);
 
                     currentStep++;
                     MacroStepCompleted?.Invoke(this, new MacroStepCompletedEventArgs(state.Macro.Id, currentStep, totalSteps));
+
+                    if (context.CurrentStep == -1)
+                    {
+                        currentStep = 0; // restart
+                        context.NextStep(); // reset loop flag
+                    }
                 }
 
                 state.CurrentLoop++;
