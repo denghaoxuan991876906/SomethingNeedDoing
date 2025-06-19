@@ -13,6 +13,7 @@ public sealed class Plugin : IDalamudPlugin
 
     internal static Plugin P { get; private set; } = null!;
     internal static Config C { get; private set; } = null!;
+    internal string Version => Svc.PluginInterface.Manifest.AssemblyVersion.ToString(2);
 
     private readonly ServiceProvider _serviceProvider;
 

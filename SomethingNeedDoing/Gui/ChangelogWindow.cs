@@ -1,5 +1,6 @@
 ﻿using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Documentation;
 using System.Reflection;
 
@@ -48,8 +49,9 @@ public class ChangelogWindow : Window
         _sortedVersions = [.. _versionedGroups.Keys.OrderByDescending(v => v, new VersionComparer())];
 
         AddGeneralChangelogs();
-        var currentVersion = Svc.PluginInterface.Manifest.AssemblyVersion.ToString(2);
-        if (_sortedVersions.Count > 0 && _sortedVersions[0] == currentVersion && _versionedGroups[_sortedVersions[0]].Any(cg => cg.Members.Count > 0))
+        var currentVersion = P.Version;
+        var anyChanges = _sortedVersions.Count > 0 && _sortedVersions[0] == currentVersion && _versionedGroups[_sortedVersions[0]].Any(cg => cg.Members.Count > 0);
+        if (anyChanges && C.LastSeenVersion != P.Version)
             IsOpen = true;
     }
 
@@ -95,11 +97,19 @@ public class ChangelogWindow : Window
         }
     }
 
+    public override void OnOpen()
+    {
+        C.LastSeenVersion = P.Version;
+        base.OnOpen();
+    }
+
     public override void Draw()
     {
         foreach (var version in _sortedVersions)
         {
-            if (!ImGui.CollapsingHeader($"Version {version}")) continue;
+            var flags = P.Version == version ? ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.CollapsingHeader : ImGuiTreeNodeFlags.CollapsingHeader;
+            using (ImRaii.PushColor(ImGuiCol.Text, EzColor.Green.Vector4, flags.HasFlag(ImGuiTreeNodeFlags.DefaultOpen)))
+                if (!ImGui.CollapsingHeader($"Version {version}", flags)) continue;
             var classGroups = _versionedGroups[version];
             var classGroupDict = classGroups.ToDictionary(cg => cg.ClassName, cg => cg);
             var usedAsReturnType = classGroups.SelectMany(cg => cg.Members.Values)

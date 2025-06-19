@@ -118,6 +118,10 @@ public class Config : IEzConfig
     public string[] LuaRequirePaths { get; set; } = [];
     #endregion
 
+    #region Changelog
+    public string LastSeenVersion = string.Empty;
+    #endregion
+
     public List<ConfigMacro> Macros { get; set; } = [];
 
     public void Save() => EzConfig.Save();

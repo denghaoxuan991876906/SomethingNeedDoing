@@ -18,7 +18,7 @@ public class MainWindow : Window
     private bool ClickedHeaderCurrentFrame;
 
     public MainWindow(IMacroScheduler scheduler, MacroEditor macroEditor, MacroSettingsSection macroSettings, HelpTab helpTab, VersionHistoryModal versionHistoryModal)
-        : base($"{P.Name} v{Svc.PluginInterface.Manifest.AssemblyVersion.ToString(2)}###{P.Name}_{nameof(MainWindow)}", ImGuiWindowFlags.NoScrollbar)
+        : base($"{P.Name} v{P.Version}###{P.Name}_{nameof(MainWindow)}", ImGuiWindowFlags.NoScrollbar)
     {
         _helpTab = helpTab;
         _macrosTab = new MacrosTab(scheduler, macroSettings, macroEditor);
