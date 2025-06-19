@@ -14,7 +14,7 @@ public unsafe class EntityWrapper : IWrapper
     public EntityWrapper(IPartyMember obj) => _obj = (GameObject*)obj.Address;
 
     private readonly GameObject* _obj;
-    private IGameObject? Dalamud => Svc.Objects.CreateObjectReference((nint)_obj);
+    private IGameObject? DalamudObj => Svc.Objects.CreateObjectReference((nint)_obj);
     private Character* Character => Type == ObjectKind.Pc ? (Character*)_obj : null;
     private BattleChara* BattleChara => Type == ObjectKind.BattleNpc ? (BattleChara*)_obj : null;
     private bool IsPlayer => Type == ObjectKind.Pc && Character != null;
@@ -36,14 +36,26 @@ public unsafe class EntityWrapper : IWrapper
     [LuaDocs] public uint CurrentMp => GetCharacterValue(() => Character->Mana);
     [LuaDocs] public uint MaxMp => GetCharacterValue(() => Character->MaxMana);
 
-    [LuaDocs] public EntityWrapper? Target => Dalamud?.TargetObject is { } target ? new(target) : null;
+    [LuaDocs] public EntityWrapper? Target => DalamudObj?.TargetObject is { } target ? new(target) : null;
     [LuaDocs] public bool IsCasting => GetCharacterValue(() => Character->IsCasting);
     [LuaDocs] public bool IsCastInterruptible => GetCharacterValue(() => Character->GetCastInfo()->Interruptible) > 0;
     [LuaDocs] public bool IsInCombat => GetCharacterValue(() => Character->InCombat);
     [LuaDocs] public byte HuntRank => FindRow<NotoriousMonster>(x => x.BNpcBase.Value!.RowId == _obj->EntityId)?.Rank ?? 0;
 
-    [LuaDocs] public void SetAsTarget() => Svc.Targets.Target = Dalamud;
-    [LuaDocs] public void SetAsFocusTarget() => Svc.Targets.FocusTarget = Dalamud;
+    [LuaDocs]
+    [Changelog("12.15")]
+    public bool IsMounted
+    {
+        get
+        {
+            if (Type != ObjectKind.Pc) return false;
+            if (Character->ObjectIndex + 1 > Svc.Objects.Length) return false;
+            return Svc.Objects[Character->ObjectIndex + 1] is { ObjectKind: Dalamud.Game.ClientState.Objects.Enums.ObjectKind.MountType };
+        }
+    }
+
+    [LuaDocs] public void SetAsTarget() => Svc.Targets.Target = DalamudObj;
+    [LuaDocs] public void SetAsFocusTarget() => Svc.Targets.FocusTarget = DalamudObj;
     [LuaDocs] public void ClearTarget() => Svc.Targets.Target = null;
-    [LuaDocs] public void Interact() => Game.Interact(Dalamud);
+    [LuaDocs] public void Interact() => Game.Interact(DalamudObj);
 }
