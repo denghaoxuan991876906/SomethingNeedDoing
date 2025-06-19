@@ -3,7 +3,7 @@ using SomethingNeedDoing.Core.Interfaces;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 
-namespace SomethingNeedDoing.Scheduler;
+namespace SomethingNeedDoing.Managers;
 
 /// <summary>
 /// Represents a function that can be triggered by an event.

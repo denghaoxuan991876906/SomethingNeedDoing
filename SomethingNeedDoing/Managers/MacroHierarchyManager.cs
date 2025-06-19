@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.Scheduler;
+namespace SomethingNeedDoing.Managers;
 
 /// <summary>
 /// Manages the hierarchy and relationships between macros and their temporary children.

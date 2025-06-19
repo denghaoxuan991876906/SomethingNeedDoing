@@ -4,7 +4,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
-using SomethingNeedDoing.Scheduler;
+using SomethingNeedDoing.Managers;
 
 namespace SomethingNeedDoing.Gui;
 

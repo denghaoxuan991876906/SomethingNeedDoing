@@ -14,7 +14,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.Scheduler;
+namespace SomethingNeedDoing.Managers;
 /// <summary>
 /// Manages and coordinates execution of multiple macros.
 /// </summary>
@@ -26,12 +26,13 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private readonly Dictionary<string, AddonEventConfig> _addonEvents = [];
     private readonly MacroHierarchyManager _macroHierarchy = new();
     private readonly Dictionary<string, IDisableable> _disableablePlugins = [];
+    private readonly CleanupManager _cleanupManager = new();
 
     private readonly NativeMacroEngine _nativeEngine;
     private readonly NLuaMacroEngine _luaEngine;
     private readonly TriggerEventManager _triggerEventManager;
 
-    private readonly HashSet<string> _functionTriggersRegistered = new();
+    private readonly HashSet<string> _functionTriggersRegistered = [];
 
     /// <inheritdoc/>
     public event EventHandler<MacroStateChangedEventArgs>? MacroStateChanged;
@@ -58,6 +59,8 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _luaEngine.MacroControlRequested += OnMacroControlRequested;
         _nativeEngine.MacroStepCompleted += OnMacroStepCompleted;
         _luaEngine.MacroStepCompleted += OnMacroStepCompleted;
+
+        _cleanupManager.CleanupFunctionRequested += OnCleanupFunctionRequested;
 
         foreach (var plugin in disableablePlugins)
             _disableablePlugins[plugin.InternalName] = plugin;
@@ -165,6 +168,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             }
         }
         _functionTriggersRegistered.Add(macro.Id);
+        _cleanupManager.RegisterCleanupFunctions(macro);
     }
 
     /// <summary>
@@ -196,6 +200,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             }
         }
         _functionTriggersRegistered.Remove(macro.Id);
+        _cleanupManager.UnregisterCleanupFunctions(macro);
     }
 
     /// <inheritdoc/>
@@ -327,6 +332,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
             UnregisterFunctionTriggers(state.Macro);
             await SetPluginStates(state.Macro, true);
+
+            // Execute cleanup functions
+            _cleanupManager.ExecuteCleanup(macroId, "Stopped");
 
             if (C.PropagateControlsToChildren)
                 foreach (var child in _macroHierarchy.GetChildMacros(macroId).ToList())
@@ -461,6 +469,8 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
         if (e.NewState is MacroState.Completed or MacroState.Error)
         {
+            _cleanupManager.ExecuteCleanup(e.MacroId, e.NewState.ToString());
+
             // If this is a temporary macro, unregister it and clean up
             if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro2)
             {
@@ -650,6 +660,14 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnMacroStepCompleted(object? sender, MacroStepCompletedEventArgs e)
         => Svc.Log.Verbose($"Macro step completed for {e.MacroId}: {e.StepIndex}/{e.TotalSteps}");
+
+    private void OnCleanupFunctionRequested(object? sender, CleanupFunctionEventArgs e)
+    {
+        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Executing cleanup function {e.FunctionName} for macro {e.TempMacro.Name} (reason: {e.Reason})");
+
+        // Start the cleanup temporary macro
+        _ = StartMacro(e.TempMacro);
+    }
     #endregion
 
     /// <inheritdoc/>
@@ -663,6 +681,8 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _luaEngine.MacroControlRequested -= OnMacroControlRequested;
         _nativeEngine.MacroStepCompleted -= OnMacroStepCompleted;
         _luaEngine.MacroStepCompleted -= OnMacroStepCompleted;
+
+        _cleanupManager.CleanupFunctionRequested -= OnCleanupFunctionRequested;
 
         _macroStates.Values.Each(s => s.Dispose());
         _macroStates.Clear();
@@ -683,5 +703,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _addonEvents.Clear();
 
         _triggerEventManager.Dispose();
+        _cleanupManager.Dispose();
     }
+
+    /// <inheritdoc/>
+    public bool HasCleanupFunctions(string macroId) => _cleanupManager.HasCleanupFunctions(macroId);
+
+    /// <inheritdoc/>
+    public void ExecuteCleanup(string macroId, string reason = "Manual") => _cleanupManager.ExecuteCleanup(macroId, reason);
 }

@@ -1,7 +1,7 @@
 ﻿using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
-using SomethingNeedDoing.Scheduler;
+using SomethingNeedDoing.Managers;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 public static class HelpGeneralTab
