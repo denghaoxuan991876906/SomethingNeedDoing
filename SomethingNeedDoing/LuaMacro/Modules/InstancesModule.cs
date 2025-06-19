@@ -11,6 +11,13 @@ namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class InstancesModule : LuaModuleBase
 {
     public override string ModuleName => "Instances";
+    public override void Register(Lua lua)
+    {
+        lua.DoString("OnlineStatus = luanet.import_type('FFXIVClientStructs.FFXIV.Client.UI.Info.OnlineStatus')");
+        lua.DoString("GrandCompany = luanet.import_type('FFXIVClientStructs.FFXIV.Client.UI.Agent.GrandCompany')");
+        lua.DoString("Language = luanet.import_type('FFXIVClientStructs.FFXIV.Client.UI.Info.Language')");
+        base.Register(lua);
+    }
 
     [LuaFunction] public DutyFinderWrapper DutyFinder => new();
     public unsafe class DutyFinderWrapper : IWrapper
@@ -107,13 +114,5 @@ public unsafe class InstancesModule : LuaModuleBase
         [LuaDocs][Changelog("12.9")] public long EorzeaTime => Framework->ClientTime.EorzeaTime;
         [LuaDocs][Changelog("12.9")] public byte ClientLanguage => Framework->ClientLanguage;
         [LuaDocs][Changelog("12.9")] public byte Region => Framework->Region;
-    }
-
-    public override void Register(Lua lua)
-    {
-        lua.DoString("OnlineStatus = luanet.import_type('FFXIVClientStructs.FFXIV.Client.UI.Info.OnlineStatus')");
-        lua.DoString("GrandCompany = luanet.import_type('FFXIVClientStructs.FFXIV.Client.UI.Agent.GrandCompany')");
-        lua.DoString("Language = luanet.import_type('FFXIVClientStructs.FFXIV.Client.UI.Info.Language')");
-        base.Register(lua);
     }
 }

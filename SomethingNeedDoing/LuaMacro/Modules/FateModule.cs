@@ -6,6 +6,12 @@ namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class FateModule : LuaModuleBase
 {
     public override string ModuleName => "Fates";
+    public override void Register(Lua lua)
+    {
+        lua.DoString("FateRule = luanet.import_type('SomethingNeedDoing.LuaMacro.Modules.FateModule.FateRule')");
+        lua.DoString("FateState = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.Fate.FateState')");
+        base.Register(lua);
+    }
 
     private FateManager* Fm => FateManager.Instance();
 
@@ -35,11 +41,4 @@ public unsafe class FateModule : LuaModuleBase
     public unsafe List<FateWrapper> GetActiveFates() => [.. Fm->Fates.Where(f => f.Value is not null)
         .OrderBy(f => Player.DistanceTo(f.Value->Location))
         .Select(f => new FateWrapper(f.Value->FateId))];
-
-    public override void Register(Lua lua)
-    {
-        lua.DoString("FateRule = luanet.import_type('SomethingNeedDoing.LuaMacro.Modules.FateModule.FateRule')");
-        lua.DoString("FateState = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.Fate.FateState')");
-        base.Register(lua);
-    }
 }

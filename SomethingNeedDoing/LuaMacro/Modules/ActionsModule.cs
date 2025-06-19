@@ -9,6 +9,11 @@ namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class ActionsModule : LuaModuleBase
 {
     public override string ModuleName => "Actions";
+    public override void Register(NLua.Lua lua)
+    {
+        lua.DoString("ActionType = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.ActionType')");
+        base.Register(lua);
+    }
 
     [LuaFunction] public void ExecuteAction(uint actionID, ActionType actionType = ActionType.Action) => ActionManager.Instance()->UseAction(actionType, actionID);
     [LuaFunction] public void ExecuteGeneralAction(uint actionID) => ActionManager.Instance()->UseAction(ActionType.GeneralAction, actionID);
@@ -17,10 +22,4 @@ public unsafe class ActionsModule : LuaModuleBase
 
     [LuaFunction] public LimitBreakWrapper LimitBreak => new();
     [LuaFunction] public ActionWrapper GetActionInfo(uint actionId) => new(actionId);
-
-    public override void Register(NLua.Lua lua)
-    {
-        lua.DoString("ActionType = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.ActionType')");
-        base.Register(lua);
-    }
 }

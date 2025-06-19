@@ -11,6 +11,11 @@ public unsafe class InventoryModule : LuaModuleBase
 {
     public override string ModuleName => "Inventory";
     protected override object? MetaIndex(LuaTable table, string key) => GetInventoryContainer(Enum.Parse<InventoryType>(key));
+    public override void Register(Lua lua)
+    {
+        lua.DoString("InventoryType = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.InventoryType')");
+        base.Register(lua);
+    }
 
     [LuaFunction] public InventoryContainerWrapper GetInventoryContainer(InventoryType container) => new(container);
     [LuaFunction] public InventoryItemWrapper GetInventoryItem(InventoryType container, int slot) => new(container, slot);

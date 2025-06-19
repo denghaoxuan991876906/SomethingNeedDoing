@@ -7,6 +7,11 @@ public unsafe class EntityModule : LuaModuleBase
 {
     public override string ModuleName => "Entity";
     protected override object? MetaIndex(LuaTable table, string key) => Svc.Objects[int.Parse(key)] is { } obj ? new EntityWrapper(obj) : null;
+    public override void Register(Lua lua)
+    {
+        lua.DoString("ObjectKind = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.Object.ObjectKind')");
+        base.Register(lua);
+    }
 
     [LuaFunction] public EntityWrapper? Player => Svc.ClientState.LocalPlayer is { } player ? new(player) : null;
     [LuaFunction] public EntityWrapper? Target => Svc.Targets.Target is { } target ? new(target) : null;
@@ -15,10 +20,4 @@ public unsafe class EntityModule : LuaModuleBase
     [LuaFunction] public EntityWrapper? GetPartyMemeber(int index) => Svc.Party.GetPartyMemberAddress(index) is { } member ? new(member) : null;
     [LuaFunction] public EntityWrapper? GetAllianceMember(int index) => Svc.Party.GetAllianceMemberAddress(index) is { } member ? new(member) : null;
     [LuaFunction] public EntityWrapper? GetEntityByName(string name) => Svc.Objects.FirstOrDefault(o => o.Name.TextValue.Equals(name, StringComparison.InvariantCultureIgnoreCase)) is { } obj ? new(obj) : null;
-
-    public override void Register(Lua lua)
-    {
-        lua.DoString("ObjectKind = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.Object.ObjectKind')");
-        base.Register(lua);
-    }
 }
