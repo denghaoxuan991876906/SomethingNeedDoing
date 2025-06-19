@@ -85,7 +85,7 @@ public class StubGeneratorService
 
             output.AppendLine($"--- @alias {enumType.Name}");
 
-            for (int i = 0; i < names.Length; i++)
+            for (var i = 0; i < names.Length; i++)
             {
                 var numericValue = Convert.ChangeType(values.GetValue(i), Enum.GetUnderlyingType(enumType));
                 output.AppendLine($"---| {numericValue} # {names[i]}");
@@ -114,7 +114,6 @@ public class StubGeneratorService
             foreach (var prop in wrapperProperties)
             {
                 if (prop.Name == "Item" && prop.GetIndexParameters() is { Length: > 0 }) continue;
-
                 output.AppendLine($"--- @field {prop.Name} {LuaTypeConverter.GetLuaType(prop.PropertyType)}");
             }
 
@@ -125,9 +124,7 @@ public class StubGeneratorService
             foreach (var method in wrapperMethods)
             {
                 var parameters = method.GetParameters().Select(p => $"{p.Name}: {LuaTypeConverter.GetLuaType(p.ParameterType)}");
-
-                string signature = $"fun({string.Join(", ", parameters)}): {LuaTypeConverter.GetLuaType(method.ReturnType)}";
-
+                var signature = $"fun({string.Join(", ", parameters)}): {LuaTypeConverter.GetLuaType(method.ReturnType)}";
                 output.AppendLine($"--- @field {method.Name} {signature}");
             }
 
@@ -145,9 +142,7 @@ public class StubGeneratorService
         foreach (var module in luaDocs.GetModules())
         {
             if (module.Key == "IPC")
-            {
                 continue;
-            }
 
             output.AppendLine($"--- @class {module.Key}");
 
@@ -155,7 +150,6 @@ public class StubGeneratorService
             foreach (var doc in module.Value)
             {
                 var type = doc.IsMethod ? GetLuaFunctionSignature(doc) : doc.ReturnType.ToString();
-
                 output.AppendLine($"--- @field {doc.FunctionName} {type}");
             }
 
@@ -176,9 +170,7 @@ public class StubGeneratorService
         foreach (var module in luaDocs.GetModules())
         {
             if (module.Key != "IPC")
-            {
                 continue;
-            }
 
             var groupedFunctions = module.Value.GroupBy(f => f.ModuleName.Contains('.') ? f.ModuleName.Split('.')[1] : "Root");
 
@@ -189,7 +181,6 @@ public class StubGeneratorService
                 foreach (var doc in group)
                 {
                     var type = doc.IsMethod ? GetLuaFunctionSignature(doc) : doc.ReturnType.ToString();
-
                     output.AppendLine($"--- @field {doc.FunctionName} {type}");
                 }
 
@@ -198,9 +189,7 @@ public class StubGeneratorService
 
             output.AppendLine($"--- @class IPC");
             foreach (var group in groupedFunctions)
-            {
                 output.AppendLine($"--- @field {group.Key} {group.Key}");
-            }
 
             output.AppendLine();
             output.AppendLine($"--- @type {module.Key}");
@@ -213,23 +202,20 @@ public class StubGeneratorService
 
     private string GetLuaFunctionSignature(LuaFunctionDoc doc)
     {
-        var parameters = doc.Parameters != null && doc.Parameters.Any()
-            ? string.Join(", ", doc.Parameters.Select(p => $"{p.Name}: {p.Type}"))
-            : "";
-
+        var parameters = doc.Parameters != null && doc.Parameters.Any() ? string.Join(", ", doc.Parameters.Select(p => $"{p.Name}: {p.Type}")) : "";
         return $"fun({parameters}): {doc.ReturnType}";
     }
 
     private string GenerateSectionHeader(string title, int totalWidth = 50, char borderChar = '=')
     {
-        string borderLine = $"--{new string(borderChar, totalWidth)}--";
+        var borderLine = $"--{new string(borderChar, totalWidth)}--";
 
         var sb = new StringBuilder();
         sb.AppendLine(borderLine);
 
-        int padding = totalWidth - title.Length;
-        int padLeft = padding / 2;
-        int padRight = padding - padLeft;
+        var padding = totalWidth - title.Length;
+        var padLeft = padding / 2;
+        var padRight = padding - padLeft;
 
         sb.AppendLine($"--{new string(' ', padLeft)}{title}{new string(' ', padRight)}--");
         sb.AppendLine(borderLine);
@@ -253,25 +239,17 @@ public class StubGeneratorService
             yield return current;
 
             if (current.IsGenericType)
-            {
                 foreach (var arg in current.GetGenericArguments())
                     stack.Push(arg);
-            }
 
             if (current.IsArray)
-            {
                 stack.Push(current.GetElementType());
-            }
 
             if (Nullable.GetUnderlyingType(current) is Type nullableType)
-            {
                 stack.Push(nullableType);
-            }
 
             if (current.BaseType != null && current.BaseType != typeof(object))
-            {
                 stack.Push(current.BaseType);
-            }
         }
     }
 
@@ -290,10 +268,8 @@ public class StubGeneratorService
                     if (typeof(IWrapper).IsAssignableFrom(nested))
                     {
                         foreach (var prop in nested.GetProperties(BindingFlags.Public | BindingFlags.Instance))
-                        {
                             if (prop.GetCustomAttribute<LuaDocsAttribute>() != null)
                                 AddType(prop.PropertyType);
-                        }
 
                         foreach (var method in nested.GetMethods(BindingFlags.Public | BindingFlags.Instance))
                         {
@@ -316,18 +292,13 @@ public class StubGeneratorService
                 AddType(doc.ReturnType.Type);
 
                 if (doc.Parameters != null)
-                {
                     foreach (var param in doc.Parameters)
                         AddType(param.Type.Type);
-                }
             }
         }
 
         return seen;
     }
 
-    private string GetStubPath(string filename)
-    {
-        return Path.Combine(Svc.PluginInterface.ConfigDirectory.FullName, filename);
-    }
+    private string GetStubPath(string filename) => Path.Combine(Svc.PluginInterface.ConfigDirectory.FullName, filename);
 }
