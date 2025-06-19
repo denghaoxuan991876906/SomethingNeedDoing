@@ -28,6 +28,7 @@ public sealed class Plugin : IDalamudPlugin
         _serviceProvider = new ServiceCollection().SetupPluginServices().BuildServiceProvider();
         _ = _serviceProvider.GetRequiredService<WindowService>();
         _ = _serviceProvider.GetRequiredService<CommandService>();
+        _ = _serviceProvider.GetRequiredService<StubGeneratorService>();
     }
 
     public void Dispose()
