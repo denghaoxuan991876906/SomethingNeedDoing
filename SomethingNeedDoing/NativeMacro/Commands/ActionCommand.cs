@@ -1,5 +1,6 @@
 ﻿using ECommons.Automation;
 using ECommons.UIHelpers.AddonMasterImplementations;
+using Lumina.Excel.Sheets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,10 +20,12 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
 {
     /// <inheritdoc/>
     public override bool RequiresFrameworkThread => true;
+    private bool awaitCraftAction;
 
     /// <inheritdoc/>
     public override async Task Execute(MacroContext context, CancellationToken token)
     {
+        awaitCraftAction = false;
         Svc.Log.Debug($"ActionCommand.Execute: Starting {actionName}, UnsafeModifier: {UnsafeModifier != null}, WaitDuration: {WaitDuration}");
 
         // Simple execution if a wait is present
@@ -51,34 +54,40 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
                 }
             }
 
-            if (C.CraftSkip)
+            if (IsCraftAction(actionName))
             {
-                if (!Game.Crafting.IsCrafting())
+                if (C.CraftSkip)
                 {
-                    Svc.Log.Debug($"Not crafting skip: {CommandText}");
+                    if (!Game.Crafting.IsCrafting())
+                    {
+                        Svc.Log.Debug($"Not crafting skip: {CommandText}");
+                        return;
+                    }
+
+                    if (Game.Crafting.IsMaxProgress())
+                    {
+                        Svc.Log.Debug($"Max progress skip: {CommandText}");
+                        return;
+                    }
+                }
+
+                if (C.QualitySkip && IsSkippableCraftingQualityAction(actionName) && Game.Crafting.IsMaxProgress())
+                {
+                    Svc.Log.Debug($"Max quality skip: {CommandText}");
                     return;
                 }
 
-                if (Game.Crafting.IsMaxProgress())
+                if (UnsafeModifier is null)
                 {
-                    Svc.Log.Debug($"Max progress skip: {CommandText}");
-                    return;
+                    awaitCraftAction = true;
+                    Svc.Condition.ConditionChange += OnConditionChange;
                 }
             }
-
-            if (C.QualitySkip && IsSkippableCraftingQualityAction(actionName) && Game.Crafting.IsMaxProgress())
-            {
-                Svc.Log.Debug($"Max quality skip: {CommandText}");
-                return;
-            }
-
-            if (UnsafeModifier is null)
-                Svc.Condition.ConditionChange += OnConditionChange;
 
             Chat.SendMessage(CommandText);
         });
 
-        if (UnsafeModifier is null)
+        if (awaitCraftAction)
         {
             try
             {
@@ -98,6 +107,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
         }
     }
 
+    private bool IsCraftAction(string name) => FindRows<CraftAction>(x => !x.Name.IsEmpty).Select(x => x.Name).Distinct().Contains(name);
     private bool IsSkippableCraftingQualityAction(string name) => CraftingQualityActionNames.ContainsIgnoreCase(name);
 
     private static readonly HashSet<string> CraftingQualityActionNames = new(StringComparer.OrdinalIgnoreCase)
