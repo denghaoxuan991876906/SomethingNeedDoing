@@ -22,8 +22,7 @@ public sealed class Plugin : IDalamudPlugin
         ECommonsMain.Init(pluginInterface, this, Module.ObjectFunctions, Module.DalamudReflector);
 
         EzConfig.DefaultSerializationFactory = new ConfigFactory();
-        C = EzConfig.Init<Config>();
-        EzConfig.Save();
+        ReloadConfig();
 
         _serviceProvider = new ServiceCollection().SetupPluginServices().BuildServiceProvider();
         _ = _serviceProvider.GetRequiredService<WindowService>();
@@ -35,5 +34,11 @@ public sealed class Plugin : IDalamudPlugin
     {
         _serviceProvider.Dispose();
         ECommonsMain.Dispose();
+    }
+
+    internal static void ReloadConfig()
+    {
+        C = EzConfig.Init<Config>();
+        EzConfig.Save();
     }
 }

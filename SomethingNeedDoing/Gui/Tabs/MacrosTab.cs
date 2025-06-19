@@ -2,6 +2,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using ECommons.Configuration;
 using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Gui.Modals;
@@ -110,6 +111,12 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
 
         if (ImGuiUtils.IconButton(FontAwesomeIcon.FolderPlus, "Create a new folder"))
             CreateFolderModal.Open();
+
+        ImGui.SameLine(0, 5);
+
+        if (ImGuiUtils.IconButton(FontAwesomeIcon.Redo, "Refresh"))
+            ReloadConfig();
+
     }
 
     private void DrawFolderTree()
