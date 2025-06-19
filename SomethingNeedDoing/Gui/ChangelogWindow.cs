@@ -57,6 +57,7 @@ public class ChangelogWindow : Window
     {
         Add("12.8", "Fixed recursive spawning of temporary macros caused by function-level trigger events");
         Add("12.9", "Added pause/resume/stop all commands");
+        Add("12.10", "Added a lua stub generator (outputs in config directory, used for script linting) by Faye");
         Add("12.10", "Fixed native macro execution where waits weren't being applied properly");
     }
 
