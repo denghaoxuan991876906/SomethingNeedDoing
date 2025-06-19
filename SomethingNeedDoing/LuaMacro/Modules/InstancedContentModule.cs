@@ -1,6 +1,7 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.InstanceContent;
+using NLua;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro.Wrappers;
 
@@ -65,5 +66,12 @@ public unsafe class InstancedContentModule : LuaModuleBase
         [LuaDocs] public ushort Gold => state->Gold;
         [LuaDocs] public byte CurrentSupportJob => state->CurrentSupportJob;
         [LuaDocs] public byte KnowledgeLevelSync => state->KnowledgeLevelSync;
+    }
+
+    public override void Register(Lua lua)
+    {
+        lua.DoString("DynamicEventState = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.InstanceContent.DynamicEventState')");
+        lua.DoString("OceanFishingStatus = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.InstanceContent.OceanFishingStatus')");
+        base.Register(lua);
     }
 }

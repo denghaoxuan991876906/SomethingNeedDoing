@@ -1,4 +1,5 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using NLua;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro.Wrappers;
 using static FFXIVClientStructs.FFXIV.Client.Game.UI.PlayerState;
@@ -46,5 +47,11 @@ public unsafe class PlayerModule : LuaModuleBase
         [LuaDocs] public int WeeklyBingoNumPlacedStickers => Ps->WeeklyBingoNumPlacedStickers;
         [LuaDocs] public object? GetWeeklyBingoOrderDataRow(int wonderousTailsIndex) => parentModule.GetModule<ExcelModule>()?.GetRow("WeeklyBingoOrderData", Ps->WeeklyBingoOrderData[wonderousTailsIndex]);
         [LuaDocs] public WeeklyBingoTaskStatus GetWeeklyBingoTaskStatus(int wonderousTailsIndex) => Ps->GetWeeklyBingoTaskStatus(wonderousTailsIndex);
+    }
+
+    public override void Register(Lua lua)
+    {
+        lua.DoString("WeeklyBingoTaskStatus = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.UI.WeeklyBingoTaskStatus')");
+        base.Register(lua);
     }
 }

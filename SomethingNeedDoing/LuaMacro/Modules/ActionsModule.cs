@@ -17,4 +17,10 @@ public unsafe class ActionsModule : LuaModuleBase
 
     [LuaFunction] public LimitBreakWrapper LimitBreak => new();
     [LuaFunction] public ActionWrapper GetActionInfo(uint actionId) => new(actionId);
+
+    public override void Register(NLua.Lua lua)
+    {
+        lua.DoString("ActionType = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.ActionType')");
+        base.Register(lua);
+    }
 }

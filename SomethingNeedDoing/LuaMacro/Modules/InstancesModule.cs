@@ -2,6 +2,7 @@
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
+using NLua;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro.Wrappers;
 using static FFXIVClientStructs.FFXIV.Client.UI.Info.InfoProxyCommonList.CharacterData;
@@ -106,5 +107,13 @@ public unsafe class InstancesModule : LuaModuleBase
         [LuaDocs][Changelog("12.9")] public long EorzeaTime => Framework->ClientTime.EorzeaTime;
         [LuaDocs][Changelog("12.9")] public byte ClientLanguage => Framework->ClientLanguage;
         [LuaDocs][Changelog("12.9")] public byte Region => Framework->Region;
+    }
+
+    public override void Register(Lua lua)
+    {
+        lua.DoString("OnlineStatus = luanet.import_type('FFXIVClientStructs.FFXIV.Client.UI.Info.OnlineStatus')");
+        lua.DoString("GrandCompany = luanet.import_type('FFXIVClientStructs.FFXIV.Client.UI.Agent.GrandCompany')");
+        lua.DoString("Language = luanet.import_type('FFXIVClientStructs.FFXIV.Client.UI.Info.Language')");
+        base.Register(lua);
     }
 }

@@ -15,4 +15,10 @@ public unsafe class EntityModule : LuaModuleBase
     [LuaFunction] public EntityWrapper? GetPartyMemeber(int index) => Svc.Party.GetPartyMemberAddress(index) is { } member ? new(member) : null;
     [LuaFunction] public EntityWrapper? GetAllianceMember(int index) => Svc.Party.GetAllianceMemberAddress(index) is { } member ? new(member) : null;
     [LuaFunction] public EntityWrapper? GetEntityByName(string name) => Svc.Objects.FirstOrDefault(o => o.Name.TextValue.Equals(name, StringComparison.InvariantCultureIgnoreCase)) is { } obj ? new(obj) : null;
+
+    public override void Register(Lua lua)
+    {
+        lua.DoString("ObjectKind = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.Object.ObjectKind')");
+        base.Register(lua);
+    }
 }

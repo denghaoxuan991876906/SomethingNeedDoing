@@ -87,6 +87,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
             lua.LoadErrorHandler();
             lua.SetTriggerEventData(triggerArgs);
             lua.RegisterClass<Svc>();
+            lua.DoString("luanet.load_assembly('FFXIVClientStructs')");
             moduleManager.RegisterAll(lua);
 
             await Svc.Framework.RunOnTick(async () =>

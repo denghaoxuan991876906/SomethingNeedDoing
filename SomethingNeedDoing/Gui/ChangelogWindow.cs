@@ -61,6 +61,7 @@ public class ChangelogWindow : Window
         Add("12.10", "Fixed native macro execution where waits weren't being applied properly");
         Add("12.11", "Fixed /loop");
         Add("12.11", "Fixed craft skip trigger on non craft actions");
+        Add("12.13", "Added imports for all enums, now callable via luanet.enum");
     }
 
     private void Add(string version, string description)

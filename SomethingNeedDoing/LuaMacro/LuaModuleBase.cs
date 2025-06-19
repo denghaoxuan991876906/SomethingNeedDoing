@@ -19,7 +19,7 @@ public abstract class LuaModuleBase : ILuaModule
 
     private readonly Dictionary<string, Delegate> _propertyDelegateMap = [];
 
-    public virtual void Register(NLua.Lua lua)
+    public virtual void Register(Lua lua)
     {
         // Create module table
         var modulePath = GetModulePath();
@@ -51,8 +51,8 @@ public abstract class LuaModuleBase : ILuaModule
             return propertyFunc.DynamicInvoke();
         return MetaIndex(table, key);
     }
-    
-    private void RegisterMetaTable(NLua.Lua lua, string modulePath)
+
+    private void RegisterMetaTable(Lua lua, string modulePath)
     {
         var metaPath = $"{modulePath}.__mt";
         var metaTable = lua.GetTable(metaPath);
@@ -62,7 +62,7 @@ public abstract class LuaModuleBase : ILuaModule
             lua.DoString($"setmetatable({modulePath}, {metaPath})");
             metaTable = lua.GetTable(metaPath);
         }
-        
+
         const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
         metaTable[nameof(MetatableOnIndex)] = CreateDelegate(typeof(LuaModuleBase).GetMethod(nameof(MetatableOnIndex), flags)!);
         lua.DoString($"{metaPath}.__index = function(...) return {metaPath}.{nameof(MetatableOnIndex)}(...) end");
