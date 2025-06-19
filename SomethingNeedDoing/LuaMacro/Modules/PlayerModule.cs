@@ -1,12 +1,13 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using SomethingNeedDoing.LuaMacro.Wrappers;
+using static FFXIVClientStructs.FFXIV.Client.Game.UI.PlayerState;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class PlayerModule : LuaModuleBase
 {
     public override string ModuleName => "Player";
 
-    private PlayerState* Ps => PlayerState.Instance();
+    private PlayerState* Ps => Instance();
 
     [LuaFunction] public byte GrandCompany => Ps->GrandCompany;
     [LuaFunction] public byte GCRankMaelstrom { get => Ps->GCRankMaelstrom; set => Ps->GCRankMaelstrom = value; }
@@ -32,4 +33,17 @@ public unsafe class PlayerModule : LuaModuleBase
     [LuaFunction]
     [Changelog("12.8")]
     public bool IsBusy => Player.IsBusy;
+
+    [LuaFunction][Changelog("12.12")] public BingoWrapper Bingo => new(this);
+    public class BingoWrapper(PlayerModule parentModule)
+    {
+        private PlayerState* Ps => Instance();
+
+        public bool HasWeeklyBingoJournal => Ps->HasWeeklyBingoJournal;
+        public bool IsWeeklyBingoExpired => Ps->IsWeeklyBingoExpired();
+        public uint WeeklyBingoNumSecondChancePoints => Ps->WeeklyBingoNumSecondChancePoints;
+        public int WeeklyBingoNumPlacedStickers => Ps->WeeklyBingoNumPlacedStickers;
+        public object? GetWeeklyBingoOrderDataRow(int wonderousTailsIndex) => parentModule.GetModule<ExcelModule>()?.GetRow("WeeklyBingoOrderData", Ps->WeeklyBingoOrderData[wonderousTailsIndex]);
+        public WeeklyBingoTaskStatus GetWeeklyBingoTaskStatus(int wonderousTailsIndex) => Ps->GetWeeklyBingoTaskStatus(wonderousTailsIndex);
+    }
 }

@@ -10,43 +10,31 @@ public class Lifestream : IPC
     [EzIPC]
     [LuaFunction(
         description: "Teleports to an aethernet location",
-        parameterDescriptions: ["location"]
+        parameterDescriptions: ["destination"]
     )]
     public Func<string, bool> AethernetTeleport = null!;
 
     [EzIPC]
     [LuaFunction(
         description: "Teleports to a specific location",
-        parameterDescriptions: ["territoryId", "teleportType"]
+        parameterDescriptions: ["territoryId", "subIndex"]
     )]
     public Func<uint, byte, bool> Teleport = null!;
 
     [EzIPC]
-    [LuaFunction(
-        description: "Teleports to home",
-        parameterDescriptions: []
-    )]
+    [LuaFunction(description: "Teleports to home")]
     public Func<bool> TeleportToHome = null!;
 
     [EzIPC]
-    [LuaFunction(
-        description: "Teleports to free company",
-        parameterDescriptions: []
-    )]
+    [LuaFunction(description: "Teleports to free company")]
     public Func<bool> TeleportToFC = null!;
 
     [EzIPC]
-    [LuaFunction(
-        description: "Teleports to apartment",
-        parameterDescriptions: []
-    )]
+    [LuaFunction(description: "Teleports to apartment")]
     public Func<bool> TeleportToApartment = null!;
 
     [EzIPC]
-    [LuaFunction(
-        description: "Checks if the plugin is busy",
-        parameterDescriptions: []
-    )]
+    [LuaFunction(description: "Checks if the plugin is busy")]
     public Func<bool> IsBusy = null!;
 
     [EzIPC]
@@ -57,9 +45,6 @@ public class Lifestream : IPC
     public Action<string> ExecuteCommand = null!;
 
     [EzIPC]
-    [LuaFunction(
-        description: "Aborts the current operation",
-        parameterDescriptions: []
-    )]
+    [LuaFunction(description: "Aborts the current operation")]
     public Action Abort = null!;
 }
