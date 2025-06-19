@@ -45,7 +45,7 @@ public class ChangelogWindow : Window
                 .ToList()!;
             _versionedGroups[versionGroup.Key] = classGroups;
         }
-        _sortedVersions = [.. _versionedGroups.Keys.OrderByDescending(v => v)];
+        _sortedVersions = [.. _versionedGroups.Keys.OrderByDescending(v => v, new VersionComparer())];
 
         AddGeneralChangelogs();
         var currentVersion = Svc.PluginInterface.Manifest.AssemblyVersion.ToString(2);
@@ -57,6 +57,7 @@ public class ChangelogWindow : Window
     {
         Add("12.8", "Fixed recursive spawning of temporary macros caused by function-level trigger events");
         Add("12.9", "Added pause/resume/stop all commands");
+        Add("12.10", "Fixed native macro execution where waits weren't being applied properly");
     }
 
     private void Add(string version, string description)
@@ -85,7 +86,7 @@ public class ChangelogWindow : Window
         if (!_sortedVersions.Contains(version))
         {
             _sortedVersions.Add(version);
-            _sortedVersions.Sort((a, b) => string.Compare(b, a, StringComparison.Ordinal));
+            _sortedVersions.Sort((a, b) => new VersionComparer().Compare(b, a));
         }
     }
 
@@ -201,5 +202,41 @@ public class ChangelogWindow : Window
         public string MemberType = memberType;
         public Type? DeclaringType = declaringType;
         public MemberInfo? MemberInfo = memberInfo;
+    }
+
+    private class VersionComparer : IComparer<string>
+    {
+        public int Compare(string? x, string? y)
+        {
+            if (x == null && y == null) return 0;
+            if (x == null) return -1;
+            if (y == null) return 1;
+
+            var xParts = x.Split('.');
+            var yParts = y.Split('.');
+
+            var maxLength = Math.Max(xParts.Length, yParts.Length);
+
+            for (var i = 0; i < maxLength; i++)
+            {
+                var xPart = i < xParts.Length ? xParts[i] : "0";
+                var yPart = i < yParts.Length ? yParts[i] : "0";
+
+                if (int.TryParse(xPart, out var xNum) && int.TryParse(yPart, out var yNum))
+                {
+                    if (xNum != yNum)
+                        return xNum.CompareTo(yNum);
+                }
+                else
+                {
+                    // If parsing fails, fall back to string comparison
+                    var stringCompare = string.Compare(xPart, yPart, StringComparison.Ordinal);
+                    if (stringCompare != 0)
+                        return stringCompare;
+                }
+            }
+
+            return 0;
+        }
     }
 }
