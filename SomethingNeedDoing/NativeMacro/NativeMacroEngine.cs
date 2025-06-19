@@ -1,6 +1,5 @@
 ﻿using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Interfaces;
-using SomethingNeedDoing.Utils;
 using System.Threading;
 using System.Threading.Tasks;
 

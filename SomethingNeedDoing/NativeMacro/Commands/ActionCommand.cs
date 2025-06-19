@@ -23,15 +23,23 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
     /// <inheritdoc/>
     public override async Task Execute(MacroContext context, CancellationToken token)
     {
-        var craftingComplete = new TaskCompletionSource<bool>();
+        Svc.Log.Debug($"ActionCommand.Execute: Starting {actionName}, UnsafeModifier: {UnsafeModifier != null}, WaitDuration: {WaitDuration}");
 
+        // Simple execution if a wait is present
+        if (WaitDuration > 0)
+        {
+            await context.RunOnFramework(() => Chat.SendMessage(CommandText));
+            await PerformWait(token);
+            return;
+        }
+
+        var craftingComplete = new TaskCompletionSource<bool>();
         void OnConditionChange(ConditionFlag flag, bool value)
         {
             if (flag == ConditionFlag.ExecutingCraftingAction && !value)
                 craftingComplete.TrySetResult(true);
         }
 
-        // Must run on framework thread since it accesses game state
         await context.RunOnFramework(() =>
         {
             if (Game.Crafting.GetCondition() is not AddonMaster.Synthesis.Condition.Normal && ConditionModifier?.Conditions.FirstOrDefault() is { } cnd)
@@ -85,12 +93,9 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
             }
             finally
             {
-                await context.RunOnFramework(() =>
-                    Svc.Condition.ConditionChange -= OnConditionChange);
+                await context.RunOnFramework(() => Svc.Condition.ConditionChange -= OnConditionChange);
             }
         }
-
-        await PerformWait(token);
     }
 
     private bool IsSkippableCraftingQualityAction(string name) => CraftingQualityActionNames.ContainsIgnoreCase(name);

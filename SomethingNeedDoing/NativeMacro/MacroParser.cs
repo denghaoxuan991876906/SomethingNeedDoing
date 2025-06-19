@@ -176,7 +176,7 @@ public class MacroParser
         return info.CommandName switch
         {
             "target" => ParseTargetCommand(info.Parameters),
-            "action" => ParseActionCommand(info.Parameters),
+            "action" or "ac" => ParseActionCommand(info.Parameters),
             "callback" => ParseCallbackCommand(info.Parameters),
             "click" => ParseClickCommand(info.Parameters),
             "wait" => ParseWaitCommand(info.Parameters),
@@ -215,6 +215,8 @@ public class MacroParser
             {
                 case WaitModifier waitMod:
                     command.WaitModifier = waitMod;
+                    if (command is MacroCommandBase baseCommand)
+                        baseCommand.WaitDuration = waitMod.WaitDuration;
                     break;
                 case EchoModifier echoMod:
                     command.EchoModifier = echoMod;
@@ -270,7 +272,8 @@ public class MacroParser
             throw new MacroSyntaxError(parameters);
 
         var nameValue = match.ExtractAndUnquote("name");
-        return new ActionCommand(parameters, nameValue);
+        var fullCommandText = $"/ac \"{nameValue}\"";
+        return new ActionCommand(fullCommandText, nameValue);
     }
 
     private CallbackCommand ParseCallbackCommand(string parameters)
