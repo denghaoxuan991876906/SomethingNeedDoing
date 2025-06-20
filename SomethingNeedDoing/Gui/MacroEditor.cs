@@ -3,6 +3,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using ECommons.ImGuiMethods;
+using ECommons.MathHelpers;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Gui.Editor;
 using SomethingNeedDoing.Managers;
@@ -165,12 +166,31 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         }
     }
 
+    private bool _wantOpenSelector;
     private void DrawStatusBar(IMacro macro)
     {
         using var _ = ImRaii.PushColor(ImGuiCol.FrameBg, new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
 
         var chars = macro.Content.Length;
-        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Name: {macro.Name}  |  Lines: {_editor.Lines}  |  Chars: {chars}  |  Type: {macro.Type}");
+        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Name: {macro.Name}  |  Lines: {_editor.Lines}  |  Chars: {chars}  |");
+        ImGui.SameLine(0, 5);
+        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Type: {macro.Type}");
+        if (ImGui.IsItemClicked())
+            _wantOpenSelector = true;
+
+        if (_wantOpenSelector)
+        {
+            ImGui.OpenPopup("type_selector");
+            _wantOpenSelector = false;
+        }
+
+        if (macro is ConfigMacro cfgMacro)
+        {
+            using var popup = ImRaii.Popup("type_selector");
+            if (popup)
+                if (DrawTypeSelector(cfgMacro))
+                    ImGui.CloseCurrentPopup();
+        }
 
         if (macro is ConfigMacro { IsGitMacro: true } configMacro)
         {
@@ -179,5 +199,25 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
             ImGui.SameLine(0, 0);
             ImGuiUtils.DrawLink(ImGuiColors.DalamudGrey, $"Git: {configMacro.GitInfo}", configMacro.GitInfo.RepositoryUrl);
         }
+    }
+
+    private bool DrawTypeSelector(ConfigMacro macro)
+    {
+        foreach (var type in Enum.GetValues<MacroType>())
+        {
+            var active = macro.Type == type;
+            ImGui.SameLine();
+            using var col = ImRaii.PushColor(ImGuiCol.Button, ImGuiColors.ParsedPurple, active)
+                .Push(ImGuiCol.ButtonHovered, ImGuiColors.ParsedPurple.AddNoW(0.1f), active)
+                .Push(ImGuiCol.ButtonActive, ImGuiColors.ParsedPurple.AddNoW(0.2f), active);
+            if (ImGui.Button(type.ToString()))
+            {
+                macro.Type = type;
+                C.Save();
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -66,6 +66,7 @@ public class ChangelogWindow : Window
         Add("12.13", "Added imports for all enums, now callable via luanet.enum");
         Add("12.14", "Added OnCleanup function for lua scripts.");
         Add("12.15", "Added syntax highlighting to the editor");
+        Add("12.16", "Added type change ability in the editor");
     }
 
     private void Add(string version, string description)

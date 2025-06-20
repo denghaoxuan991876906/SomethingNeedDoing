@@ -14,7 +14,6 @@ general:
 
 ui:
 - indicate in the lua docs if a field has a setter
-- have the language option be in the editor too
 - way to bulk change macro settings (move to folder, change language, etc)
 - show status of currently open macro
 - new macro add via url directly

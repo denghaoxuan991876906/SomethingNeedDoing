@@ -98,7 +98,7 @@ public class Lifestream : IPC
     [EzIPC]
     [LuaFunction(
         description: "Teleports to a specific location",
-        parameterDescriptions: ["territoryId", "subIndex"])]
+        parameterDescriptions: ["aetheryteId", "subIndex"])]
     public Func<uint, byte, bool> Teleport = null!;
 
     [EzIPC]
