@@ -85,6 +85,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
             lua.LoadPackageSearcherSnippet();
             lua.LoadRequirePaths();
             lua.LoadErrorHandler();
+            lua.ApplyPrintOverride();
             lua.SetTriggerEventData(triggerArgs);
             lua.RegisterClass<Svc>();
             lua.DoString("luanet.load_assembly('FFXIVClientStructs')");
