@@ -10,7 +10,7 @@ public unsafe class PlayerModule : LuaModuleBase
     public override string ModuleName => "Player";
     public override void Register(Lua lua)
     {
-        lua.DoString("WeeklyBingoTaskStatus = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.UI.WeeklyBingoTaskStatus')");
+        lua.DoString("WeeklyBingoTaskStatus = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.UI.PlayerState+WeeklyBingoTaskStatus')");
         base.Register(lua);
     }
 

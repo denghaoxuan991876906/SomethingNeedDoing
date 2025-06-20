@@ -99,10 +99,10 @@ public class TriggerEventManager : IDisposable
                 var triggerFunction = new TriggerFunction(macro, functionName, TriggerEvent.OnAddonEvent);
                 if (_eventHandlers[TriggerEvent.OnAddonEvent].Contains(triggerFunction))
                 {
-                    Svc.Log.Debug($"[TriggerEventManager] Function trigger already registered for macro {macro.Name} function {functionName} (Addon: {parts[1]}, Event: {parts[2]})");
+                    Svc.Log.Debug($"[{nameof(TriggerEventManager)}] Function trigger already registered for macro {macro.Name} function {functionName} (Addon: {parts[1]}, Event: {parts[2]})");
                     return;
                 }
-                Svc.Log.Debug($"[TriggerEventManager] Registering OnAddonEvent trigger for macro {macro.Name} function {functionName} (Addon: {parts[1]}, Event: {parts[2]})");
+                Svc.Log.Debug($"[{nameof(TriggerEventManager)}] Registering OnAddonEvent trigger for macro {macro.Name} function {functionName} (Addon: {parts[1]}, Event: {parts[2]})");
                 _eventHandlers[TriggerEvent.OnAddonEvent].Add(triggerFunction);
                 return;
             }
@@ -121,10 +121,10 @@ public class TriggerEventManager : IDisposable
                 var triggerFunction = new TriggerFunction(macro, functionName, eventType);
                 if (_eventHandlers[eventType].Contains(triggerFunction))
                 {
-                    Svc.Log.Debug($"[TriggerEventManager] Function trigger already registered for macro {macro.Name} function {functionName} event {eventType}");
+                    Svc.Log.Debug($"[{nameof(TriggerEventManager)}] Function trigger already registered for macro {macro.Name} function {functionName} event {eventType}");
                     return;
                 }
-                Svc.Log.Debug($"[TriggerEventManager] Registering trigger event {eventType} for macro {macro.Name} function {functionName}");
+                Svc.Log.Debug($"[{nameof(TriggerEventManager)}] Registering trigger event {eventType} for macro {macro.Name} function {functionName}");
                 _eventHandlers[eventType].Add(triggerFunction);
                 return;
             }
@@ -159,7 +159,7 @@ public class TriggerEventManager : IDisposable
                 {
                     var removed = value.RemoveAll(tf => tf.Macro.Id == macro.Id && tf.FunctionName == functionName);
                     if (removed > 0)
-                        Svc.Log.Debug($"Unregistering OnAddonEvent trigger for macro {macro.Name} function {functionName}");
+                        Svc.Log.Debug($"[{nameof(TriggerEventManager)}] Unregistering OnAddonEvent trigger for macro {macro.Name} function {functionName}");
                 }
                 return;
             }
@@ -176,7 +176,7 @@ public class TriggerEventManager : IDisposable
                 {
                     var removed = value.RemoveAll(tf => tf.Macro.Id == macro.Id && tf.FunctionName == functionName);
                     if (removed > 0)
-                        Svc.Log.Debug($"Unregistering trigger event {eventType} for macro {macro.Name} function {functionName}");
+                        Svc.Log.Debug($"[{nameof(TriggerEventManager)}] Unregistering trigger event {eventType} for macro {macro.Name} function {functionName}");
                 }
                 return;
             }
@@ -203,7 +203,7 @@ public class TriggerEventManager : IDisposable
         if (!_eventHandlers.TryGetValue(eventType, out var handlers))
             return;
 
-        Svc.Log.Verbose($"[TriggerEventManager] Handlers for {eventType}: {string.Join(", ", handlers.Select(h => $"{h.Macro.Name}:{h.FunctionName}"))}");
+        Svc.Log.Verbose($"[{nameof(TriggerEventManager)}] Handlers for {eventType}: {string.Join(", ", handlers.Select(h => $"{h.Macro.Name}:{h.FunctionName}"))}");
 
         var args = new TriggerEventArgs(eventType, data);
         foreach (var triggerFunction in handlers.ToList())
