@@ -15,10 +15,11 @@ public unsafe class EntityWrapper : IWrapper
 
     private readonly GameObject* _obj;
     private IGameObject? DalamudObj => Svc.Objects.CreateObjectReference((nint)_obj);
-    private Character* Character => Type == ObjectKind.Pc ? (Character*)_obj : null;
+    private Character* Character => IsCharacter ? (Character*)_obj : null;
     private BattleChara* BattleChara => Type == ObjectKind.BattleNpc ? (BattleChara*)_obj : null;
-    private bool IsPlayer => Type == ObjectKind.Pc && Character != null;
-    private T GetCharacterValue<T>(Func<T> getter) => IsPlayer ? getter() : default!;
+    private bool IsPlayer => IsCharacter && Type == ObjectKind.Pc;
+    private bool IsCharacter => _obj != null && _obj->IsCharacter();
+    private T GetCharacterValue<T>(Func<T> getter) => IsCharacter ? getter() : default!;
 
     [LuaDocs] public ObjectKind Type => _obj->ObjectKind;
     [LuaDocs] public string Name => _obj->NameString;
@@ -32,7 +33,7 @@ public unsafe class EntityWrapper : IWrapper
 
     [LuaDocs] public uint CurrentHp => GetCharacterValue(() => Character->Health);
     [LuaDocs] public uint MaxHp => GetCharacterValue(() => Character->MaxHealth);
-    [LuaDocs] public float HealthPercent => CurrentHp / MaxHp * 100;
+    [LuaDocs] public float HealthPercent => (float)CurrentHp / MaxHp * 100f;
     [LuaDocs] public uint CurrentMp => GetCharacterValue(() => Character->Mana);
     [LuaDocs] public uint MaxMp => GetCharacterValue(() => Character->MaxMana);
 
