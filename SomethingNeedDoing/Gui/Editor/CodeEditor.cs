@@ -28,24 +28,18 @@ public class CodeEditor
     public void SetMacro(IMacro macro)
     {
         if (this.macro?.Id == macro.Id)
-        {
             return;
-        }
 
         this.macro = macro;
         _editor.AllText = macro.Content;
         previousText = _editor.AllText;
 
         if (highlighters.TryGetValue(macro.Type, out var highlighter))
-        {
             _editor.SyntaxHighlighter = highlighter;
-        }
     }
 
     public void SetHighlightSyntax(bool highlightSyntax)
-    {
-        _editor.Renderer.Palette = highlightSyntax ? EditorPalettes.Highlight : EditorPalettes.NoHighlight;
-    }
+        => _editor.Renderer.Palette = highlightSyntax ? EditorPalettes.Highlight : EditorPalettes.NoHighlight;
 
     public string GetContent() => _editor.AllText;
 
@@ -63,12 +57,9 @@ public class CodeEditor
     public bool Draw()
     {
         if (macro == null)
-        {
             return false;
-        }
 
         _editor.Render(macro.Name);
-
         return HasChanged();
     }
 }

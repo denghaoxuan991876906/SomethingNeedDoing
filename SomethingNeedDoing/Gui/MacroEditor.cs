@@ -20,7 +20,6 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
     private bool _showLineNumbers = true;
     private bool _highlightSyntax = true;
     private UpdateState _updateState = UpdateState.Unknown;
-
     private readonly CodeEditor _editor = new();
 
     private enum UpdateState

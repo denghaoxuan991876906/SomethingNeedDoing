@@ -33,14 +33,10 @@ public static class LuaExtensions
     }
 
     public static void ApplyPrintOverride(this Lua lua)
-    {
-        lua.RegisterFunction("print", typeof(LuaExtensions).GetMethod(nameof(PrintFunction), BindingFlags.NonPublic | BindingFlags.Static));
-    }
+        => lua.RegisterFunction("print", typeof(LuaExtensions).GetMethod(nameof(PrintFunction), BindingFlags.NonPublic | BindingFlags.Static));
 
     private static void PrintFunction(params object[] args)
-    {
-        Svc.Log.Information($"{(args.Length == 0 ? string.Empty : string.Join("\t", args))}");
-    }
+        => Svc.Log.Information($"{(args.Length == 0 ? string.Empty : string.Join("\t", args))}");
 
     /// <summary>
     /// Gets detailed error information from a Lua error.

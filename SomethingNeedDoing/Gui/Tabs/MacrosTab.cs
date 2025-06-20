@@ -114,7 +114,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         ImGui.SameLine(0, 5);
 
         if (ImGuiUtils.IconButton(FontAwesomeIcon.Redo, "Refresh"))
-            ReloadConfig();
+            P.ReloadConfig();
 
     }
 

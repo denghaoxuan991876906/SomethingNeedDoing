@@ -16,10 +16,10 @@ public class NativeMacroHighlighter : ISyntaxHighlighter
 
     public object Colorize(Span<Glyph> line, object? state)
     {
-        int i = 0;
+        var i = 0;
         while (i < line.Length)
         {
-            int result = Tokenize(line[i..]);
+            var result = Tokenize(line[i..]);
             Util.Assert(result != 0);
             i += result > 0 ? result : 1;
         }
@@ -45,7 +45,7 @@ public class NativeMacroHighlighter : ISyntaxHighlighter
         if (span[0].Char != '/')
             return -1;
 
-        int i = 1;
+        var i = 1;
         while (i < span.Length && char.IsLetter(span[i].Char))
         {
             span[i] = new Glyph(span[i].Char, PaletteIndex.Keyword);
@@ -61,12 +61,12 @@ public class NativeMacroHighlighter : ISyntaxHighlighter
         if (span[0].Char != '"')
             return -1;
 
-        int i = 1;
+        var i = 1;
         while (i < span.Length)
         {
             if (span[i].Char == '"')
             {
-                for (int j = 0; j <= i; j++)
+                for (var j = 0; j <= i; j++)
                     span[j] = new Glyph(span[j].Char, PaletteIndex.String);
                 return i + 1;
             }
@@ -81,17 +81,17 @@ public class NativeMacroHighlighter : ISyntaxHighlighter
         if (span.Length < 3 || span[0].Char != '<')
             return -1;
 
-        int i = 1;
+        var i = 1;
         while (i < span.Length && span[i].Char != '>')
             i++;
 
         if (i >= span.Length)
             return -1;
 
-        for (int j = 0; j <= i; j++)
+        for (var j = 0; j <= i; j++)
         {
-            char c = span[j].Char;
-            PaletteIndex index = c switch
+            var c = span[j].Char;
+            var index = c switch
             {
                 '<' or '>' or '.' => PaletteIndex.Punctuation,
                 >= '0' and <= '9' => PaletteIndex.KnownIdentifier,

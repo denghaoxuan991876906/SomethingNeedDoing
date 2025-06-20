@@ -37,7 +37,7 @@ public sealed class Plugin : IDalamudPlugin
         ECommonsMain.Dispose();
     }
 
-    internal static void ReloadConfig()
+    public void ReloadConfig()
     {
         C = EzConfig.Init<Config>();
         EzConfig.Save();
