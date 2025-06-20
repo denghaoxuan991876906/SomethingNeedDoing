@@ -110,6 +110,12 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
 
         if (ImGuiUtils.IconButton(FontAwesomeIcon.FolderPlus, "Create a new folder"))
             CreateFolderModal.Open();
+
+        ImGui.SameLine(0, 5);
+
+        if (ImGuiUtils.IconButton(FontAwesomeIcon.Redo, "Refresh"))
+            ReloadConfig();
+
     }
 
     private void DrawFolderTree()
