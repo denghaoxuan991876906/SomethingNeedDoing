@@ -9,7 +9,6 @@ namespace SomethingNeedDoing.Gui.Editor;
 public class CodeEditor
 {
     private readonly TextEditor _editor = new();
-
     private readonly Dictionary<MacroType, ISyntaxHighlighter> highlighters = new()
     {
         {MacroType.Lua, new LuaHighlighter()},
@@ -17,8 +16,9 @@ public class CodeEditor
     };
 
     private IMacro? macro = null;
-
     private string previousText = "";
+
+    public int Lines => _editor.TotalLines;
 
     public CodeEditor()
     {

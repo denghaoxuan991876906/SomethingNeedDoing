@@ -169,9 +169,8 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
     {
         using var _ = ImRaii.PushColor(ImGuiCol.FrameBg, new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
 
-        var lines = macro.Content.Split('\n').Length;
         var chars = macro.Content.Length;
-        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Name: {macro.Name}  |  Lines: {lines}  |  Chars: {chars}  |  Type: {macro.Type}");
+        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Name: {macro.Name}  |  Lines: {_editor.Lines}  |  Chars: {chars}  |  Type: {macro.Type}");
 
         if (macro is ConfigMacro { IsGitMacro: true } configMacro)
         {
