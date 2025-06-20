@@ -19,7 +19,15 @@ public unsafe class InstancedContentModule : LuaModuleBase
         base.Register(lua);
     }
 
-    [LuaFunction] public float ContentTimeLeft => EventFramework.Instance()->GetInstanceContentDirector()->ContentDirector.ContentTimeLeft;
+    [LuaFunction]
+    public float ContentTimeLeft
+    {
+        get
+        {
+            var director = EventFramework.Instance()->GetContentDirector();
+            return director == null ? 0f : director->ContentTimeLeft;
+        }
+    }
 
     [LuaFunction] public OceanFishingWrapper OceanFishing => new();
     [LuaFunction] public OccultCrescentWrapper OccultCrescent => new(this);

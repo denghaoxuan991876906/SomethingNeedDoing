@@ -1,6 +1,7 @@
 ﻿using NLua;
 using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.LuaMacro;
+using System.Reflection;
 
 namespace SomethingNeedDoing.Utils;
 public static class LuaExtensions
@@ -29,6 +30,16 @@ public static class LuaExtensions
     {
         foreach (var path in C.LuaRequirePaths)
             lua.DoString($"table.insert(snd.require.paths, '{path}')");
+    }
+
+    public static void ApplyPrintOverride(this Lua lua)
+    {
+        lua.RegisterFunction("print", typeof(LuaExtensions).GetMethod(nameof(PrintFunction), BindingFlags.NonPublic | BindingFlags.Static));
+    }
+
+    private static void PrintFunction(params object[] args)
+    {
+        Svc.Log.Information($"{(args.Length == 0 ? string.Empty : string.Join("\t", args))}");
     }
 
     /// <summary>
