@@ -1,3 +1,4 @@
+using SomethingNeedDoing.Documentation.StubGenerators.Builders;
 using System.IO;
 using System.Text;
 
@@ -5,7 +6,27 @@ namespace SomethingNeedDoing.Documentation.StubGenerators;
 
 internal abstract class StubGenerator
 {
-    public abstract StubFile GenerateStub(IEnumerable<Type> registry);
+    private readonly List<string> documentation = [];
+
+    protected abstract StubFile GenerateStub();
+
+    public StubFile GetStubFile()
+    {
+        var stub = GenerateStub();
+
+        if (documentation.Count > 0)
+        {
+            var builder = new Builder();
+            foreach (var line in documentation)
+            {
+                builder.AddLine($"-- {line}");
+            }
+
+            stub.PrependBuilder(builder);
+        }
+
+        return stub;
+    }
 
     protected string GetStubPath(string filename) => Path.Combine(Svc.PluginInterface.ConfigDirectory.FullName, "stubs", filename);
 
@@ -15,6 +36,12 @@ internal abstract class StubGenerator
         var allSegments = new List<string> { baseDir, "stubs" };
         allSegments.AddRange(pathSegments);
         return Path.Combine([.. allSegments]);
+    }
+
+    public StubGenerator WithDocumentationLine(string line)
+    {
+        documentation.Add(line);
+        return this;
     }
 
     protected string ToSnakeCase(string input)

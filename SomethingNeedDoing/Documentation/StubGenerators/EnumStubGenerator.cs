@@ -1,16 +1,26 @@
+using SomethingNeedDoing.Documentation.StubGenerators;
 using SomethingNeedDoing.Documentation.StubGenerators.Builders;
 
-namespace SomethingNeedDoing.Documentation.StubGenerators;
-
-internal sealed class EnumStubGenerator<T> : StubGenerator
-    where T : Enum
+internal sealed class EnumStubGenerator : StubGenerator
 {
-    public override StubFile GenerateStub(IEnumerable<Type> _)
+    private readonly Type _enumType;
+
+    public EnumStubGenerator(Type enumType)
     {
-        var filename = ToSnakeCase(typeof(T).Name);
+        if (!enumType.IsEnum)
+        {
+            throw new ArgumentException("Type must be an enum.", nameof(enumType));
+        }
+
+        _enumType = enumType;
+    }
+
+    protected override StubFile GenerateStub()
+    {
+        var filename = ToSnakeCase(_enumType.Name);
         var file = new StubFile("enums", $"{filename}.lua");
 
-        file.AddBuilder(new Builder().AddAlias<T>());
+        file.AddBuilder(new Builder().AddEnum(_enumType));
 
         return file;
     }

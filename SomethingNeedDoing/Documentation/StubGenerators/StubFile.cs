@@ -1,5 +1,4 @@
 using SomethingNeedDoing.Documentation.StubGenerators.Builders;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -22,6 +21,8 @@ internal sealed class StubFile
 
     public void AddBuilder(Builder builder) => builders.Add(builder);
 
+    public void PrependBuilder(Builder builder) => builders.Insert(0, builder);
+
     public void Write()
     {
         var path = GetStubPath(pathParts);
@@ -43,6 +44,6 @@ internal sealed class StubFile
 
     private static string GetStubPath(string[] parts)
     {
-        return Path.Combine(Svc.PluginInterface.ConfigDirectory.FullName, Path.Combine(parts));
+        return Path.Combine(Svc.PluginInterface.ConfigDirectory.FullName, "stubs", Path.Combine(parts));
     }
 }

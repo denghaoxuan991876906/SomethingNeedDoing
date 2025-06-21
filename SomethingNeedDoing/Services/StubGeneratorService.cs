@@ -10,236 +10,99 @@ public class StubGeneratorService
 {
     public StubGeneratorService(LuaDocumentation luaDocs)
     {
+        CleanUp();
+
+        Svc.Log.Debug("Generating stubs");
+
+        Svc.Log.Debug("Getting refernced types from lua documentation");
         var registry = GetAllReferencedTypes(luaDocs);
 
-        new GlobalStubGenerator().GenerateStub(registry).Write();
+        // Global stubs
+        Svc.Log.Debug("Adding global helper stub");
+        new GlobalStubGenerator().GetStubFile().Write();
 
+        // Generate enum stubs
+        Svc.Log.Debug("Adding referenced enum stubs");
         foreach (var enumType in registry.Where(t => t.IsEnum))
         {
-            var generatorType = typeof(EnumStubGenerator<>).MakeGenericType(enumType);
-
-            if (Activator.CreateInstance(generatorType) is not StubGenerator generatorInstance)
+            if (enumType == null)
             {
-                throw new InvalidOperationException($"Failed to create EnumStubGenerator<{enumType.Name}>");
+                continue;
             }
 
-            var stubFile = generatorInstance.GenerateStub(registry);
-
-            stubFile.Write();
+            new EnumStubGenerator(enumType).GetStubFile().Write();
         }
 
-        // var output = new StringBuilder();
+        // Generate wrapper stubs
+        Svc.Log.Debug("Adding referenced wrapper stubs");
+        foreach (var wrapperType in registry.Where(t => t.IsWrapper()))
+        {
+            if (wrapperType == null)
+            {
+                continue;
+            }
 
-        // output.AppendLine(GenerateSectionHeader("C# OBJECT DEFINITIONS"));
-        // output.AppendLine(GenerateCSharpStub(luaDocs));
+            new WrapperStubGenerator(wrapperType).GetStubFile().Write();
+        }
 
-        // output.AppendLine(GenerateSectionHeader("ENUM DEFINITIONS"));
-        // output.AppendLine(GenerateEnumStub(luaDocs));
+        // Generate module stubs
+        Svc.Log.Debug("Adding module stubs");
+        foreach (var module in luaDocs.GetModules())
+        {
+            if (module.Key == "IPC")
+                continue;
 
-        // output.AppendLine(GenerateSectionHeader("WRAPPER DEFINITIONS"));
-        // output.AppendLine(GenerateWrapperStub(luaDocs));
+            new ModuleStubGenerator(module.Key, module.Value).GetStubFile().Write();
+        }
 
-        // output.AppendLine(GenerateSectionHeader("MODULE DEFINITIONS"));
-        // output.AppendLine(GenerateModulesStub(luaDocs));
+        // Generate IPC module stubs
+        Svc.Log.Debug("Adding IPC module stubs");
+        new IpcStubGenerator(luaDocs).GetStubFile().Write();
 
-        // output.AppendLine(GenerateSectionHeader("IPC DEFINITIONS"));
-        // output.AppendLine(GenerateIPCStub(luaDocs));
+        // Expose Vector type stubs
+        Svc.Log.Debug("Adding vector stubs");
+        new ClassStubGenerator(typeof(Vector2)).WithDocumentationLine("requires the import of \"System.Numerics\"").GetStubFile().Write();
+        new ClassStubGenerator(typeof(Vector3)).WithDocumentationLine("requires the import of \"System.Numerics\"").GetStubFile().Write();
+        new ClassStubGenerator(typeof(Vector4)).WithDocumentationLine("requires the import of \"System.Numerics\"").GetStubFile().Write();
 
-        // File.WriteAllText(GetStubPath("snd-stubs.lua"), output.ToString());
+        // Complex but well used class stubs
+        Svc.Log.Debug("Adding Svc stubs");
+        new ComplexTypeStubGenerator(typeof(Svc)).GetStubFile().Write();
     }
 
-    // private string GenerateCSharpStub(LuaDocumentation luaDocs)
-    // {
-    //     var output = new StringBuilder();
+    private void CleanUp()
+    {
+        var configDir = Svc.PluginInterface.GetPluginConfigDirectory();
 
-    //     var types = GetAllReferencedTypes(luaDocs)
-    //         .Where(t => t != null && t.IsVector())
-    //         .Distinct();
+        var stubsDir = Path.Combine(configDir, "stubs");
+        var legacyFile = Path.Combine(configDir, "snd-stubs.lua");
 
-    //     foreach (var type in types)
-    //     {
-    //         output.AppendLine($"--- @class {type.Name}");
+        if (Directory.Exists(stubsDir))
+        {
+            try
+            {
+                Directory.Delete(stubsDir, recursive: true);
+                Svc.Log.Debug($"Deleted stub directory: {stubsDir}");
+            }
+            catch (Exception ex)
+            {
+                Svc.Log.Error($"Failed to delete stub directory '{stubsDir}': {ex}");
+            }
+        }
 
-    //         var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
-    //         var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-
-    //         foreach (var field in fields)
-    //         {
-    //             var luaType = LuaTypeConverter.GetLuaType(field.FieldType);
-    //             output.AppendLine($"--- @field {field.Name} {luaType}");
-    //         }
-
-    //         foreach (var prop in properties)
-    //         {
-    //             if (prop.GetIndexParameters().Length > 0)
-    //                 continue;
-
-    //             var luaType = LuaTypeConverter.GetLuaType(prop.PropertyType);
-    //             output.AppendLine($"--- @field {prop.Name} {luaType}");
-    //         }
-
-    //         output.AppendLine();
-    //     }
-
-    //     return output.ToString();
-    // }
-
-    // private string GenerateEnumStub(LuaDocumentation luaDocs)
-    // {
-    //     var output = new StringBuilder();
-
-    //     var enums = GetAllReferencedTypes(luaDocs).Where(t => t.IsEnum);
-
-    //     foreach (var enumType in enums)
-    //     {
-    //         var names = Enum.GetNames(enumType);
-    //         var values = Enum.GetValues(enumType);
-
-    //         if (names == null || values == null || names.Length != values.Length)
-    //         {
-    //             Svc.Log.Error($"Enum {enumType} has mismatched names and values.");
-    //             continue;
-    //         }
-
-    //         output.AppendLine($"--- @alias {enumType.Name}");
-
-    //         for (var i = 0; i < names.Length; i++)
-    //         {
-    //             var numericValue = Convert.ChangeType(values.GetValue(i), Enum.GetUnderlyingType(enumType));
-    //             output.AppendLine($"---| {numericValue} # {names[i]}");
-    //         }
-    //         output.AppendLine();
-    //     }
-
-    //     return output.ToString();
-    // }
-
-    // private string GenerateWrapperStub(LuaDocumentation luaDocs)
-    // {
-    //     var output = new StringBuilder();
-    //     Svc.Log.Debug("Generating Lua wrapper stubs...");
-
-    //     var wrappers = GetAllReferencedTypes(luaDocs).Where(t => t.IsWrapper());
-
-    //     foreach (var wrapperType in wrappers)
-    //     {
-    //         output.AppendLine($"--- @class {wrapperType.Name}");
-
-    //         var wrapperProperties = wrapperType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-    //             .Where(p => p.GetCustomAttributes(typeof(LuaDocsAttribute), true).Length != 0)
-    //             .ToList();
-
-    //         foreach (var prop in wrapperProperties)
-    //         {
-    //             if (prop.Name == "Item" && prop.GetIndexParameters() is { Length: > 0 }) continue;
-    //             output.AppendLine($"--- @field {prop.Name} {LuaTypeConverter.GetLuaType(prop.PropertyType)}");
-    //         }
-
-    //         var wrapperMethods = wrapperType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-    //             .Where(m => m.GetCustomAttributes(typeof(LuaDocsAttribute), true).Length != 0)
-    //             .ToList();
-
-    //         foreach (var method in wrapperMethods)
-    //         {
-    //             var parameters = method.GetParameters().Select(p => $"{p.Name}: {LuaTypeConverter.GetLuaType(p.ParameterType)}");
-    //             var signature = $"fun({string.Join(", ", parameters)}): {LuaTypeConverter.GetLuaType(method.ReturnType)}";
-    //             output.AppendLine($"--- @field {method.Name} {signature}");
-    //         }
-
-    //         output.AppendLine();
-    //     }
-
-    //     return output.ToString();
-    // }
-
-    // private string GenerateModulesStub(LuaDocumentation luaDocs)
-    // {
-    //     var output = new StringBuilder();
-    //     Svc.Log.Debug("Generating Lua module stubs...");
-
-    //     foreach (var module in luaDocs.GetModules())
-    //     {
-    //         if (module.Key == "IPC")
-    //             continue;
-
-    //         output.AppendLine($"--- @class {module.Key}");
-
-    //         Svc.Log.Debug($"Registering Lua module: {module.Key}");
-    //         foreach (var doc in module.Value)
-    //         {
-    //             var type = doc.IsMethod ? GetLuaFunctionSignature(doc) : doc.ReturnType.ToString();
-    //             output.AppendLine($"--- @field {doc.FunctionName} {type}");
-    //         }
-
-    //         output.AppendLine();
-    //         output.AppendLine($"--- @type {module.Key}");
-    //         output.AppendLine($"{module.Key} = {{}}");
-    //         output.AppendLine();
-    //     }
-
-    //     return output.ToString();
-    // }
-
-    // private string GenerateIPCStub(LuaDocumentation luaDocs)
-    // {
-    //     var output = new StringBuilder();
-    //     Svc.Log.Debug("Generating Lua IPC stubs...");
-
-    //     foreach (var module in luaDocs.GetModules())
-    //     {
-    //         if (module.Key != "IPC")
-    //             continue;
-
-    //         var groupedFunctions = module.Value.GroupBy(f => f.ModuleName.Contains('.') ? f.ModuleName.Split('.')[1] : "Root");
-
-    //         foreach (var group in groupedFunctions)
-    //         {
-    //             output.AppendLine($"--- @class {group.Key}");
-
-    //             foreach (var doc in group)
-    //             {
-    //                 var type = doc.IsMethod ? GetLuaFunctionSignature(doc) : doc.ReturnType.ToString();
-    //                 output.AppendLine($"--- @field {doc.FunctionName} {type}");
-    //             }
-
-    //             output.AppendLine();
-    //         }
-
-    //         output.AppendLine($"--- @class IPC");
-    //         foreach (var group in groupedFunctions)
-    //             output.AppendLine($"--- @field {group.Key} {group.Key}");
-
-    //         output.AppendLine();
-    //         output.AppendLine($"--- @type {module.Key}");
-    //         output.AppendLine($"{module.Key} = {{}}");
-    //         output.AppendLine();
-    //     }
-
-    //     return output.ToString();
-    // }
-
-    // private string GetLuaFunctionSignature(LuaFunctionDoc doc)
-    // {
-    //     var parameters = doc.Parameters != null && doc.Parameters.Any() ? string.Join(", ", doc.Parameters.Select(p => $"{p.Name}: {p.Type}")) : "";
-    //     return $"fun({parameters}): {doc.ReturnType}";
-    // }
-
-    // private string GenerateSectionHeader(string title, int totalWidth = 50, char borderChar = '=')
-    // {
-    //     var borderLine = $"--{new string(borderChar, totalWidth)}--";
-
-    //     var sb = new StringBuilder();
-    //     sb.AppendLine(borderLine);
-
-    //     var padding = totalWidth - title.Length;
-    //     var padLeft = padding / 2;
-    //     var padRight = padding - padLeft;
-
-    //     sb.AppendLine($"--{new string(' ', padLeft)}{title}{new string(' ', padRight)}--");
-    //     sb.AppendLine(borderLine);
-
-    //     return sb.ToString();
-    // }
+        if (File.Exists(legacyFile))
+        {
+            try
+            {
+                File.Delete(legacyFile);
+                Svc.Log.Debug($"Deleted legacy stub file: {legacyFile}");
+            }
+            catch (Exception ex)
+            {
+                Svc.Log.Error($"Failed to delete legacy stub file '{legacyFile}': {ex}");
+            }
+        }
+    }
 
     private IEnumerable<Type> GetAllNestedTypes(Type type)
     {
@@ -261,7 +124,7 @@ public class StubGeneratorService
                     stack.Push(arg);
 
             if (current.IsArray)
-                stack.Push(current.GetElementType());
+                stack.Push(current.GetElementType()!);
 
             if (Nullable.GetUnderlyingType(current) is Type nullableType)
                 stack.Push(nullableType);
@@ -317,6 +180,4 @@ public class StubGeneratorService
 
         return seen;
     }
-
-    private string GetStubPath(string filename) => Path.Combine(Svc.PluginInterface.ConfigDirectory.FullName, filename);
 }
