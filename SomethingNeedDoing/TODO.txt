@@ -17,6 +17,7 @@ ui:
 - way to bulk change macro settings (move to folder, change language, etc)
 - show status of currently open macro
 - new macro add via url directly
+- highlight current executing line in the editor
 
 triggers:
 - on enter fate
