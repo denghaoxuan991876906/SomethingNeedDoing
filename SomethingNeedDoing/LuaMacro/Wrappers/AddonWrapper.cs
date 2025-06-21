@@ -9,7 +9,7 @@ public unsafe class AddonWrapper(string name) : IWrapper
     private Pointer<AtkResNode>[] NodeList => Addon->UldManager.Nodes.ToArray();
     private AtkValue[] AtkValuesList => Addon->AtkValuesSpan.ToArray();
 
-    [LuaDocs(description: "Check if the Addon Exists. This can be true even if the Addon is not Visible.")] public bool Exists => Addon != null;
+    [LuaDocs(description: "Check if the Addon Exists, regardless of visibility.")] public bool Exists => Addon != null;
     [LuaDocs(description: "Check if the Addon is Visible and Ready.")] public bool Ready
     {
         get
