@@ -23,8 +23,35 @@ public unsafe class InventoryModule : LuaModuleBase
     [LuaFunction]
     [Changelog("12.9")]
     [Changelog("12.10", ChangelogType.Fixed, "Support for Key Items")]
-    public int GetItemCount(uint itemId) => InventoryManager.Instance()->GetInventoryItemCount(itemId < 2_000_000 ? itemId % 500_000 : itemId, itemId % 500_000 != itemId);
-    [LuaFunction][Changelog("12.9")] public int GetHqItemCount(uint itemId) => InventoryManager.Instance()->GetInventoryItemCount(itemId % 500_000, true);
+    public int GetItemCount(uint itemId)
+    {
+        var isHq = itemId < 2_000_000 && itemId % 500_000 != itemId;
+        if (itemId < 2_000_000)
+            itemId %= 500_000;
+        return InventoryManager.Instance()->GetInventoryItemCount(itemId, isHq);
+    }
+
+    [LuaFunction]
+    [Changelog("12.9")]
+    public int GetHqItemCount(uint itemId)
+    {
+        return InventoryManager.Instance()->GetInventoryItemCount(itemId % 500_000, true);
+    }
+
+    [LuaFunction]
+    [Changelog("12.17")]
+    public int GetCollectableItemCount(uint itemId, int minimumCollectability)
+    {
+        minimumCollectability = Math.Clamp(minimumCollectability, 1, 1000);
+        return InventoryManager.Instance()->GetInventoryItemCount(itemId, false, false, false, (short)minimumCollectability);
+    }
+
+    [LuaFunction]
+    [Changelog("12.17")]
+    public uint GetFreeInventorySlots()
+    {
+        return InventoryManager.Instance()->GetEmptySlotsInBag();
+    }
 
     [LuaFunction]
     public unsafe InventoryItemWrapper? GetInventoryItem(uint itemId)
