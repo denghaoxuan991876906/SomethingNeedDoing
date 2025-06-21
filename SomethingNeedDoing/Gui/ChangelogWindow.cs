@@ -67,6 +67,7 @@ public class ChangelogWindow : Window
         Add("12.14", "Added OnCleanup function for lua scripts.");
         Add("12.15", "Added syntax highlighting to the editor");
         Add("12.16", "Added type change ability in the editor");
+        Add("12.17", "Fixed Craftloop, and some action skip/waits");
     }
 
     private void Add(string version, string description)
