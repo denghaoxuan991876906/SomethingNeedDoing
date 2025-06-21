@@ -8,8 +8,8 @@ https://puni.sh/api/repository/croizat
 ```
 
 
-## Community Script Repositories
+### Community Script Repositories
 
-## The Dumpster Fire
+#### The Dumpster Fire
 https://github.com/McVaxius/dhogsbreakfeast 
 Frenrider, script examples, post AR processing scripts, fishing and more.
