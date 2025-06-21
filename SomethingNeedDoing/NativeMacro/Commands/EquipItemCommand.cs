@@ -79,9 +79,7 @@ public class EquipItemCommand(string text, uint itemId) : MacroCommandBase(text)
             EquipAttemptLoops++;
 
             if (EquipAttemptLoops >= 5)
-            {
                 throw new MacroException("Failed to find equip option after 5 attempts");
-            }
         }
     }
 

@@ -85,6 +85,11 @@ public class Config : IEzConfig
 
     #region Error Handling
     /// <summary>
+    /// Gets or sets a value indicating whether to stop the macro on error (only used for natives)
+    /// </summary>
+    public bool StopOnError { get; set; }
+
+    /// <summary>
     /// Gets or sets the maximum number of retries when an action does not receive a timely response.
     /// </summary>
     public int MaxTimeoutRetries { get; set; }

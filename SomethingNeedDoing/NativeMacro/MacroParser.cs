@@ -179,6 +179,7 @@ public class MacroParser
             "action" or "ac" => ParseActionCommand(info.Parameters),
             "callback" => ParseCallbackCommand(info.Parameters),
             "click" => ParseClickCommand(info.Parameters),
+            "craft" => ParseGateCommand(info.Parameters),
             "wait" => ParseWaitCommand(info.Parameters),
             "loop" => ParseLoopCommand(info.Parameters, scheduler),
             "gate" => ParseGateCommand(info.Parameters),

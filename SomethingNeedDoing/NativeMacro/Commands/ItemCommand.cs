@@ -26,7 +26,7 @@ public class ItemCommand(string text, string itemName) : MacroCommandBase(text)
 
         if (count == 0)
         {
-            if (ErrorIfModifier?.Condition == Modifiers.ErrorCondition.ItemNotFound)
+            if (C.StopOnError || ErrorIfModifier?.Condition == Modifiers.ErrorCondition.ItemNotFound)
                 throw new MacroException("You do not have that item");
             return;
         }

@@ -1,5 +1,7 @@
-﻿using SomethingNeedDoing.Core.Events;
+﻿using ECommons.Schedulers;
+using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Interfaces;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -51,7 +53,7 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
 
         var state = new MacroExecutionState(macro)
         {
-            Commands = parser.Parse(macro.ContentSansMetadata(), Scheduler),
+            Commands = ModifyMacroForCraftLoop(macro, Scheduler),
             CurrentLoop = 0,
             LoopCount = loopCount == 0 ? 1 : loopCount
         };
@@ -123,6 +125,7 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
             }
         }
         catch (OperationCanceledException) { }
+        catch (MacroGateCompleteException) { }
         catch (Exception ex)
         {
             OnMacroError(state.Macro.Id, "Error executing macro command", ex);
@@ -138,6 +141,96 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
 
     /// <inheritdoc/>
     public IMacro? GetTemporaryMacro(string macroId) => null; // Native engine doesn't create temporary macros
+
+    private List<IMacroCommand> ModifyMacroForCraftLoop(IMacro macro, IMacroScheduler scheduler)
+    {
+        if (!macro.Metadata.CraftingLoop)
+            return parser.Parse(macro.ContentSansMetadata(), scheduler);
+
+        var craftCount = macro.Metadata.CraftLoopCount;
+        var contents = macro.ContentSansMetadata();
+        var inRecipeNote = Svc.GameGui.GetAddonByName("RecipeNote") != IntPtr.Zero;
+        if (C.UseCraftLoopTemplate)
+        {
+            var template = C.CraftLoopTemplate;
+
+            if (craftCount == 0)
+                return parser.Parse(contents, scheduler);
+
+            if (craftCount == -1)
+                craftCount = 999_999;
+
+            return !template.Contains("{{macro}}")
+                ? throw new MacroSyntaxError("CraftLoop template does not contain the {{macro}} placeholder")
+                : parser.Parse(template.Replace("{{macro}}", contents).Replace("{{count}}", craftCount.ToString()), scheduler);
+        }
+
+        var maxwait = C.CraftLoopMaxWait;
+        var maxwaitMod = maxwait > 0 ? $" <maxwait.{maxwait}>" : string.Empty;
+
+        var echo = C.CraftLoopEcho;
+        var echoMod = echo ? $" <echo>" : string.Empty;
+
+        var craftGateStep = inRecipeNote ? $"/craft {craftCount}{echoMod}" : $"/gate {craftCount - 1}{echoMod}";
+        var clickSteps = string.Join("\n",
+        [
+            $@"/waitaddon ""RecipeNote""{maxwaitMod}",
+            $@"/click ""RecipeNote Synthesize""",
+            $@"/waitaddon ""Synthesis""{maxwaitMod}",
+        ]);
+
+        var loopStep = $"/loop{echoMod}";
+
+        var sb = new StringBuilder();
+
+        if (inRecipeNote)
+        {
+            if (craftCount == -1)
+            {
+                sb.AppendLine(clickSteps);
+                sb.AppendLine(contents);
+                sb.AppendLine(loopStep);
+            }
+            else if (craftCount == 0)
+            {
+                sb.AppendLine(contents);
+            }
+            else if (craftCount == 1)
+            {
+                sb.AppendLine(clickSteps);
+                sb.AppendLine(contents);
+            }
+            else
+            {
+                sb.AppendLine(craftGateStep);
+                sb.AppendLine(clickSteps);
+                sb.AppendLine(contents);
+                sb.AppendLine(loopStep);
+            }
+        }
+        else
+        {
+            if (craftCount == -1)
+            {
+                sb.AppendLine(contents);
+                sb.AppendLine(clickSteps);
+                sb.AppendLine(loopStep);
+            }
+            else if (craftCount is 0 or 1)
+            {
+                sb.AppendLine(contents);
+            }
+            else
+            {
+                sb.AppendLine(contents);
+                sb.AppendLine(craftGateStep);
+                sb.AppendLine(clickSteps);
+                sb.AppendLine(loopStep);
+            }
+        }
+
+        return parser.Parse(sb.ToString().Trim(), scheduler);
+    }
 
     public void Dispose() { }
 }

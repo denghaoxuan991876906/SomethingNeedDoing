@@ -112,6 +112,14 @@ public static class SettingsTab
 
         ImGuiUtils.Section("Error Handling", () =>
         {
+            var stopOnError = C.StopOnError;
+            if (ImGui.Checkbox("Stop on error", ref stopOnError))
+            {
+                C.StopOnError = stopOnError;
+                C.Save();
+            }
+            ImGuiEx.Tooltip("Only meant for native macros.");
+
             var maxTimeoutRetries = C.MaxTimeoutRetries;
             if (ImGui.SliderInt("Max Timeout Retries", ref maxTimeoutRetries, 0, 10))
             {
