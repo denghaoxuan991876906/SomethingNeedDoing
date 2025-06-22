@@ -88,6 +88,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     _arApis[macro.Id].OnCharacterPostprocessStep += () => CheckCharacterPostProcess(macro);
                     _arApis[macro.Id].OnCharacterReadyToPostProcess += () => DoCharacterPostProcess(macro);
                 }
+                _triggerEventManager.RegisterTrigger(macro, triggerEvent);
                 break;
             case TriggerEvent.OnAddonEvent:
                 if (macro.Metadata.AddonEventConfig is { } cfg)
@@ -121,6 +122,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     arApi.Dispose();
                     _arApis.Remove(macro.Id);
                 }
+                _triggerEventManager.UnregisterTrigger(macro, triggerEvent);
                 break;
             case TriggerEvent.OnAddonEvent:
                 if (_addonEvents.TryGetValue(macro.Id, out var cfg))
@@ -469,6 +471,30 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
         if (e.NewState is MacroState.Completed or MacroState.Error)
         {
+            if (sender is IMacro macro)
+            {
+                if (macro.Metadata.TriggerEvents.Contains(TriggerEvent.OnAutoRetainerCharacterPostProcess)) // whole macro
+                {
+                    if (_arApis.TryGetValue(macro.Id, out var arApi))
+                    {
+                        Svc.Log.Info($"[{nameof(MacroScheduler)}] {macro.Name} character post process finished, calling FinishCharacterPostProcess()");
+                        arApi.FinishCharacterPostProcess();
+                    }
+                }
+                else if (macro is TemporaryMacro && e.MacroId.Contains('_') && parts.Length >= 2) // function-level trigger temp macro
+                {
+                    var parentId = parts[0];
+                    if (C.GetMacro(parentId) is { } parent && parent.Metadata.TriggerEvents.Contains(TriggerEvent.OnAutoRetainerCharacterPostProcess))
+                    {
+                        if (_arApis.TryGetValue(parentId, out var arApi))
+                        {
+                            Svc.Log.Info($"[{nameof(MacroScheduler)}] {macro.Name} character post process finished, calling FinishCharacterPostProcess()");
+                            arApi.FinishCharacterPostProcess();
+                        }
+                    }
+                }
+            }
+
             _cleanupManager.ExecuteCleanup(e.MacroId, e.NewState.ToString());
 
             // If this is a temporary macro, unregister it and clean up
@@ -615,9 +641,14 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private void DoCharacterPostProcess(IMacro macro)
     {
         if (C.ARCharacterPostProcessExcludedCharacters.Any(x => x == Svc.ClientState.LocalContentId))
+        {
             Svc.Log.Info($"Skipping post process macro {macro.Name} for current character.");
-        else
-            _arApis[macro.Id].RequestCharacterPostprocess();
+            return;
+        }
+
+        Svc.Log.Info($"Executing post process macro {macro.Name} for current character.");
+        var eventData = new Dictionary<string, object> { { "Id", Svc.ClientState.LocalContentId }, { "Name", Svc.ClientState.LocalPlayer?.Name.TextValue ?? string.Empty } };
+        _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnAutoRetainerCharacterPostProcess, eventData);
     }
 
     private void OnMacroControlRequested(object? sender, MacroControlEventArgs e)
