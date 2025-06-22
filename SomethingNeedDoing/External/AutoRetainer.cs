@@ -1,5 +1,7 @@
-﻿using ECommons.EzIpcManager;
+﻿using AutoRetainerAPI.Configuration;
+using ECommons.EzIpcManager;
 using SomethingNeedDoing.Core.Interfaces;
+using SomethingNeedDoing.Services;
 using GCInfo = (uint ShopDataID, uint ExchangeDataID, System.Numerics.Vector3 Position);
 
 namespace SomethingNeedDoing.External;
@@ -105,4 +107,53 @@ public class AutoRetainer : IPC
     [EzIPC("GC.%m")]
     [LuaFunction(description: "Gets GC information")]
     public readonly Func<GCInfo?> GetGCInfo = null!;
+
+    [LuaFunction(description: "Gets all registered characters")]
+    [Changelog("12.19")]
+    public List<ulong> GetRegisteredCharacters() => StaticsService.AutoRetainerApi.GetRegisteredCharacters();
+
+    [LuaFunction(
+        description: "Gets offline character data for a specific character ID",
+        parameterDescriptions: ["cid"])]
+    [Changelog("12.19")]
+    public OfflineCharacterDataWrapper GetOfflineCharacterData(ulong cid) => new(StaticsService.AutoRetainerApi.GetOfflineCharacterData(cid));
+
+    public class OfflineCharacterDataWrapper(OfflineCharacterData data) : IWrapper
+    {
+        [LuaDocs][Changelog("12.19")] public ulong CID => data.CID;
+        [LuaDocs][Changelog("12.19")] public string Name => data.Name;
+        [LuaDocs][Changelog("12.19")] public string World => data.World;
+        [LuaDocs][Changelog("12.19")] public bool Enabled => data.Enabled;
+        [LuaDocs][Changelog("12.19")] public List<OfflineRetainerDataWrapper> RetainerData => [.. data.RetainerData.Select(x => new OfflineRetainerDataWrapper(x))];
+        [LuaDocs][Changelog("12.19")] public uint InventorySpace => data.InventorySpace;
+        [LuaDocs][Changelog("12.19")] public uint VentureCoffers => data.VentureCoffers;
+        [LuaDocs][Changelog("12.19")] public uint Gil => data.Gil;
+        [LuaDocs][Changelog("12.19")] public List<OfflineVesselDataWrapper> OfflineAirshipData => [.. data.OfflineAirshipData.Select(x => new OfflineVesselDataWrapper(x))];
+        [LuaDocs][Changelog("12.19")] public List<OfflineVesselDataWrapper> OfflineSubmarineData => [.. data.OfflineSubmarineData.Select(x => new OfflineVesselDataWrapper(x))];
+        [LuaDocs][Changelog("12.19")] public int Ceruleum => data.Ceruleum;
+        [LuaDocs][Changelog("12.19")] public int RepairKits => data.RepairKits;
+        [LuaDocs][Changelog("12.19")] public bool RetainersAwaitingProcessing => RetainerData.Any(x => x.HasVenture && x.VentureEndsAt <= TimeProvider.System.GetUtcNow().ToUnixTimeSeconds());
+        [LuaDocs][Changelog("12.19")] public bool SubsAwaitingProcessing => OfflineSubmarineData.Any(x => x.ReturnTime <= TimeProvider.System.GetUtcNow().ToUnixTimeSeconds());
+        [LuaDocs][Changelog("12.19")] public bool AnyAwaitingProcessing => RetainersAwaitingProcessing || SubsAwaitingProcessing;
+    }
+
+    public class OfflineRetainerDataWrapper(OfflineRetainerData data) : IWrapper
+    {
+        [LuaDocs][Changelog("12.19")] public string Name => data.Name;
+        [LuaDocs][Changelog("12.19")] public long VentureEndsAt => data.VentureEndsAt;
+        [LuaDocs][Changelog("12.19")] public bool HasVenture => data.HasVenture;
+        [LuaDocs][Changelog("12.19")] public int Level => data.Level;
+        [LuaDocs][Changelog("12.19")] public long VentureBeginsAt => data.VentureBeginsAt;
+        [LuaDocs][Changelog("12.19")] public uint Job => data.Job;
+        [LuaDocs][Changelog("12.19")] public uint VentureID => data.VentureID;
+        [LuaDocs][Changelog("12.19")] public uint Gil => data.Gil;
+        [LuaDocs][Changelog("12.19")] public ulong RetainerID => data.RetainerID;
+        [LuaDocs][Changelog("12.19")] public int MBItems => data.MBItems;
+    }
+
+    public class OfflineVesselDataWrapper(OfflineVesselData data) : IWrapper
+    {
+        [LuaDocs][Changelog("12.19")] public string Name => data.Name;
+        [LuaDocs][Changelog("12.19")] public uint ReturnTime => data.ReturnTime;
+    }
 }

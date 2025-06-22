@@ -1,6 +1,7 @@
 using Dalamud.Plugin;
 using ECommons;
 using ECommons.Configuration;
+using ECommons.Singletons;
 using Microsoft.Extensions.DependencyInjection;
 using SomethingNeedDoing.Services;
 
@@ -29,6 +30,7 @@ public sealed class Plugin : IDalamudPlugin
         _ = _serviceProvider.GetRequiredService<WindowService>();
         _ = _serviceProvider.GetRequiredService<CommandService>();
         _ = _serviceProvider.GetRequiredService<StubGeneratorService>();
+        SingletonServiceManager.Initialize(typeof(StaticsService)); // rip 100% DI
     }
 
     public void Dispose()

@@ -2,6 +2,7 @@ using NLua;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Documentation;
 using System.Reflection;
+using System.Linq.Expressions;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;
 
@@ -53,6 +54,20 @@ public class IPCModule : LuaModuleBase
                 if (field.GetValue(instance) is { } fieldValue)
                     // Register the field value as a Lua function
                     lua[$"{ModuleName}.{name}.{fieldName}"] = fieldValue;
+            }
+
+            // Register all methods marked with LuaFunction attribute
+            var methods = instance.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Where(m => m.GetCustomAttribute<LuaFunctionAttribute>() != null);
+
+            foreach (var method in methods)
+            {
+                var attr = method.GetCustomAttribute<LuaFunctionAttribute>();
+                var methodName = attr?.Name ?? method.Name;
+
+                var delegateType = GetDelegateType(method);
+                var methodDelegate = Delegate.CreateDelegate(delegateType, instance, method);
+                lua[$"{ModuleName}.{name}.{methodName}"] = methodDelegate;
             }
         }
     }
@@ -187,6 +202,32 @@ public class IPCModule : LuaModuleBase
                     true
                 ));
             }
+
+            // Register all methods marked with LuaFunction attribute
+            var methods = instance.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance).Where(m => m.GetCustomAttribute<LuaFunctionAttribute>() != null);
+            foreach (var method in methods)
+            {
+                var attr = method.GetCustomAttribute<LuaFunctionAttribute>();
+                if (attr == null) continue;
+
+                var methodName = attr.Name ?? method.Name;
+                var parameters = method.GetParameters().Select((p, i) =>
+                {
+                    var paramDesc = attr.ParameterDescriptions?.ElementAtOrDefault(i);
+                    return (paramDesc ?? p.Name ?? $"param{i}", LuaTypeConverter.GetLuaType(p.ParameterType), paramDesc);
+                }).ToList();
+                var returnType = LuaTypeConverter.GetLuaType(method.ReturnType);
+
+                moduleDocs.Add(new LuaFunctionDoc(
+                    $"{ModuleName}.{name}",
+                    methodName,
+                    attr.Description,
+                    returnType,
+                    parameters,
+                    attr.Examples,
+                    true
+                ));
+            }
         }
 
         docs.RegisterModule(this, moduleDocs);
@@ -215,4 +256,13 @@ public class IPCModule : LuaModuleBase
     /// Gets an IPC instance by name
     /// </summary>
     private T? GetIPC<T>(string name) where T : IPC => _ipcInstances.TryGetValue(name, out var instance) ? instance as T : null;
+
+    /// <summary>
+    /// Gets the delegate type for a method
+    /// </summary>
+    private Type GetDelegateType(MethodInfo method)
+    {
+        var parameters = method.GetParameters().Select(p => p.ParameterType).ToArray();
+        return method.ReturnType == typeof(void) ? Expression.GetActionType(parameters) : Expression.GetFuncType([.. parameters, method.ReturnType]);
+    }
 }
