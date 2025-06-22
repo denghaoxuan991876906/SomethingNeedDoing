@@ -1,4 +1,5 @@
-﻿using FFXIVClientStructs.FFXIV.Client.Game.UI;
+﻿using Dalamud.Game.ClientState.Aetherytes;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
@@ -114,5 +115,14 @@ public unsafe class InstancesModule : LuaModuleBase
         [LuaDocs][Changelog("12.9")] public long EorzeaTime => Framework->ClientTime.EorzeaTime;
         [LuaDocs][Changelog("12.9")] public byte ClientLanguage => Framework->ClientLanguage;
         [LuaDocs][Changelog("12.9")] public byte Region => Framework->Region;
+    }
+
+    [LuaFunction] public TelepoWrapper Telepo => new();
+    public class TelepoWrapper : IWrapper
+    {
+        [LuaDocs][Changelog("12.18")] public void Teleport(IAetheryteEntry aetheryte) => FFXIVClientStructs.FFXIV.Client.Game.UI.Telepo.Instance()->Teleport(aetheryte.AetheryteId, aetheryte.SubIndex);
+        [LuaDocs][Changelog("12.18")] public void Teleport(uint aetheryteId, byte subIndex) => FFXIVClientStructs.FFXIV.Client.Game.UI.Telepo.Instance()->Teleport(aetheryteId, subIndex);
+        [LuaDocs][Changelog("12.18")] public Vector3 GetAetherytePosition(uint aetheryteId) => ECommons.GameHelpers.Map.AetherytePosition(aetheryteId);
+        [LuaDocs][Changelog("12.18")] public bool IsAetheryteUnlocked(uint aetheryteId) => UIState.Instance()->IsAetheryteUnlocked(aetheryteId);
     }
 }
