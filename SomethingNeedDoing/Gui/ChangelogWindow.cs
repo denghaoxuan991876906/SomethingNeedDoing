@@ -34,12 +34,13 @@ public class ChangelogWindow : Window
                     return new ChangelogClassGroup
                     {
                         ClassName = classGroup.Key,
-                        Members = members.ToDictionary(e => e.TargetName, e => new ChangelogMemberEntry
-                        {
-                            Name = e.TargetName,
-                            ReturnType = e.MemberInfo is PropertyInfo pi ? pi.PropertyType : e.MemberInfo is MethodInfo mi ? mi.ReturnType : null,
-                            Entries = [e]
-                        })
+                        Members = members.GroupBy(e => e.TargetName)
+                            .ToDictionary(g => g.Key, g => new ChangelogMemberEntry
+                            {
+                                Name = g.Key,
+                                ReturnType = g.First().MemberInfo is PropertyInfo pi ? pi.PropertyType : g.First().MemberInfo is MethodInfo mi ? mi.ReturnType : null,
+                                Entries = [.. g]
+                            })
                     };
                 })
                 .Where(cg => cg != null)
