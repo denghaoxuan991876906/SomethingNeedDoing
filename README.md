@@ -12,7 +12,7 @@ https://puni.sh/api/repository/croizat
 
 #### SNDScripts 
 https://github.com/WigglyMuffin/SNDScripts/  
-Home of the soon to be legendary functions file and alt/retainer/hunt log automation.  
+Home of the soon to be legendary functions file, tutorials and alt/retainer/hunt log automation.  
 
 #### The Dumpster Fire
 https://github.com/McVaxius/dhogsbreakfeast  
