@@ -135,10 +135,38 @@ public unsafe class InventoryModule : LuaModuleBase
 
     public unsafe class InventoryItemWrapper : IWrapper
     {
+        private InventoryType[] playerInv = [
+            InventoryType.Inventory1,
+            InventoryType.Inventory2,
+            InventoryType.Inventory3,
+            InventoryType.Inventory4,
+            InventoryType.ArmoryMainHand,
+            InventoryType.ArmoryOffHand,
+            InventoryType.ArmoryHead,
+            InventoryType.ArmoryBody,
+            InventoryType.ArmoryHands,
+            InventoryType.ArmoryLegs,
+            InventoryType.ArmoryFeets,
+            InventoryType.ArmoryEar,
+            InventoryType.ArmoryNeck,
+            InventoryType.ArmoryWrist,
+            InventoryType.ArmoryRings
+            ];
+
         private InventoryItem* Item { get; set; }
         public InventoryItemWrapper(InventoryType container, int slot) => Item = InventoryManager.Instance()->GetInventoryContainer(container)->GetInventorySlot(slot);
         public InventoryItemWrapper(InventoryContainer* container, int slot) => Item = container->GetInventorySlot(slot);
         public InventoryItemWrapper(InventoryItem* item) => Item = item;
+        public InventoryItemWrapper(uint itemId)
+        {
+            foreach (var inv in playerInv)
+            {
+                var cont = InventoryManager.Instance()->GetInventoryContainer(inv);
+                for (var i = 0; i < cont->Size; ++i)
+                    if (cont->GetInventorySlot(i)->ItemId == itemId)
+                        Item = cont->GetInventorySlot(i);
+            }
+        }
 
         [LuaDocs] public uint ItemId => Item->ItemId;
         [LuaDocs] public uint BaseItemId => Item->GetBaseItemId();

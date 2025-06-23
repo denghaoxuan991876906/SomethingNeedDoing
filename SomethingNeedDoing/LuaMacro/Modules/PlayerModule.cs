@@ -1,8 +1,10 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using NLua;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro.Wrappers;
 using static FFXIVClientStructs.FFXIV.Client.Game.UI.PlayerState;
+using static SomethingNeedDoing.LuaMacro.Modules.InventoryModule;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class PlayerModule : LuaModuleBase
@@ -28,6 +30,21 @@ public unsafe class PlayerModule : LuaModuleBase
 
     [LuaFunction] public JobWrapper Job => new(Player.JobId);
     [LuaFunction] public JobWrapper GetJob(uint classJobId) => new(classJobId);
+    [LuaFunction][Changelog("12.21")] public GearsetWrapper Gearset => new(RaptureGearsetModule.Instance()->CurrentGearsetIndex);
+    [LuaFunction][Changelog("12.21")] public GearsetWrapper GetGearset(int id) => new(id);
+    [LuaFunction][Changelog("12.21")] public List<GearsetWrapper> Gearsets => [.. RaptureGearsetModule.Instance()->Entries.ToArray().Select((g, i) => new GearsetWrapper(i))];
+    public class GearsetWrapper(int id) : IWrapper
+    {
+        [LuaFunction][Changelog("12.21")] public bool IsValid => RaptureGearsetModule.Instance()->IsValidGearset(id);
+        [LuaFunction][Changelog("12.21")] public byte ClassJob => RaptureGearsetModule.Instance()->GetGearset(id)->ClassJob;
+        [LuaFunction][Changelog("12.21")] public byte GlamourSetLink => RaptureGearsetModule.Instance()->GetGearset(id)->GlamourSetLink;
+        [LuaFunction][Changelog("12.21")] public short ItemLevel => RaptureGearsetModule.Instance()->GetGearset(id)->ItemLevel;
+        [LuaFunction][Changelog("12.21")] public byte BannerIndex => RaptureGearsetModule.Instance()->GetGearset(id)->BannerIndex;
+        [LuaFunction][Changelog("12.21")] public string Name => RaptureGearsetModule.Instance()->GetGearset(id)->NameString;
+        [LuaFunction][Changelog("12.21")] public List<InventoryItemWrapper> Items => [.. RaptureGearsetModule.Instance()->GetGearset(id)->Items.ToArray().Select(i => new InventoryItemWrapper(i.ItemId))];
+        [LuaFunction][Changelog("12.21")] public void Equip() => RaptureGearsetModule.Instance()->EquipGearset(id);
+        [LuaFunction][Changelog("12.21")] public void Update() => RaptureGearsetModule.Instance()->UpdateGearset(id);
+    }
 
     [LuaFunction] public bool IsMoving => Player.IsMoving;
     [LuaFunction] public bool IsInDuty => Player.IsInDuty;
