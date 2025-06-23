@@ -1,5 +1,4 @@
 ﻿using ECommons.Automation;
-using Lumina.Excel.Sheets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -46,7 +45,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
                 }
             }
 
-            if (IsCraftAction(actionName))
+            if (Game.Crafting.IsCraftAction(actionName))
             {
                 if (C.CraftSkip)
                 {
@@ -63,7 +62,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
                     }
                 }
 
-                if (C.QualitySkip && IsSkippableCraftingQualityAction(actionName) && Game.Crafting.IsMaxQuality())
+                if (C.QualitySkip && Game.Crafting.IsMaxQuality() && Game.Crafting.IsCraftActionQualityIncrease(Game.Crafting.GetCraftAction(actionName, Player.JobId)))
                 {
                     Svc.Log.Debug($"Max quality skip: {CommandText}");
                     return;
@@ -102,25 +101,4 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
         if (WaitDuration > 0 && actionExecuted)
             await PerformWait(token);
     }
-
-    private bool IsCraftAction(string name) => FindRows<CraftAction>(x => !x.Name.IsEmpty).Select(x => x.Name).Distinct().Contains(name);
-    private bool IsSkippableCraftingQualityAction(string name) => CraftingQualityActionNames.ContainsIgnoreCase(name);
-
-    private static readonly HashSet<string> CraftingQualityActionNames = new(StringComparer.OrdinalIgnoreCase)
-    {
-        // Basic Touch variants
-        "Basic Touch",
-        "Standard Touch",
-        "Advanced Touch",
-        "Precise Touch",
-        "Prudent Touch",
-        "Focused Touch",
-        "Preparatory Touch",
-        "Trained Finesse",
-        // Buffs
-        "Innovation",
-        "Great Strides",
-        // Finishers
-        "Byregot's Blessing"
-    };
 }

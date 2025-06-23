@@ -1,6 +1,5 @@
 ﻿using Dalamud.Game.ClientState.Aetherytes;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using NLua;
@@ -110,11 +109,9 @@ public unsafe class InstancesModule : LuaModuleBase
     [LuaFunction] public FrameworkWrapper Framework => new();
     public class FrameworkWrapper : IWrapper
     {
-        private Framework* Framework => FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance();
-
-        [LuaDocs][Changelog("12.9")] public long EorzeaTime => Framework->ClientTime.EorzeaTime;
-        [LuaDocs][Changelog("12.9")] public byte ClientLanguage => Framework->ClientLanguage;
-        [LuaDocs][Changelog("12.9")] public byte Region => Framework->Region;
+        [LuaDocs][Changelog("12.9")] public long EorzeaTime => FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->ClientTime.EorzeaTime;
+        [LuaDocs][Changelog("12.9")] public byte ClientLanguage => FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->ClientLanguage;
+        [LuaDocs][Changelog("12.9")] public byte Region => FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->Region;
     }
 
     [LuaFunction] public TelepoWrapper Telepo => new();
@@ -124,5 +121,15 @@ public unsafe class InstancesModule : LuaModuleBase
         [LuaDocs][Changelog("12.18")] public void Teleport(uint aetheryteId, byte subIndex) => FFXIVClientStructs.FFXIV.Client.Game.UI.Telepo.Instance()->Teleport(aetheryteId, subIndex);
         [LuaDocs][Changelog("12.18")] public Vector3 GetAetherytePosition(uint aetheryteId) => ECommons.GameHelpers.Map.AetherytePosition(aetheryteId);
         [LuaDocs][Changelog("12.18")] public bool IsAetheryteUnlocked(uint aetheryteId) => UIState.Instance()->IsAetheryteUnlocked(aetheryteId);
+    }
+
+    [LuaFunction] public EnvManagerWrapper EnvManager => new();
+    public class EnvManagerWrapper : IWrapper
+    {
+        [LuaDocs][Changelog("12.20")] public float DayTimeSeconds => FFXIVClientStructs.FFXIV.Client.Graphics.Environment.EnvManager.Instance()->DayTimeSeconds;
+        [LuaDocs][Changelog("12.20")] public float ActiveTransitionTime => FFXIVClientStructs.FFXIV.Client.Graphics.Environment.EnvManager.Instance()->ActiveTransitionTime;
+        [LuaDocs][Changelog("12.20")] public float CurrentTransitionTime => FFXIVClientStructs.FFXIV.Client.Graphics.Environment.EnvManager.Instance()->CurrentTransitionTime;
+        [LuaDocs][Changelog("12.20")] public byte IsInGame => FFXIVClientStructs.FFXIV.Client.Graphics.Environment.EnvManager.Instance()->ActiveWeather;
+        [LuaDocs][Changelog("12.20")] public float TransitionTime => FFXIVClientStructs.FFXIV.Client.Graphics.Environment.EnvManager.Instance()->TransitionTime;
     }
 }

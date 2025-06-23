@@ -64,6 +64,22 @@ public static unsafe class Game
         public static bool IsCrafting() => Svc.Condition[ConditionFlag.Crafting] && !Svc.Condition[ConditionFlag.PreparingToCraft];
         public static bool IsMaxProgress() => TryGetAddonMaster<AddonMaster.Synthesis>(out var am) && am.Reader.IsMaxProgress;
         public static bool IsMaxQuality() => TryGetAddonMaster<AddonMaster.Synthesis>(out var am) && am.Reader.IsMaxQuality;
+        public static bool IsCraftAction(string name) => FindRows<CraftAction>(x => !x.Name.IsEmpty).Select(x => x.Name).Distinct().Contains(name);
+        public static uint GetCraftAction(string name, uint classJob)
+            => FindRows<CraftAction>(x => !x.Name.IsEmpty).First(x => x.Name.ExtractText().Equals(name, StringComparison.OrdinalIgnoreCase) && x.ClassJob.RowId == classJob).RowId;
+        public static bool IsCraftActionProgressIncrease(uint id) => GetActionResult(id).Progress > 0;
+        public static bool IsCraftActionQualityIncrease(uint id) => GetActionResult(id).Quality > 0;
+
+        public static (uint Progress, uint Quality) GetActionResult(uint id)
+        {
+            var agent = AgentCraftActionSimulator.Instance();
+            if (agent == null) return (0, 0);
+
+            var progress = agent->Progress.FirstOrDefault(p => p.ActionId == id).ProgressIncrease;
+            var quality = agent->Quality.FirstOrDefault(q => q.ActionId == id).QualityIncrease;
+
+            return (progress, quality);
+        }
 
         public static CraftState GetCraftState()
         {

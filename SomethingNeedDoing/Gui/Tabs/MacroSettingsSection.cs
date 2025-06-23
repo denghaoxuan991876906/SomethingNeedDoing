@@ -174,6 +174,51 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                     var events = new List<TriggerEvent>(selectedMacro.Metadata.TriggerEvents);
                     if (ImGuiUtils.EnumCheckboxes(ref events, [TriggerEvent.None]))
                         selectedMacro.SetTriggerEvents(scheduler, events);
+
+                    // Show addon event configuration only when OnAddonEvent is selected
+                    if (events.Contains(TriggerEvent.OnAddonEvent))
+                    {
+                        ImGui.Spacing();
+                        ImGui.Separator();
+                        ImGui.Spacing();
+
+                        ImGui.Text("Addon Event Configuration");
+                        ImGui.Spacing();
+
+                        var addonConfig = selectedMacro.Metadata.AddonEventConfig ?? new AddonEventConfig();
+                        var addonName = addonConfig.AddonName;
+                        var eventType = addonConfig.EventType;
+
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text("Addon Name:");
+                        ImGui.SameLine(100);
+
+                        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                        if (ImGui.InputText("##AddonName", ref addonName, 100))
+                        {
+                            addonConfig.AddonName = addonName;
+                            selectedMacro.Metadata.AddonEventConfig = addonConfig;
+                            C.Save();
+                        }
+
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text("Event Type:");
+                        ImGui.SameLine(100);
+
+                        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                        if (ImGuiEx.EnumCombo("##EventType", ref eventType))
+                        {
+                            addonConfig.EventType = eventType;
+                            selectedMacro.Metadata.AddonEventConfig = addonConfig;
+                            C.Save();
+                        }
+
+                        if (ImGui.Button("Clear Addon Event Config"))
+                        {
+                            selectedMacro.Metadata.AddonEventConfig = null;
+                            C.Save();
+                        }
+                    }
                 }
 
                 ImGui.Spacing();
@@ -265,47 +310,6 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                                 C.Save();
                             }
                         }
-                    }
-                }
-
-                ImGui.Spacing();
-
-                if (ImGui.CollapsingHeader("Addon Event Configuration", ImGuiTreeNodeFlags.DefaultOpen))
-                {
-                    ImGui.Spacing();
-
-                    var addonConfig = selectedMacro.Metadata.AddonEventConfig ?? new AddonEventConfig();
-                    var addonName = addonConfig.AddonName;
-                    var eventType = addonConfig.EventType;
-
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.Text("Addon Name:");
-                    ImGui.SameLine(100);
-
-                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                    if (ImGui.InputText("##AddonName", ref addonName, 100))
-                    {
-                        addonConfig.AddonName = addonName;
-                        selectedMacro.Metadata.AddonEventConfig = addonConfig;
-                        C.Save();
-                    }
-
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.Text("Event Type:");
-                    ImGui.SameLine(100);
-
-                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                    if (ImGuiEx.EnumCombo("##EventType", ref eventType))
-                    {
-                        addonConfig.EventType = eventType;
-                        selectedMacro.Metadata.AddonEventConfig = addonConfig;
-                        C.Save();
-                    }
-
-                    if (ImGui.Button("Clear Addon Event Config"))
-                    {
-                        selectedMacro.Metadata.AddonEventConfig = null;
-                        C.Save();
                     }
                 }
 
