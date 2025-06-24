@@ -1,4 +1,6 @@
 ﻿using FFXIVClientStructs.FFXIV.Component.GUI;
+using SomethingNeedDoing.Core;
+using SomethingNeedDoing.NativeMacro.Modifiers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,23 +26,32 @@ public class WaitAddonCommand(string text, string addonName) : MacroCommandBase(
     /// <inheritdoc/>
     public override async Task Execute(MacroContext context, CancellationToken token)
     {
-        await context.WaitForCondition(
-            () =>
-            {
-                var result = false;
-                context.RunOnFramework(() =>
+        try
+        {
+            await context.WaitForCondition(
+                () =>
                 {
-                    unsafe
+                    var result = false;
+                    context.RunOnFramework(() =>
                     {
-                        if (TryGetAddonByName<AtkUnitBase>(addonName, out var addon))
-                            result = addon->IsVisible && addon->UldManager.LoadedState == AtkLoadState.Loaded;
-                    }
-                }).Wait();
-                return result;
-            },
-            MaxWaitModifier?.MaxWaitMilliseconds > 0 ? MaxWaitModifier.MaxWaitMilliseconds : 5000,
-            CHECK_INTERVAL
-        );
+                        unsafe
+                        {
+                            if (TryGetAddonByName<AtkUnitBase>(addonName, out var addon))
+                                result = addon->IsVisible && addon->UldManager.LoadedState == AtkLoadState.Loaded;
+                        }
+                    }).Wait();
+                    return result;
+                },
+                MaxWaitModifier?.MaxWaitMilliseconds > 0 ? MaxWaitModifier.MaxWaitMilliseconds : 5000,
+                CHECK_INTERVAL
+            );
+        }
+        catch (MacroTimeoutException)
+        {
+            if (C.StopOnError || ErrorIfModifier?.Condition == ErrorCondition.ActionTimeout)
+                throw new MacroTimeoutException($"Addon '{addonName}' did not appear within the timeout period");
+            Svc.Log.Warning($"Addon '{addonName}' did not appear within the timeout period, continuing...");
+        }
 
         await PerformWait(token);
     }
