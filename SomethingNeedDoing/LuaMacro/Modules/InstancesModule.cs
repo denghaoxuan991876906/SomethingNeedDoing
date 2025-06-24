@@ -84,6 +84,8 @@ public unsafe class InstancesModule : LuaModuleBase
         [LuaDocs][Changelog("12.8")] public float YFloat => data.YFloat;
         [LuaDocs][Changelog("12.8")] public Vector2 Vector2 => new(XFloat, YFloat);
         [LuaDocs][Changelog("12.8")] public Vector3 Vector3 => new(XFloat, 0, YFloat); // TODO use navmesh PointOnFloor
+        [LuaDocs][Changelog("12.22")] public void SetFlagMapMarker(uint territoryId, uint mapId, float x, float y) => AgentMap.Instance()->SetFlagMapMarker(territoryId, mapId, x, y);
+        [LuaDocs][Changelog("12.22")] public void SetFlagMapMarker(uint territoryId, float x, float y) => AgentMap.Instance()->SetFlagMapMarker(territoryId, GetRow<Sheets.TerritoryType>(territoryId)!.Value.Map.RowId, x, y);
     }
 
     public class MapMarkerDataWrapper(MapMarkerData data) : IWrapper
@@ -132,4 +134,6 @@ public unsafe class InstancesModule : LuaModuleBase
         [LuaDocs][Changelog("12.20")] public byte IsInGame => FFXIVClientStructs.FFXIV.Client.Graphics.Environment.EnvManager.Instance()->ActiveWeather;
         [LuaDocs][Changelog("12.20")] public float TransitionTime => FFXIVClientStructs.FFXIV.Client.Graphics.Environment.EnvManager.Instance()->TransitionTime;
     }
+
+    [LuaFunction][Changelog("12.22")] public BuddyWrapper Buddy => new();
 }

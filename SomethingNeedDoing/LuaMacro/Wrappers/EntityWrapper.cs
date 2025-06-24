@@ -12,6 +12,7 @@ public unsafe class EntityWrapper : IWrapper
     public EntityWrapper(nint obj) => _obj = (GameObject*)obj;
     public EntityWrapper(IGameObject obj) => _obj = (GameObject*)obj.Address;
     public EntityWrapper(IPartyMember obj) => _obj = (GameObject*)obj.Address;
+    public EntityWrapper(GameObjectId id) => _obj = GameObjectManager.Instance()->Objects.GetObjectByGameObjectId(id);
 
     private readonly GameObject* _obj;
     private IGameObject? DalamudObj => Svc.Objects.CreateObjectReference((nint)_obj);
@@ -54,6 +55,8 @@ public unsafe class EntityWrapper : IWrapper
             return Svc.Objects[Character->ObjectIndex + 1] is { ObjectKind: Dalamud.Game.ClientState.Objects.Enums.ObjectKind.MountType };
         }
     }
+
+    [LuaDocs][Changelog("12.22")] public List<StatusWrapper>? Status => BattleChara != null ? [.. BattleChara->GetStatusManager()->Status.ToArray().Select(x => new StatusWrapper(x))] : null;
 
     [LuaDocs] public void SetAsTarget() => Svc.Targets.Target = DalamudObj;
     [LuaDocs] public void SetAsFocusTarget() => Svc.Targets.FocusTarget = DalamudObj;

@@ -54,9 +54,8 @@ public unsafe class PlayerModule : LuaModuleBase
     [LuaFunction] public bool Revivable => Player.Revivable;
     [LuaFunction] public bool Available => Player.Available;
 
-    [LuaFunction]
-    [Changelog("12.8")]
-    public bool IsBusy => Player.IsBusy;
+    [LuaFunction][Changelog("12.8")] public bool IsBusy => Player.IsBusy;
+    [LuaFunction][Changelog("12.22")] public List<StatusWrapper> Status => [.. Player.BattleChara->GetStatusManager()->Status.ToArray().Select(s => new StatusWrapper(s))];
 
     [LuaFunction][Changelog("12.12")] public BingoWrapper Bingo => new(this);
     public class BingoWrapper(PlayerModule parentModule) : IWrapper
