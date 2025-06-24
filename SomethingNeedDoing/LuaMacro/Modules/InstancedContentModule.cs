@@ -1,6 +1,7 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.InstanceContent;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using NLua;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro.Wrappers;
@@ -80,5 +81,13 @@ public unsafe class InstancedContentModule : LuaModuleBase
         [LuaDocs] public ushort Gold => state->Gold;
         [LuaDocs] public byte CurrentSupportJob => state->CurrentSupportJob;
         [LuaDocs] public byte KnowledgeLevelSync => state->KnowledgeLevelSync;
+    }
+
+    [LuaFunction][Changelog("12.22")] public PublicInstanceWrapper PublicInstance => new();
+    public class PublicInstanceWrapper : IWrapper
+    {
+        [LuaDocs][Changelog("12.22")] public uint TerritoryTypeId => UIState.Instance()->PublicInstance.TerritoryTypeId;
+        [LuaDocs][Changelog("12.22")] public uint InstanceId => UIState.Instance()->PublicInstance.InstanceId;
+        [LuaDocs][Changelog("12.22")] public bool IsInstancedArea => UIState.Instance()->PublicInstance.IsInstancedArea();
     }
 }
