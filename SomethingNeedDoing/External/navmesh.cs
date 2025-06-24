@@ -1,5 +1,6 @@
 ﻿using ECommons.EzIpcManager;
 using SomethingNeedDoing.Core.Interfaces;
+using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.External;
 public class Navmesh : IPC
@@ -28,7 +29,7 @@ public class Navmesh : IPC
     [LuaFunction(
         description: "Finds a path between two points",
         parameterDescriptions: ["from", "to", "fly"])]
-    public readonly Func<Vector3, Vector3, bool, Vector3> Pathfind = null!;
+    public readonly Func<Vector3, Vector3, bool, Task<List<Vector3>>> Pathfind = null!;
 
     /// <summary> Vector3 dest, bool fly </summary>
     [EzIPC("SimpleMove.%m")]
