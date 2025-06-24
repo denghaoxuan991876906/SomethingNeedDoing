@@ -89,7 +89,7 @@ public class ExcelModule : LuaModuleBase
     {
         [LuaDocs]
         public object? this[uint rowId] => GetRow(rowId);
-        
+
         [LuaDocs]
         public ExcelRowWrapper? GetRow(uint rowId)
         {

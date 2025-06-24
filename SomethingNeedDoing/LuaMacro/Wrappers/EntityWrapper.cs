@@ -21,6 +21,7 @@ public unsafe class EntityWrapper : IWrapper
     private bool IsPlayer => IsCharacter && Type == ObjectKind.Pc;
     private bool IsCharacter => _obj != null && _obj->IsCharacter();
     private T GetCharacterValue<T>(Func<T> getter) => IsCharacter ? getter() : default!;
+    private T GetBattleCharaValue<T>(Func<T> getter) => Type == ObjectKind.BattleNpc ? getter() : default!;
 
     [LuaDocs] public ObjectKind Type => _obj->ObjectKind;
     [LuaDocs] public string Name => _obj->NameString;
@@ -57,6 +58,7 @@ public unsafe class EntityWrapper : IWrapper
     }
 
     [LuaDocs][Changelog("12.22")] public List<StatusWrapper>? Status => BattleChara != null ? [.. BattleChara->GetStatusManager()->Status.ToArray().Select(x => new StatusWrapper(x))] : null;
+    [LuaDocs][Changelog("12.22")] public ushort FateId => GetBattleCharaValue(() => BattleChara->FateId);
 
     [LuaDocs] public void SetAsTarget() => Svc.Targets.Target = DalamudObj;
     [LuaDocs] public void SetAsFocusTarget() => Svc.Targets.FocusTarget = DalamudObj;
