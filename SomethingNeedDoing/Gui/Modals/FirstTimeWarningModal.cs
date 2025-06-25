@@ -33,13 +33,6 @@ public static class FirstTimeWarningModal
         ImGui.BulletText("Lua macros will not work at all. Scripts authors will need to write new scripts.");
         ImGui.BulletText("There is a legacy macro importer located in the settings menu.");
 
-        ImGui.TextWrapped("Because of the changes above, if you wish to use old scripts, there is a standalone \"Something Need Doing (Legacy)\" plugin available from my repo and will remain active until API 13.");
-        ImGui.TextUnformatted("Please note that the legacy plugin and this plugin share internals");
-        ImGui.SameLine();
-        ImGuiEx.Text(ImGuiColors.DPSRed, "and will not work together.");
-        ImGuiEx.Text(ImGuiColors.DPSRed, "You must disable one before enabling the other.");
-        ImGui.TextWrapped("Their configs, however, are separate so there is no need to worry about conflicts or overwriting.");
-
         ImGui.Spacing();
         ImGuiEx.TextCentered(ImGuiColors.DalamudGrey, $"This message will only be displayed once and will stop showing upon the release of API13.");
 
