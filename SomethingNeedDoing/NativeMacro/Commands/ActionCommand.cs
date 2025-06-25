@@ -69,7 +69,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
                     return;
                 }
 
-                if (UnsafeModifier is null && WaitDuration <= 0) // only do smartwait if no wait was specified
+                if (C.SmartWait && UnsafeModifier is null && WaitDuration <= 0)
                 {
                     awaitCraftAction = true;
                     Svc.Condition.ConditionChange += OnConditionChange;
