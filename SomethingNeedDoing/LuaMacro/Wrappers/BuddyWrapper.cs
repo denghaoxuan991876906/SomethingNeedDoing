@@ -4,9 +4,9 @@ using SomethingNeedDoing.Core.Interfaces;
 namespace SomethingNeedDoing.LuaMacro.Wrappers;
 public unsafe class BuddyWrapper : IWrapper
 {
-    public List<BuddyMemberWrapper> BuddyMember => [.. UIState.Instance()->Buddy.BattleBuddies.ToArray().Select(b => new BuddyMemberWrapper(b))];
-    public CompanionInfoWrapper CompanionInfo => new();
-    public PetInfoWrapper PetInfo => new();
+    [LuaDocs][Changelog("12.22")] public List<BuddyMemberWrapper> BuddyMember => [.. UIState.Instance()->Buddy.BattleBuddies.ToArray().Select(b => new BuddyMemberWrapper(b))];
+    [LuaDocs][Changelog("12.22")] public CompanionInfoWrapper CompanionInfo => new();
+    [LuaDocs][Changelog("12.22")] public PetInfoWrapper PetInfo => new();
 }
 
 public class BuddyMemberWrapper(Buddy.BuddyMember buddy) : IWrapper

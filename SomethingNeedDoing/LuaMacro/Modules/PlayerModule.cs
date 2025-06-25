@@ -35,15 +35,15 @@ public unsafe class PlayerModule : LuaModuleBase
     [LuaFunction][Changelog("12.21")] public List<GearsetWrapper> Gearsets => [.. RaptureGearsetModule.Instance()->Entries.ToArray().Select((g, i) => new GearsetWrapper(i))];
     public class GearsetWrapper(int id) : IWrapper
     {
-        [LuaFunction][Changelog("12.21")] public bool IsValid => RaptureGearsetModule.Instance()->IsValidGearset(id);
-        [LuaFunction][Changelog("12.21")] public byte ClassJob => RaptureGearsetModule.Instance()->GetGearset(id)->ClassJob;
-        [LuaFunction][Changelog("12.21")] public byte GlamourSetLink => RaptureGearsetModule.Instance()->GetGearset(id)->GlamourSetLink;
-        [LuaFunction][Changelog("12.21")] public short ItemLevel => RaptureGearsetModule.Instance()->GetGearset(id)->ItemLevel;
-        [LuaFunction][Changelog("12.21")] public byte BannerIndex => RaptureGearsetModule.Instance()->GetGearset(id)->BannerIndex;
-        [LuaFunction][Changelog("12.21")] public string Name => RaptureGearsetModule.Instance()->GetGearset(id)->NameString;
-        [LuaFunction][Changelog("12.21")] public List<InventoryItemWrapper> Items => [.. RaptureGearsetModule.Instance()->GetGearset(id)->Items.ToArray().Select(i => new InventoryItemWrapper(i.ItemId))];
-        [LuaFunction][Changelog("12.21")] public void Equip() => RaptureGearsetModule.Instance()->EquipGearset(id);
-        [LuaFunction][Changelog("12.21")] public void Update() => RaptureGearsetModule.Instance()->UpdateGearset(id);
+        [LuaDocs][Changelog("12.21")] public bool IsValid => RaptureGearsetModule.Instance()->IsValidGearset(id);
+        [LuaDocs][Changelog("12.21")] public byte ClassJob => RaptureGearsetModule.Instance()->GetGearset(id)->ClassJob;
+        [LuaDocs][Changelog("12.21")] public byte GlamourSetLink => RaptureGearsetModule.Instance()->GetGearset(id)->GlamourSetLink;
+        [LuaDocs][Changelog("12.21")] public short ItemLevel => RaptureGearsetModule.Instance()->GetGearset(id)->ItemLevel;
+        [LuaDocs][Changelog("12.21")] public byte BannerIndex => RaptureGearsetModule.Instance()->GetGearset(id)->BannerIndex;
+        [LuaDocs][Changelog("12.21")] public string Name => RaptureGearsetModule.Instance()->GetGearset(id)->NameString;
+        [LuaDocs][Changelog("12.21")] public List<InventoryItemWrapper> Items => [.. RaptureGearsetModule.Instance()->GetGearset(id)->Items.ToArray().Select(i => new InventoryItemWrapper(i.ItemId))];
+        [LuaDocs][Changelog("12.21")] public void Equip() => RaptureGearsetModule.Instance()->EquipGearset(id);
+        [LuaDocs][Changelog("12.21")] public void Update() => RaptureGearsetModule.Instance()->UpdateGearset(id);
     }
 
     [LuaFunction] public bool IsMoving => Player.IsMoving;
