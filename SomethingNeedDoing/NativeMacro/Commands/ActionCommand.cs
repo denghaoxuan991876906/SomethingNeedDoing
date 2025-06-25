@@ -45,7 +45,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
                 }
             }
 
-            if (Game.Crafting.IsCraftAction(actionName))
+            if (Game.Crafting.IsCraftActionByName(actionName))
             {
                 if (C.CraftSkip)
                 {
@@ -62,7 +62,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
                     }
                 }
 
-                if (C.QualitySkip && Game.Crafting.IsMaxQuality() && Game.Crafting.IsCraftActionQualityIncrease(Game.Crafting.GetCraftAction(actionName, Player.JobId)))
+                if (C.QualitySkip && Game.Crafting.IsMaxQuality() && Game.Crafting.IsCraftActionQualityIncrease(Game.Crafting.FindCraftActionByNameAndJob(actionName, Player.Job)!.Id))
                 {
                     Svc.Log.Debug($"Max quality skip: {CommandText}");
                     return;

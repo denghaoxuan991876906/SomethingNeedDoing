@@ -1,4 +1,6 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
+using ECommons;
+using ECommons.ExcelServices;
 using ECommons.UIHelpers.AddonMasterImplementations;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
@@ -35,6 +37,72 @@ public static unsafe class Game
 
     public static class Crafting
     {
+        public static Dictionary<Job, List<CraftActionData>> CraftActions
+        {
+            get
+            {
+                if (field == null)
+                {
+                    field = [];
+
+                    var craftActions = FindRows<CraftAction>(r => r.ClassJob.RowId is >= 8 and <= 15);
+                    var actions = FindRows<Sheets.Action>(r => r.ClassJob.RowId is >= 8 and <= 15);
+
+                    foreach (var craftAction in craftActions)
+                    {
+                        var jobId = (Job)craftAction.ClassJob.RowId;
+                        if (!field.ContainsKey(jobId))
+                            field[jobId] = [];
+
+                        field[jobId].Add(new CraftActionData
+                        {
+                            Id = craftAction.RowId,
+                            Name = craftAction.Name.ExtractText(),
+                            IsCraftAction = true,
+                            ClassJob = jobId
+                        });
+                    }
+
+                    foreach (var action in actions)
+                    {
+                        var jobId = (Job)action.ClassJob.RowId;
+                        if (!field.ContainsKey(jobId))
+                            field[jobId] = [];
+
+                        field[jobId].Add(new CraftActionData
+                        {
+                            Id = action.RowId,
+                            Name = action.Name.ExtractText(),
+                            IsCraftAction = false,
+                            ClassJob = jobId
+                        });
+                    }
+                }
+
+                return field;
+            }
+        }
+
+        public record class CraftActionData
+        {
+            public uint Id { get; init; }
+            public string Name { get; init; } = string.Empty;
+            public bool IsCraftAction { get; init; }
+            public Job ClassJob { get; init; }
+        }
+
+        public static bool IsCraftActionByName(string name, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+            => CraftActions.Values.SelectMany(actions => actions).Any(action => action.Name.Equals(name, comparison));
+
+        public static CraftActionData? FindCraftActionByName(string name, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+            => CraftActions.Values.SelectMany(actions => actions).FirstOrDefault(action => action.Name.Equals(name, comparison));
+
+        public static List<CraftActionData> FindAllCraftActionsByName(string name, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+            => [.. CraftActions.Values.SelectMany(actions => actions).Where(action => action.Name.Equals(name, comparison))];
+
+        public static CraftActionData? FindCraftActionByNameAndJob(string name, Job job, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+            => CraftActions.TryGetValue(job, out var actions) ? actions.FirstOrDefault(action => action.Name.Equals(name, comparison)) : null;
+
         public static AddonMaster.Synthesis.Condition GetCondition()
             => TryGetAddonMaster<AddonMaster.Synthesis>(out var addon) ? addon.Reader.Condition : AddonMaster.Synthesis.Condition.Unknown;
 
