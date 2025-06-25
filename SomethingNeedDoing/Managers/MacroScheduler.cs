@@ -422,7 +422,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     }
 
     /// <summary>
-    /// Checks if all dependencies for a macro are available.
+    /// Checks if all dependencies for a macro are available and downloads them if needed.
     /// </summary>
     /// <param name="macro">The macro to check dependencies for.</param>
     /// <returns>A tuple containing whether all dependencies are available and a list of missing dependencies.</returns>
@@ -439,8 +439,22 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             {
                 if (!await dependency.IsAvailableAsync())
                 {
-                    missingDependencies.Add($"{dependency.Name} ({dependency.Source})");
+                    Svc.Log.Info($"Dependency {dependency.Name} is not available, attempting to download...");
+                    try
+                    {
+                        await dependency.GetContentAsync();
+                        Svc.Log.Info($"Successfully downloaded dependency {dependency.Name}");
+                    }
+                    catch (Exception downloadEx)
+                    {
+                        Svc.Log.Error(downloadEx, $"Failed to download dependency {dependency.Name}");
+                        missingDependencies.Add($"{dependency.Name} ({dependency.Source}) - Download failed: {downloadEx.Message}");
+                        continue;
+                    }
                 }
+
+                if (!await dependency.IsAvailableAsync())
+                    missingDependencies.Add($"{dependency.Name} ({dependency.Source}) - Not available after download attempt");
             }
             catch (Exception ex)
             {

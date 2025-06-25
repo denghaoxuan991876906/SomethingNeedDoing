@@ -91,9 +91,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
             lua.DoString("luanet.load_assembly('FFXIVClientStructs')");
             moduleManager.RegisterAll(lua);
 
-            // Load all dependencies into the Lua scope
             await LoadDependenciesIntoScope(lua, macro.Macro);
-
             await Svc.Framework.RunOnTick(async () =>
             {
                 try
@@ -260,15 +258,8 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
             try
             {
                 var content = await dependency.GetContentAsync();
-                var dependencyName = dependency.Name;
-
-                // Create a unique name for the dependency to avoid conflicts
-                var uniqueName = $"__dependency_{dependencyName}_{dependency.Id}";
-
-                // Load the dependency content into the Lua scope
                 lua.DoString(content);
-
-                Svc.Log.Debug($"Loaded dependency {dependencyName} into Lua scope for macro {macro.Name}");
+                Svc.Log.Debug($"Loaded dependency {dependency.Name} into Lua scope for macro {macro.Name}");
             }
             catch (Exception ex)
             {
