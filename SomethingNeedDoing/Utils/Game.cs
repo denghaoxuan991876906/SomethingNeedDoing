@@ -89,6 +89,10 @@ public static unsafe class Game
             public string Name { get; init; } = string.Empty;
             public bool IsCraftAction { get; init; }
             public Job ClassJob { get; init; }
+
+            public bool IncreasesProgress => GetActionResult(Id).Progress > 0;
+            public bool IncreasesQuality => GetActionResult(Id).Quality > 0;
+            public bool CanExecute => ActionManager.Instance()->GetActionStatus(IsCraftAction ? ActionType.CraftAction : ActionType.Action, Id) == 0;
         }
 
         public static bool IsCraftActionByName(string name, StringComparison comparison = StringComparison.OrdinalIgnoreCase)

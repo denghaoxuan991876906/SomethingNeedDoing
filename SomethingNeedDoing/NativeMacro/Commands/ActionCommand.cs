@@ -34,6 +34,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
                 craftingComplete.TrySetResult(true);
         }
 
+        var craftAction = Game.Crafting.FindCraftActionByNameAndJob(actionName, Player.Job);
         await context.RunOnFramework(() =>
         {
             if (ConditionModifier?.Conditions.FirstOrDefault() is { } cnd)
@@ -45,7 +46,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
                 }
             }
 
-            if (Game.Crafting.IsCraftActionByName(actionName))
+            if (craftAction is { })
             {
                 if (C.CraftSkip)
                 {
@@ -62,7 +63,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
                     }
                 }
 
-                if (C.QualitySkip && Game.Crafting.IsMaxQuality() && Game.Crafting.IsCraftActionQualityIncrease(Game.Crafting.FindCraftActionByNameAndJob(actionName, Player.Job)!.Id))
+                if (C.QualitySkip && Game.Crafting.IsMaxQuality() && craftAction.IncreasesQuality)
                 {
                     Svc.Log.Debug($"Max quality skip: {CommandText}");
                     return;
