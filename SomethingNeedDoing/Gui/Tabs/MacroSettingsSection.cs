@@ -13,8 +13,6 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
     private string _pluginDependency = string.Empty;
     private string _pluginToDisable = string.Empty;
     private string _gitUrl = string.Empty;
-    private string _branch = "main";
-    private string _path = string.Empty;
     private DependencyType _dependencyType = DependencyType.Local;
     private readonly List<string> _disableablePluginNames = [.. disableablePlugins.Select(p => p.InternalName)];
 
@@ -328,13 +326,9 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                             var dependency = selectedMacro.Metadata.Dependencies[i];
                             using var __ = ImRaii.PushId(i);
 
-                            ImGui.AlignTextToFramePadding();
-                            ImGui.Text($"Dependency {i + 1}:");
-                            ImGui.SameLine(100);
-
                             var macroId = dependency.Id;
                             var isGit = macroId.StartsWith("git://");
-                            var displayName = isGit ? macroId[6..] : macroId;
+                            var displayName = $"[{macroId[..7]}] {dependency.Name}";
 
                             ImGuiEx.IconWithText(isGit ? ImGuiColors.ParsedBlue : ImGuiColors.DalamudWhite, isGit ? FontAwesomeIcon.CloudDownloadAlt : FontAwesomeIcon.FileAlt, displayName);
 
@@ -360,11 +354,7 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
 
                     if (_dependencyType == DependencyType.Local)
                     {
-                        var localMacros = C.Macros
-                            .Where(m => m.Id != selectedMacro.Id)
-                            .OrderBy(m => m.Name)
-                            .ToList();
-
+                        var localMacros = C.Macros.Where(m => m.Id != selectedMacro.Id).OrderBy(m => m.Name).ToList();
                         var selectedMacroId = string.Empty;
                         var macroNames = localMacros.ToDictionary(m => m.Id, m => $"{m.Name} [{m.FolderPath}]");
 
@@ -378,35 +368,8 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                     else
                     {
                         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                        if (ImGui.InputText("##GitUrl", ref _gitUrl, 1000))
-                        {
-                            // Auto-detect branch and path from URL if it's a blob/raw URL
-                            if (_gitUrl.Contains("/blob/") || _gitUrl.Contains("/raw/"))
-                            {
-                                var uri = new Uri(_gitUrl);
-                                var pathParts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-                                if (pathParts.Length >= 4)
-                                {
-                                    _branch = pathParts[3];
-                                    _path = string.Join("/", pathParts.Skip(4));
-                                }
-                            }
-                        }
+                        ImGui.InputText("##GitUrl", ref _gitUrl, 1000);
                         ImGuiEx.Tooltip("Enter a GitHub URL (e.g., https://github.com/owner/repo or https://github.com/owner/repo/blob/branch/path)");
-
-                        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                        if (ImGui.InputText("##Branch", ref _branch, 100))
-                        {
-                            // Validate branch name
-                        }
-                        ImGuiEx.Tooltip("Branch name (default: main)");
-
-                        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                        if (ImGui.InputText("##Path", ref _path, 100))
-                        {
-                            // Validate path
-                        }
-                        ImGuiEx.Tooltip("Path to the file in the repository (optional)");
 
                         if (ImGui.Button("Add Dependency"))
                         {
@@ -415,8 +378,6 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                                 selectedMacro.Metadata.Dependencies.Add(dependencyFactory.CreateDependency(_gitUrl));
                                 C.Save();
                                 _gitUrl = string.Empty;
-                                _branch = "main";
-                                _path = string.Empty;
                             }
                         }
                     }
