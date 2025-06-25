@@ -329,22 +329,15 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         if (_macroStates.TryGetValue(macroId, out var state))
         {
             state.CancellationSource.Cancel();
-            state.Macro.StateChanged -= OnMacroStateChanged;
             state.Macro.State = MacroState.Completed;
 
+            // rest of the cleanup will be handled by OnMacroStateChanged
             UnregisterFunctionTriggers(state.Macro);
             await SetPluginStates(state.Macro, true);
-
-            // Execute cleanup functions
-            _cleanupManager.ExecuteCleanup(macroId, "Stopped");
 
             if (C.PropagateControlsToChildren)
                 foreach (var child in _macroHierarchy.GetChildMacros(macroId).ToList())
                     StopMacro(child.Id);
-
-            if (_macroStates.TryRemove(macroId, out var removedState))
-                removedState.Dispose();
-            _enginesByMacroId.TryRemove(macroId, out _);
         }
     }
 
@@ -505,8 +498,15 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     tempMacro.StateChanged -= OnMacroStateChanged;
             }
 
-            StopMacro(e.MacroId); // handle local cancellations/state
-            CleanupMacro(e.MacroId); // cleanup triggers/state
+            if (_macroStates.TryRemove(e.MacroId, out var state))
+            {
+                UnregisterFunctionTriggers(state.Macro);
+                state.CancellationSource.Cancel();
+                state.CancellationSource.Dispose();
+                state.Macro.StateChanged -= OnMacroStateChanged;
+            }
+
+            _enginesByMacroId.TryRemove(e.MacroId, out _);
         }
     }
 
