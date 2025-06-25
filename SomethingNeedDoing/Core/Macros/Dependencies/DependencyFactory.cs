@@ -33,13 +33,35 @@ public class DependencyFactory(HttpClient httpClient, IGitService gitService)
                 var branch = parts.Length > 2 ? parts[2] : "main";
                 var path = parts.Length > 3 ? string.Join("/", parts.Skip(3)) : null;
 
-                return new GitDependency(gitService, $"https://github.com/{owner}/{repo}", branch, path, repo);
+                var gitDep = new GitDependency
+                {
+                    Name = repo,
+                    GitInfo = new GitInfo
+                    {
+                        RepositoryUrl = $"https://github.com/{owner}/{repo}",
+                        Branch = branch,
+                        FilePath = path ?? string.Empty
+                    }
+                };
+                gitDep.SetGitService(gitService);
+                return gitDep;
             }
         }
         else if (System.IO.File.Exists(source))
-            return new LocalDependency(source, System.IO.Path.GetFileNameWithoutExtension(source));
+        {
+            return new LocalDependency
+            {
+                Name = System.IO.Path.GetFileNameWithoutExtension(source),
+                Source = source
+            };
+        }
 
-        return new HttpDependency(httpClient, source, "latest");
+        var httpDep = new HttpDependency()
+        {
+            Name = "latest",
+            Source = source
+        };
+        return httpDep;
     }
 
     /// <summary>

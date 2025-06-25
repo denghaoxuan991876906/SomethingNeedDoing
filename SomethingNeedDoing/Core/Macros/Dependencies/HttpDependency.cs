@@ -7,27 +7,27 @@ namespace SomethingNeedDoing.Core;
 /// <summary>
 /// Represents an HTTP dependency.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="HttpDependency"/> class.
-/// </remarks>
-/// <param name="httpClient">The HTTP client.</param>
-/// <param name="url">The URL of the dependency.</param>
-/// <param name="name">The name of the dependency.</param>
-public class HttpDependency(HttpClient httpClient, string url, string name) : CachedDependency()
+public class HttpDependency : CachedDependency
 {
-    private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+    private readonly HttpClient _httpClient = new()
+    {
+        DefaultRequestHeaders =
+        {
+            { "User-Agent", "SomethingNeedDoing/1.0" }
+        }
+    };
 
     /// <inheritdoc/>
     public override string Id { get; } = Guid.NewGuid().ToString();
 
     /// <inheritdoc/>
-    public override string Name { get; } = name;
+    public override string Name { get; set; } = string.Empty;
 
     /// <inheritdoc/>
     public override DependencyType Type => DependencyType.Remote;
 
     /// <inheritdoc/>
-    public override string Source { get; } = url ?? throw new ArgumentNullException(nameof(url));
+    public override string Source { get; set; } = string.Empty;
 
     /// <inheritdoc/>
     protected override async Task<string> DownloadContentAsync()

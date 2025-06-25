@@ -23,13 +23,13 @@ public abstract class CachedDependency : IMacroDependency
     public abstract string Id { get; }
 
     /// <inheritdoc/>
-    public abstract string Name { get; }
+    public abstract string Name { get; set; }
 
     /// <inheritdoc/>
     public abstract DependencyType Type { get; }
 
     /// <inheritdoc/>
-    public abstract string Source { get; }
+    public abstract string Source { get; set; }
 
     /// <summary>
     /// Gets the cache file path for this dependency.
@@ -54,7 +54,8 @@ public abstract class CachedDependency : IMacroDependency
             cacheString += $"_{gitDep.GitInfo.Branch}_{gitDep.GitInfo.FilePath}";
 
         var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(cacheString));
-        return Convert.ToHexString(hash).ToLowerInvariant();
+        var cacheKey = Convert.ToHexString(hash).ToLowerInvariant();
+        return cacheKey;
     }
 
     /// <summary>
@@ -69,12 +70,20 @@ public abstract class CachedDependency : IMacroDependency
         try
         {
             var metadata = File.ReadAllText(CacheMetadataPath);
+
             if (DateTime.TryParse(metadata, out var cacheTime))
-                return DateTime.Now - cacheTime < _cacheExpiration;
+            {
+                var age = DateTime.Now - cacheTime;
+                var isValid = age < _cacheExpiration;
+                Svc.Log.Debug($"[{nameof(CachedDependency)}] Cache age: {age.TotalHours:F2} hours, Valid: {isValid}");
+                return isValid;
+            }
+            else
+                Svc.Log.Debug($"[{nameof(CachedDependency)}] Failed to parse metadata for {Name}");
         }
         catch (Exception ex)
         {
-            Svc.Log.Warning($"Failed to read cache metadata for {Name}: {ex.Message}");
+            Svc.Log.Warning($"[{nameof(CachedDependency)}] Failed to read cache metadata for {Name}: {ex.Message}");
         }
 
         return false;
@@ -91,11 +100,10 @@ public abstract class CachedDependency : IMacroDependency
             var cacheKey = GetCacheKey();
             File.WriteAllText(CacheFilePath, content);
             File.WriteAllText(CacheMetadataPath, DateTime.Now.ToString("O"));
-            Svc.Log.Debug($"Cached dependency {Name} (key: {cacheKey}) to {CacheFilePath}");
         }
         catch (Exception ex)
         {
-            Svc.Log.Warning($"Failed to cache dependency {Name}: {ex.Message}");
+            Svc.Log.Warning($"[{nameof(CachedDependency)}] Failed to cache dependency {Name}: {ex.Message}");
         }
     }
 
@@ -107,17 +115,17 @@ public abstract class CachedDependency : IMacroDependency
     {
         try
         {
+            var cacheKey = GetCacheKey();
+            Svc.Log.Debug($"[{nameof(CachedDependency)}] Attempting to load {Name} with key '{cacheKey}' from {CacheFilePath}");
+
             if (IsCacheValid())
-            {
-                var content = File.ReadAllText(CacheFilePath);
-                var cacheKey = GetCacheKey();
-                Svc.Log.Debug($"Loaded cached dependency {Name} (key: {cacheKey}) from {CacheFilePath}");
-                return content;
-            }
+                return File.ReadAllText(CacheFilePath);
+            else
+                Svc.Log.Debug($"[{nameof(CachedDependency)}] Cache not valid for {Name} (key: {cacheKey})");
         }
         catch (Exception ex)
         {
-            Svc.Log.Warning($"Failed to load cached dependency {Name}: {ex.Message}");
+            Svc.Log.Warning($"[{nameof(CachedDependency)}] Failed to load cached dependency {Name}: {ex.Message}");
         }
 
         return null;
@@ -134,9 +142,14 @@ public abstract class CachedDependency : IMacroDependency
     {
         var cachedContent = LoadFromCache();
         if (cachedContent != null)
+        {
+            Svc.Log.Debug($"[{nameof(CachedDependency)}] Using cached content for {Name}");
             return cachedContent;
+        }
 
+        Svc.Log.Debug($"[{nameof(CachedDependency)}] Cache miss for {Name}, downloading content");
         var content = await DownloadContentAsync();
+        Svc.Log.Debug($"[{nameof(CachedDependency)}] Downloaded content for {Name}, length: {content.Length} characters");
         SaveToCache(content);
         return content;
     }

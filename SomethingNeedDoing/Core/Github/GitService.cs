@@ -2,6 +2,7 @@ using SomethingNeedDoing.Core.Interfaces;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System;
 
 namespace SomethingNeedDoing.Core.Github;
 
@@ -27,12 +28,75 @@ public class GitService : IGitService
     public async Task<string> GetFileContentAsync(string repositoryUrl, string branch, string path)
     {
         var apiUrl = GetGitHubApiUrl(repositoryUrl, branch, path);
+
         var response = await _httpClient.GetAsync(apiUrl);
         response.EnsureSuccessStatusCode();
 
         var content = await response.Content.ReadAsStringAsync();
+        Svc.Log.Debug($"[{nameof(GitService)}] Raw response length: {content.Length}");
+
         var fileInfo = JsonSerializer.Deserialize<GitHubFileInfo>(content);
-        return fileInfo?.Content ?? string.Empty;
+
+        if (fileInfo == null)
+        {
+            Svc.Log.Error($"[{nameof(GitService)}] Failed to deserialize GitHub API response");
+            return string.Empty;
+        }
+
+        Svc.Log.Debug($"[{nameof(GitService)}] - Encoding: '{fileInfo.Encoding}', Content length: {fileInfo.Content?.Length ?? 0}");
+
+        // If the automatic deserialization didn't work, try manual JSON parsing
+        if (string.IsNullOrEmpty(fileInfo.Encoding) && string.IsNullOrEmpty(fileInfo.Content))
+        {
+            Svc.Log.Debug("[{nameof(GitService)}] - Automatic deserialization failed, trying manual JSON parsing");
+            try
+            {
+                using var jsonDoc = JsonDocument.Parse(content);
+                var root = jsonDoc.RootElement;
+
+                if (root.TryGetProperty("encoding", out var encodingElement) &&
+                    root.TryGetProperty("content", out var contentElement))
+                {
+                    var encoding = encodingElement.GetString();
+                    var jsonContent = contentElement.GetString();
+
+                    Svc.Log.Debug($"[{nameof(GitService)}] Manual parsing - Encoding: '{encoding}', Content length: {jsonContent?.Length ?? 0}");
+
+                    if (encoding == "base64" && !string.IsNullOrEmpty(jsonContent))
+                    {
+                        var decodedContent = Convert.FromBase64String(jsonContent);
+                        var result = System.Text.Encoding.UTF8.GetString(decodedContent);
+                        Svc.Log.Debug($"[{nameof(GitService)}] Manual parsing - Decoded content length: {result.Length}");
+                        return result;
+                    }
+                }
+                else
+                    Svc.Log.Error($"[{nameof(GitService)}] Manual parsing failed - 'encoding' or 'content' properties not found in JSON");
+            }
+            catch (Exception ex)
+            {
+                Svc.Log.Error($"[{nameof(GitService)}] Manual JSON parsing failed: {ex.Message}");
+            }
+        }
+
+        if (fileInfo.Encoding == "base64" && !string.IsNullOrEmpty(fileInfo.Content))
+        {
+            try
+            {
+                var decodedContent = Convert.FromBase64String(fileInfo.Content);
+                var result = System.Text.Encoding.UTF8.GetString(decodedContent);
+                Svc.Log.Debug($"[{nameof(GitService)}] Decoded content length: {result.Length}");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Svc.Log.Error($"[{nameof(GitService)}] Failed to decode base64 content: {ex.Message}");
+                return string.Empty;
+            }
+        }
+
+        Svc.Log.Warning($"[{nameof(GitService)}] Unknown encoding: '{fileInfo.Encoding}'");
+        return fileInfo.Content ?? string.Empty;
     }
 
     /// <inheritdoc/>

@@ -13,7 +13,6 @@ namespace SomethingNeedDoing.Managers;
 public class GitMacroManager : IDisposable
 {
     private readonly IMacroScheduler _scheduler;
-    private readonly GitMacroMetadataParser _metadataParser;
     private readonly HttpClient _httpClient = new()
     {
         DefaultRequestHeaders =
@@ -38,11 +37,16 @@ public class GitMacroManager : IDisposable
     /// </summary>
     /// <param name="scheduler">The macro scheduler.</param>
     /// <param name="dependencyFactory">The dependency factory.</param>
-    public GitMacroManager(IMacroScheduler scheduler, GitMacroMetadataParser metadataParser)
+    public GitMacroManager(IMacroScheduler scheduler, IGitService gitService)
     {
         _scheduler = scheduler;
-        _metadataParser = metadataParser;
         _ = UpdateAllMacros();
+
+        // TODO: This is like this because having a parametered construct meant that IMacroDependencies couldn't be deserialized by the json deserializer
+        foreach (var macro in C.Macros)
+            foreach (var dependency in macro.Metadata.Dependencies)
+                if (dependency is GitDependency gitDependency)
+                    gitDependency.SetGitService(gitService);
     }
 
     /// <summary>

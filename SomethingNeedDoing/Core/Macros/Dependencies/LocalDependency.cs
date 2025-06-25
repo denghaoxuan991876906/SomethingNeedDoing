@@ -7,38 +7,36 @@ namespace SomethingNeedDoing.Core;
 /// <summary>
 /// Represents a local dependency (file or macro).
 /// </summary>
-/// <param name="filePath">The path to the file.</param>
-/// <param name="name">The name of the dependency.</param>
-public class LocalDependency(string filePath, string name) : IMacroDependency
+public class LocalDependency : IMacroDependency
 {
     /// <inheritdoc/>
     public string Id { get; } = Guid.NewGuid().ToString();
 
     /// <inheritdoc/>
-    public string Name { get; } = name;
+    public string Name { get; set; } = string.Empty;
 
     /// <inheritdoc/>
     public DependencyType Type => DependencyType.Local;
 
     /// <inheritdoc/>
-    public string Source => filePath;
+    public string Source { get; set; } = string.Empty;
 
     /// <inheritdoc/>
-    public async Task<string> GetContentAsync() => await File.ReadAllTextAsync(filePath);
+    public async Task<string> GetContentAsync() => await File.ReadAllTextAsync(Source);
 
     /// <inheritdoc/>
-    public Task<bool> IsAvailableAsync() => Task.FromResult(File.Exists(filePath));
+    public Task<bool> IsAvailableAsync() => Task.FromResult(File.Exists(Source));
 
     /// <inheritdoc/>
     public async Task<DependencyValidationResult> ValidateAsync()
     {
-        if (!File.Exists(filePath))
-            return DependencyValidationResult.Failure($"File not found: {filePath}");
+        if (!File.Exists(Source))
+            return DependencyValidationResult.Failure($"File not found: {Source}");
 
         try
         {
             // Try to read the file to validate it
-            await File.ReadAllTextAsync(filePath);
+            await File.ReadAllTextAsync(Source);
             return DependencyValidationResult.Success();
         }
         catch (Exception ex)

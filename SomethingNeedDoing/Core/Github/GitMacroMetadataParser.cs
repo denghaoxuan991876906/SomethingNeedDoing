@@ -223,10 +223,7 @@ public class GitMacroMetadataParser(IGitService gitService)
             }
 
             if (!string.IsNullOrEmpty(repo) && !string.IsNullOrEmpty(path))
-            {
-                name = string.IsNullOrEmpty(name) ? Path.GetFileNameWithoutExtension(path) : name;
-                dependencies.Add(new GitDependency(_gitService, repo, branch, path, name));
-            }
+                dependencies.Add(new GitDependency() { GitInfo = new() { Branch = branch, FilePath = path, RepositoryUrl = repo }, Source = repo, Name = name.IsNullOrEmpty() ? Path.GetFileNameWithoutExtension(path) : name });
         }
 
         metadata.Dependencies = dependencies;
@@ -249,7 +246,7 @@ public class GitMacroMetadataParser(IGitService gitService)
                 if (!string.IsNullOrEmpty(repo) && !string.IsNullOrEmpty(path))
                 {
                     name = string.IsNullOrEmpty(name) ? Path.GetFileNameWithoutExtension(path) : name;
-                    dependencies.Add(new GitDependency(_gitService, repo, branch, path, name));
+                    dependencies.Add(new GitDependency() { GitInfo = new() { Branch = branch, FilePath = path, RepositoryUrl = repo }, Source = repo, Name = name });
                 }
                 repo = null;
                 path = null;
@@ -285,7 +282,7 @@ public class GitMacroMetadataParser(IGitService gitService)
         if (!string.IsNullOrEmpty(repo) && !string.IsNullOrEmpty(path))
         {
             name = string.IsNullOrEmpty(name) ? Path.GetFileNameWithoutExtension(path) : name;
-            dependencies.Add(new GitDependency(_gitService, repo, branch, path, name));
+            dependencies.Add(new GitDependency() { GitInfo = new() { Branch = branch, FilePath = path, RepositoryUrl = repo }, Source = repo, Name = name });
         }
 
         metadata.Dependencies = dependencies;
@@ -296,11 +293,7 @@ public class GitMacroMetadataParser(IGitService gitService)
         var dependencies = value.Split(',')
             .Select(v => v.Trim())
             .Where(v => !string.IsNullOrEmpty(v))
-            .Select(v =>
-            {
-                var name = Path.GetFileNameWithoutExtension(v);
-                return new GitDependency(_gitService, v, "main", v, name);
-            })
+            .Select(v => new GitDependency() { GitInfo = new() { Branch = "main", FilePath = v, RepositoryUrl = v }, Name = Path.GetFileNameWithoutExtension(v) })
             .ToList<IMacroDependency>();
 
         metadata.Dependencies = dependencies;
