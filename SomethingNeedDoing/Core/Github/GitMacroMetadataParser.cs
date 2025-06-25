@@ -47,17 +47,8 @@ public class GitMacroMetadataParser(IGitService gitService)
         {
             metadataBlock.AppendLine("dependencies:");
             foreach (var dep in macro.Metadata.Dependencies)
-            {
                 if (dep is GitDependency gitDep)
-                {
                     metadataBlock.AppendLine($"  - repo: {gitDep.GitInfo.RepositoryUrl}");
-                    metadataBlock.AppendLine($"    path: {gitDep.GitInfo.FilePath}");
-                    if (gitDep.GitInfo.Branch != "main")
-                        metadataBlock.AppendLine($"    branch: {gitDep.GitInfo.Branch}");
-                    if (gitDep.Name != Path.GetFileNameWithoutExtension(gitDep.GitInfo.FilePath))
-                        metadataBlock.AppendLine($"    name: {gitDep.Name}");
-                }
-            }
         }
 
         if (macro.Metadata.TriggerEvents.Any())
@@ -68,12 +59,6 @@ public class GitMacroMetadataParser(IGitService gitService)
 
         if (macro.Metadata.PluginsToDisable.Any())
             metadataBlock.AppendLine($"plugins_to_disable: {string.Join(", ", macro.Metadata.PluginsToDisable)}");
-
-        if (macro.Metadata.CraftingLoop)
-        {
-            metadataBlock.AppendLine($"crafting_loop: true");
-            metadataBlock.AppendLine($"craft_loop_count: {macro.Metadata.CraftLoopCount}");
-        }
 
         if (macro.Metadata.AddonEventConfig != null)
         {
