@@ -13,24 +13,24 @@ namespace SomethingNeedDoing.Core;
 /// <param name="httpClient">The HTTP client.</param>
 /// <param name="url">The URL of the dependency.</param>
 /// <param name="name">The name of the dependency.</param>
-public class HttpDependency(HttpClient httpClient, string url, string name) : IMacroDependency
+public class HttpDependency(HttpClient httpClient, string url, string name) : CachedDependency()
 {
     private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
     /// <inheritdoc/>
-    public string Id { get; } = Guid.NewGuid().ToString();
+    public override string Id { get; } = Guid.NewGuid().ToString();
 
     /// <inheritdoc/>
-    public string Name { get; } = name;
+    public override string Name { get; } = name;
 
     /// <inheritdoc/>
-    public DependencyType Type => DependencyType.Remote;
+    public override DependencyType Type => DependencyType.Remote;
 
     /// <inheritdoc/>
-    public string Source { get; } = url ?? throw new ArgumentNullException(nameof(url));
+    public override string Source { get; } = url ?? throw new ArgumentNullException(nameof(url));
 
     /// <inheritdoc/>
-    public async Task<string> GetContentAsync()
+    protected override async Task<string> DownloadContentAsync()
     {
         var response = await _httpClient.GetAsync(Source);
         response.EnsureSuccessStatusCode();
@@ -38,7 +38,7 @@ public class HttpDependency(HttpClient httpClient, string url, string name) : IM
     }
 
     /// <inheritdoc/>
-    public async Task<bool> IsAvailableAsync()
+    public override async Task<bool> IsAvailableAsync()
     {
         try
         {
@@ -52,7 +52,7 @@ public class HttpDependency(HttpClient httpClient, string url, string name) : IM
     }
 
     /// <inheritdoc/>
-    public async Task<DependencyValidationResult> ValidateAsync()
+    public override async Task<DependencyValidationResult> ValidateAsync()
     {
         try
         {

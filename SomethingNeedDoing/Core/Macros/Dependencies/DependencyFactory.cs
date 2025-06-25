@@ -37,7 +37,6 @@ public class DependencyFactory(HttpClient httpClient, IGitService gitService)
             }
         }
         else if (System.IO.File.Exists(source))
-
             return new LocalDependency(source, System.IO.Path.GetFileNameWithoutExtension(source));
 
         return new HttpDependency(httpClient, source, "latest");
@@ -52,20 +51,14 @@ public class DependencyFactory(HttpClient httpClient, IGitService gitService)
         {
             var uri = new Uri(source);
             var pathParts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-
             if (pathParts.Length >= 2)
             {
                 var owner = pathParts[0];
-                var repo = pathParts[1].Replace(".git", "");
+                var repo = pathParts[1];
+                var branch = pathParts.Length > 3 && pathParts[2] == "blob" ? pathParts[3] : "main";
+                var path = pathParts.Length > 4 && pathParts[2] == "blob" ? string.Join("/", pathParts.Skip(4)) : null;
 
-                if (source.Contains("/blob/") || source.Contains("/raw/"))
-                {
-                    var branch = pathParts[3];
-                    var path = string.Join("/", pathParts.Skip(4));
-                    return $"git://github.com/{owner}/{repo}/{branch}/{path}";
-                }
-
-                return $"git://github.com/{owner}/{repo}";
+                return $"git://{owner}/{repo}/{branch}/{path}";
             }
         }
 

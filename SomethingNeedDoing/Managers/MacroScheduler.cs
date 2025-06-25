@@ -226,6 +226,14 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             return;
         }
 
+        // Check if all dependencies are available
+        var (areAvailable, missingDependencies) = await AreDependenciesAvailableAsync(macro);
+        if (!areAvailable)
+        {
+            Svc.Chat.PrintMessage($"Cannot run {macro.Name}. The following dependencies are not available: {string.Join(", ", missingDependencies)}");
+            return;
+        }
+
         await SetPluginStates(macro, false);
 
         // Subscribe to state changes before creating the state
@@ -411,6 +419,37 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     {
         missingPlugins = [.. macro.Metadata.PluginDependecies.Where(dep => !dep.IsNullOrEmpty() && !Svc.PluginInterface.InstalledPlugins.Any(ip => ip.InternalName == dep && ip.IsLoaded))];
         return missingPlugins.Count > 0;
+    }
+
+    /// <summary>
+    /// Checks if all dependencies for a macro are available.
+    /// </summary>
+    /// <param name="macro">The macro to check dependencies for.</param>
+    /// <returns>A tuple containing whether all dependencies are available and a list of missing dependencies.</returns>
+    private async Task<(bool areAvailable, List<string> missingDependencies)> AreDependenciesAvailableAsync(IMacro macro)
+    {
+        var missingDependencies = new List<string>();
+
+        if (macro.Metadata.Dependencies.Count == 0)
+            return (true, missingDependencies);
+
+        foreach (var dependency in macro.Metadata.Dependencies)
+        {
+            try
+            {
+                if (!await dependency.IsAvailableAsync())
+                {
+                    missingDependencies.Add($"{dependency.Name} ({dependency.Source})");
+                }
+            }
+            catch (Exception ex)
+            {
+                Svc.Log.Error(ex, $"Error checking availability of dependency {dependency.Name}");
+                missingDependencies.Add($"{dependency.Name} ({dependency.Source}) - Error: {ex.Message}");
+            }
+        }
+
+        return (missingDependencies.Count == 0, missingDependencies);
     }
 
     private async Task SetPluginStates(IMacro macro, bool state)

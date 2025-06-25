@@ -91,6 +91,9 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
             lua.DoString("luanet.load_assembly('FFXIVClientStructs')");
             moduleManager.RegisterAll(lua);
 
+            // Load all dependencies into the Lua scope
+            await LoadDependenciesIntoScope(lua, macro.Macro);
+
             await Svc.Framework.RunOnTick(async () =>
             {
                 try
@@ -239,6 +242,41 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
 
     protected virtual void OnMacroError(string macroId, string message, Exception? ex = null)
         => MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
+
+    /// <summary>
+    /// Loads all dependencies into the Lua scope.
+    /// </summary>
+    /// <param name="lua">The Lua state.</param>
+    /// <param name="macro">The macro whose dependencies to load.</param>
+    private async Task LoadDependenciesIntoScope(Lua lua, IMacro macro)
+    {
+        if (macro.Metadata.Dependencies.Count == 0)
+            return;
+
+        Svc.Log.Debug($"Loading {macro.Metadata.Dependencies.Count} dependencies for macro {macro.Name}");
+
+        foreach (var dependency in macro.Metadata.Dependencies)
+        {
+            try
+            {
+                var content = await dependency.GetContentAsync();
+                var dependencyName = dependency.Name;
+
+                // Create a unique name for the dependency to avoid conflicts
+                var uniqueName = $"__dependency_{dependencyName}_{dependency.Id}";
+
+                // Load the dependency content into the Lua scope
+                lua.DoString(content);
+
+                Svc.Log.Debug($"Loaded dependency {dependencyName} into Lua scope for macro {macro.Name}");
+            }
+            catch (Exception ex)
+            {
+                Svc.Log.Error(ex, $"Failed to load dependency {dependency.Name} for macro {macro.Name}");
+                throw new MacroException($"Failed to load dependency {dependency.Name}: {ex.Message}", ex);
+            }
+        }
+    }
 
     /// <inheritdoc/>
     public void Dispose() { }

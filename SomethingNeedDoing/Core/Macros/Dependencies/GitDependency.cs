@@ -6,12 +6,17 @@ namespace SomethingNeedDoing.Core;
 /// <summary>
 /// Represents a Git repository dependency.
 /// </summary>
-public class GitDependency(IGitService gitService, string repositoryUrl, string branch, string? path, string name) : IMacroDependency
+/// <param name="gitService">The Git service.</param>
+/// <param name="repositoryUrl">The repository URL.</param>
+/// <param name="branch">The branch name.</param>
+/// <param name="path">The file path in the repository.</param>
+/// <param name="name">The dependency name.</param>
+public class GitDependency(IGitService gitService, string repositoryUrl, string branch, string? path, string name) : CachedDependency
 {
-    public string Id { get; } = Guid.NewGuid().ToString();
-    public string Name { get; } = name;
-    public DependencyType Type => DependencyType.Remote;
-    public string Source => GitInfo.RepositoryUrl;
+    public override string Id { get; } = Guid.NewGuid().ToString();
+    public override string Name { get; } = name;
+    public override DependencyType Type => DependencyType.Remote;
+    public override string Source => GitInfo.RepositoryUrl;
     public GitInfo GitInfo { get; } = new()
     {
         RepositoryUrl = repositoryUrl,
@@ -19,7 +24,8 @@ public class GitDependency(IGitService gitService, string repositoryUrl, string 
         FilePath = path ?? string.Empty
     };
 
-    public async Task<string> GetContentAsync()
+    /// <inheritdoc/>
+    protected override async Task<string> DownloadContentAsync()
     {
         if (string.IsNullOrEmpty(GitInfo.FilePath))
             throw new InvalidOperationException("No file path specified for Git dependency");
@@ -27,7 +33,8 @@ public class GitDependency(IGitService gitService, string repositoryUrl, string 
         return await gitService.GetFileContentAsync(GitInfo.RepositoryUrl, GitInfo.Branch, GitInfo.FilePath);
     }
 
-    public async Task<bool> IsAvailableAsync()
+    /// <inheritdoc/>
+    public override async Task<bool> IsAvailableAsync()
     {
         if (string.IsNullOrEmpty(GitInfo.FilePath))
             return false;
@@ -35,7 +42,8 @@ public class GitDependency(IGitService gitService, string repositoryUrl, string 
         return await gitService.FileExistsAsync(GitInfo.RepositoryUrl, GitInfo.Branch, GitInfo.FilePath);
     }
 
-    public async Task<DependencyValidationResult> ValidateAsync()
+    /// <inheritdoc/>
+    public override async Task<DependencyValidationResult> ValidateAsync()
     {
         if (string.IsNullOrEmpty(GitInfo.FilePath))
             return DependencyValidationResult.Failure("No file path specified");
@@ -46,7 +54,6 @@ public class GitDependency(IGitService gitService, string repositoryUrl, string 
             if (!exists)
                 return DependencyValidationResult.Failure($"File not found in repository: {GitInfo.FilePath}");
 
-            // Try to get the content to validate it
             await gitService.GetFileContentAsync(GitInfo.RepositoryUrl, GitInfo.Branch, GitInfo.FilePath);
             return DependencyValidationResult.Success();
         }
