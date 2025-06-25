@@ -48,7 +48,12 @@ public abstract class CachedDependency : IMacroDependency
     protected virtual string GetCacheKey()
     {
         using var sha256 = SHA256.Create();
-        var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes($"{Type}_{Source}_{Name}"));
+        var cacheString = $"{Type}_{Source}_{Name}";
+
+        if (this is GitDependency gitDep)
+            cacheString += $"_{gitDep.GitInfo.Branch}_{gitDep.GitInfo.FilePath}";
+
+        var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(cacheString));
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
@@ -83,9 +88,10 @@ public abstract class CachedDependency : IMacroDependency
     {
         try
         {
+            var cacheKey = GetCacheKey();
             File.WriteAllText(CacheFilePath, content);
             File.WriteAllText(CacheMetadataPath, DateTime.Now.ToString("O"));
-            Svc.Log.Debug($"Cached dependency {Name} to {CacheFilePath}");
+            Svc.Log.Debug($"Cached dependency {Name} (key: {cacheKey}) to {CacheFilePath}");
         }
         catch (Exception ex)
         {
@@ -104,7 +110,8 @@ public abstract class CachedDependency : IMacroDependency
             if (IsCacheValid())
             {
                 var content = File.ReadAllText(CacheFilePath);
-                Svc.Log.Debug($"Loaded cached dependency {Name} from {CacheFilePath}");
+                var cacheKey = GetCacheKey();
+                Svc.Log.Debug($"Loaded cached dependency {Name} (key: {cacheKey}) from {CacheFilePath}");
                 return content;
             }
         }
