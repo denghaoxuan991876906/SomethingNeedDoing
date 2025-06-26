@@ -220,6 +220,9 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         ImGui.TextColored(ImGuiColors.DalamudViolet, $"Folder: {folderPath}");
         ImGui.Separator();
 
+        if (ImGui.MenuItem("Rename Folder"))
+            RenameFolderModal.Open(folderPath);
+
         if (ImGui.MenuItem("Delete Folder"))
         {
             try

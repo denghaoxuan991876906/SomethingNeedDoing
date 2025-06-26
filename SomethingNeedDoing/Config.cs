@@ -343,6 +343,26 @@ public class Config : IEzConfig
     }
 
     /// <summary>
+    /// Renames a folder by updating all macros in that folder.
+    /// </summary>
+    public void RenameFolder(string oldFolderPath, string newFolderPath)
+    {
+        if (string.IsNullOrWhiteSpace(oldFolderPath) || string.IsNullOrWhiteSpace(newFolderPath))
+            return;
+
+        if (oldFolderPath == newFolderPath)
+            return;
+
+        if (GetFolderPaths().Any(f => f == newFolderPath))
+            return;
+
+        foreach (var macro in GetMacrosInFolder(oldFolderPath).ToList())
+            macro.FolderPath = newFolderPath;
+
+        Save();
+    }
+
+    /// <summary>
     /// Sets a property value by name.
     /// </summary>
     public void SetProperty(string name, string value)

@@ -72,6 +72,7 @@ public class MainWindow : Window
         CreateMacroModal.DrawModal();
         CreateFolderModal.DrawModal();
         RenameModal.DrawModal();
+        RenameFolderModal.DrawModal();
         MigrationModal.DrawModal();
         FirstTimeWarningModal.DrawModal();
         _versionHistoryModal.Draw();
