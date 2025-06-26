@@ -72,6 +72,7 @@ public class ChangelogWindow : Window
         Add("12.18", "Fixed autoretainer post process event");
         Add("12.19", "Added more advanced stub generator by Faye");
         Add("12.24", "Fixed remote dependencies and added a file cache system");
+        Add("12.25", "Fixed deleting folders. Added renaming folders.");
     }
 
     private void Add(string version, string description)
