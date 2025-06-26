@@ -81,29 +81,13 @@ public class CleanupManager : IDisposable
         {
             try
             {
-                string functionContent;
                 if (macro.Type == MacroType.Lua)
                 {
-                    var match = Regex.Match(macro.Content, $@"function\s+{functionName}\s*\([^)]*\)\s*\n(.*?)\n\s*end", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-                    if (!match.Success)
-                    {
-                        Svc.Log.Warning($"[{nameof(CleanupManager)}] Could not find function {functionName} in macro {macro.Name}");
-                        continue;
-                    }
-                    functionContent = match.Groups[1].Value.Trim();
+                    Svc.Log.Verbose($"[{nameof(CleanupManager)}] Requesting cleanup function execution for {functionName} in macro {macro.Name}");
+                    CleanupFunctionRequested?.Invoke(this, new CleanupFunctionEventArgs(macro.Id, functionName, reason));
                 }
                 else
-                    throw new NotSupportedException($"Cleanup functions are not supported for macro type {macro.Type}");
-
-                var tempMacroId = $"{macro.Id}_cleanup_{functionName}_{Guid.NewGuid()}";
-                var tempMacro = new TemporaryMacro(functionContent, tempMacroId)
-                {
-                    Name = $"{macro.Name} - {functionName} (Cleanup)",
-                    Type = macro.Type
-                };
-
-                Svc.Log.Debug($"[{nameof(CleanupManager)}] Created cleanup temporary macro {tempMacro.Id} for function {functionName}");
-                CleanupFunctionRequested?.Invoke(this, new CleanupFunctionEventArgs(tempMacro, functionName, reason));
+                    throw new NotSupportedException($"[{nameof(CleanupManager)}] Cleanup function {functionName} is not supported for macro type {macro.Type}");
             }
             catch (Exception ex)
             {
@@ -139,12 +123,12 @@ public class CleanupManager : IDisposable
 /// <param name="tempMacro">The temporary macro containing the cleanup function.</param>
 /// <param name="functionName">The name of the cleanup function.</param>
 /// <param name="reason">The reason for cleanup execution.</param>
-public class CleanupFunctionEventArgs(IMacro tempMacro, string functionName, string reason) : EventArgs
+public class CleanupFunctionEventArgs(string macroId, string functionName, string reason) : EventArgs
 {
     /// <summary>
     /// Gets the temporary macro containing the cleanup function.
     /// </summary>
-    public IMacro TempMacro { get; } = tempMacro;
+    public string MacroId { get; } = macroId;
 
     /// <summary>
     /// Gets the name of the cleanup function.

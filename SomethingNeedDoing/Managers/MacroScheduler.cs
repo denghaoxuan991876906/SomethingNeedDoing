@@ -542,7 +542,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 }
             }
 
-            _cleanupManager.ExecuteCleanup(e.MacroId, e.NewState.ToString());
+            _cleanupManager.ExecuteCleanup(e.MacroId, e.NewState.ToString()); // must be done before lua state is disposed
 
             // If this is a temporary macro, unregister it and clean up
             if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro2)
@@ -601,18 +601,19 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     {
         try
         {
-            if (GetEngineForMacro(e.MacroId) is NLuaMacroEngine nluaEngine && nluaEngine.GetLuaEnvironment(e.MacroId) is Lua lua)
+            if (GetEngineForMacro(e.MacroId) is not NLuaMacroEngine nluaEngine || nluaEngine.GetLuaEnvironment(e.MacroId) is not Lua lua)
             {
-                if (C.GetMacro(e.MacroId) is { State: MacroState.Running } macro)
-                {
-                    Svc.Log.Verbose($"Executing function {e.FunctionName} in macro {macro.Name}");
-                    lua.DoString($"{e.FunctionName}()"); // call in the parent's lua state
-                }
-                else
-                    Svc.Log.Debug($"Skipping function {e.FunctionName} for stopped macro {e.MacroId}");
+                Svc.Log.Debug($"Skipping function {e.FunctionName} for macro {e.MacroId} - Lua environment not available"); // maybe error?
+                return;
+            }
+
+            if (C.GetMacro(e.MacroId) is { State: MacroState.Running } macro)
+            {
+                Svc.Log.Verbose($"Executing function {e.FunctionName} in macro {macro.Name}");
+                lua.DoString($"{e.FunctionName}()"); // call in the parent's lua state
             }
             else
-                Svc.Log.Warning($"Could not find active Lua environment for macro {e.MacroId}");
+                Svc.Log.Debug($"Skipping function {e.FunctionName} for stopped macro {e.MacroId}");
         }
         catch (Exception ex)
         {
@@ -743,14 +744,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 var parentId = e.MacroId.Split("_")[0];
                 if (C.GetMacro(parentId) is { } parentMacro)
                 {
-                    // Register the temporary macro with its parent
                     _macroHierarchy.RegisterTemporaryMacro(parentMacro, tempMacro);
-
-                    // Subscribe to state changes for the temporary macro
                     Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Subscribing to state changes for temporary macro {e.MacroId}");
                     tempMacro.StateChanged += OnMacroStateChanged;
-
-                    // Start the temporary macro
                     _ = StartMacro(tempMacro);
                 }
                 else
@@ -768,10 +764,31 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnCleanupFunctionRequested(object? sender, CleanupFunctionEventArgs e)
     {
-        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Executing cleanup function {e.FunctionName} for macro {e.TempMacro.Name} (reason: {e.Reason})");
-
-        // Start the cleanup temporary macro
-        _ = StartMacro(e.TempMacro);
+        try
+        {
+            if (GetEngineForMacro(e.MacroId) is NLuaMacroEngine nluaEngine && nluaEngine.GetLuaEnvironment(e.MacroId) is Lua lua)
+            {
+                if (C.GetMacro(e.MacroId) is { State: MacroState.Running or MacroState.Completed or MacroState.Error } macro)
+                {
+                    Svc.Log.Verbose($"Executing cleanup function {e.FunctionName} in macro {macro.Name} (reason: {e.Reason})");
+                    lua.DoString($@"
+                        local co = coroutine.create({e.FunctionName})
+                        local status, result = coroutine.resume(co)
+                        if not status then
+                            error(result)
+                        end
+                    ");
+                }
+                else
+                    Svc.Log.Debug($"Skipping cleanup function {e.FunctionName} for macro {e.MacroId} (reason: {e.Reason})");
+            }
+            else
+                Svc.Log.Warning($"Could not find active Lua environment for cleanup function {e.FunctionName} in macro {e.MacroId}");
+        }
+        catch (Exception ex)
+        {
+            Svc.Log.Error($"Error executing cleanup function {e.FunctionName} for macro {e.MacroId}: {ex}");
+        }
     }
     #endregion
 

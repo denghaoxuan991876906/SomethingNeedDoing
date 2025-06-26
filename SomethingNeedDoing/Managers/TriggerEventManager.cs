@@ -204,10 +204,8 @@ public class TriggerEventManager : IDisposable
     /// <param name="data">Optional data associated with the event.</param>
     public async Task RaiseTriggerEvent(TriggerEvent eventType, object? data = null)
     {
-        if (!_eventHandlers.TryGetValue(eventType, out var handlers))
+        if (!_eventHandlers.TryGetValue(eventType, out var handlers) || handlers.Count == 0)
             return;
-
-        Svc.Log.Verbose($"[{nameof(TriggerEventManager)}] Handlers for {eventType}: {string.Join(", ", handlers.Select(h => $"{h.Macro.Name}:{h.FunctionName}"))}");
 
         var args = new TriggerEventArgs(eventType, data);
         foreach (var triggerFunction in handlers.ToList())
