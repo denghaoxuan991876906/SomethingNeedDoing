@@ -62,7 +62,7 @@ public static class CreateMacroModal
 
         ImGuiUtils.CenteredButtons(("Create", () =>
         {
-            var uniqueName = GetUniqueMacroName(_newMacroName);
+            var uniqueName = C.GetUniqueMacroName(_newMacroName);
             var newMacro = new ConfigMacro
             {
                 Name = uniqueName,
@@ -72,20 +72,9 @@ public static class CreateMacroModal
             };
 
             C.Macros.Add(newMacro);
+            C.Save();
             Close();
         }
         ), ("Cancel", Close));
-    }
-
-    private static string GetUniqueMacroName(string baseName)
-    {
-        var name = baseName;
-        var counter = 1;
-        while (!C.IsValidMacroName(name, ConfigMacro.Root))
-        {
-            name = $"{baseName} ({counter})";
-            counter++;
-        }
-        return name;
     }
 }

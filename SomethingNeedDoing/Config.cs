@@ -217,11 +217,10 @@ public class Config : IEzConfig
     /// <summary>
     /// Validates if a macro name is valid for the given folder.
     /// </summary>
-    public bool IsValidMacroName(string name, string folderPath)
+    public bool IsValidMacroName(string name, string folderPath, string? excludeMacroId = null)
     {
         if (string.IsNullOrWhiteSpace(name)) return false;
-        return !GetMacrosInFolder(folderPath)
-            .Any(m => m.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        return !Macros.Any(m => m.Name.Equals(name, StringComparison.OrdinalIgnoreCase) && m.Id != excludeMacroId);
     }
 
     /// <summary>
@@ -327,6 +326,21 @@ public class Config : IEzConfig
     /// Gets all nodes in the configuration.
     /// </summary>
     public IEnumerable<ConfigMacro> GetAllNodes() => Macros;
+
+    /// <summary>
+    /// Gets a unique macro name by appending a number if the base name already exists.
+    /// </summary>
+    public string GetUniqueMacroName(string baseName, string? excludeMacroId = null)
+    {
+        var name = baseName;
+        var counter = 1;
+        while (!IsValidMacroName(name, string.Empty, excludeMacroId))
+        {
+            name = $"{baseName} ({counter})";
+            counter++;
+        }
+        return name;
+    }
 
     /// <summary>
     /// Sets a property value by name.

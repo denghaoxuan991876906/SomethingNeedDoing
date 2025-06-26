@@ -63,16 +63,17 @@ public static class CreateFolderModal
 
             if (!folderExists && !string.IsNullOrWhiteSpace(_newFolderName))
             {
-                // Create a dummy macro in the folder to ensure it exists
+                // Create a dummy macro in the folder to ensure it exists (TODO: find a way around this?)
                 var dummyMacro = new ConfigMacro
                 {
-                    Name = $"{_newFolderName} Template",
+                    Name = C.GetUniqueMacroName($"{_newFolderName} Template"),
                     Content = "// Add your macro commands here",
                     Type = MacroType.Native,
                     FolderPath = _newFolderName
                 };
 
                 C.Macros.Add(dummyMacro);
+                C.Save();
                 Close();
             }
         }

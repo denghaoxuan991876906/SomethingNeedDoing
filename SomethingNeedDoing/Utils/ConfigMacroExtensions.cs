@@ -22,15 +22,23 @@ public static class ConfigMacroExtensions
 
     public static void Rename(this ConfigMacro macro, string newName)
     {
-        macro.Name = newName;
-        C.Save();
+        if (C.IsValidMacroName(newName, string.Empty, macro.Id))
+        {
+            macro.Name = newName;
+            C.Save();
+        }
+        else
+        {
+            macro.Name = C.GetUniqueMacroName(newName, macro.Id);
+            C.Save();
+        }
     }
 
     public static void Duplicate(this ConfigMacro macro, string? newName = null)
     {
         var duplicate = new ConfigMacro
         {
-            Name = newName ?? $"{macro.Name} (Copy)",
+            Name = C.GetUniqueMacroName(newName ?? $"{macro.Name} (Copy)"),
             Type = macro.Type,
             Content = macro.Content,
             FolderPath = macro.FolderPath

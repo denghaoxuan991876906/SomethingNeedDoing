@@ -6,7 +6,7 @@ namespace SomethingNeedDoing.Core;
 /// </summary>
 public class ConfigMacro : MacroBase
 {
-    public const string Root = "/";
+    public const string Root = "";
 
     /// <inheritdoc/>
     public override string Id { get; } = Guid.NewGuid().ToString();

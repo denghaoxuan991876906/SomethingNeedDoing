@@ -26,8 +26,6 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         public float LeftPanelWidth { get; set; } = UiConstants.DefaultLeftPanelWidth;
         public bool IsFolderSectionCollapsed { get; set; }
         public HashSet<string> ExpandedFolders { get; } = [];
-        public DateTime LastCacheUpdate { get; set; }
-        public Dictionary<string, int> FolderMacroCounts { get; } = [];
     }
 
     private readonly State _state = new();
@@ -80,7 +78,6 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
 
     private void DrawMacroTree()
     {
-        UpdateMacroCache();
         DrawMacroTreeHeader();
         if (!_state.IsFolderSectionCollapsed)
             DrawFolderTree();
@@ -158,7 +155,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
     private void DrawFolderNode(string folderPath)
     {
         var isSelected = _state.SelectedFolderId == folderPath;
-        var folderCount = _state.FolderMacroCounts.GetValueOrDefault(folderPath, 0);
+        var folderCount = C.GetMacroCount(folderPath);
 
         var flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.SpanAvailWidth;
         if (isSelected) flags |= ImGuiTreeNodeFlags.Selected;
@@ -178,7 +175,6 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
             }
 
             DrawFolderContextMenu(folderPath);
-
             ImGui.Indent(10);
             DrawFolderContents(folderPath);
             ImGui.Unindent(10);
@@ -226,18 +222,14 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
 
         if (ImGui.MenuItem("Delete Folder"))
         {
-            if (ShowDeleteFolderConfirmation(folderPath))
+            try
             {
-                try
-                {
-                    DeleteFolder(folderPath);
-                }
-                catch (Exception ex)
-                {
-                    Svc.Log.Error(ex, "Error deleting folder");
-                }
+                DeleteFolder(folderPath);
             }
-            ImGui.CloseCurrentPopup();
+            catch (Exception ex)
+            {
+                Svc.Log.Error(ex, "Error deleting folder");
+            }
         }
         ImGuiEx.Tooltip("Delete this folder and move all macros to root folder");
     }
@@ -254,7 +246,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
             if (folderPath.Contains(_state.SearchText, StringComparison.OrdinalIgnoreCase))
             {
                 foundAnyFolders = true;
-                var folderCount = _state.FolderMacroCounts.GetValueOrDefault(folderPath, 0);
+                var folderCount = C.GetMacroCount(folderPath);
                 var isSelected = _state.SelectedFolderId == folderPath;
 
                 if (ImGui.Selectable($"📁 {folderPath} ({folderCount})", isSelected))
@@ -423,56 +415,6 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
             if (ImGui.MenuItem("Create new folder..."))
                 CreateFolderModal.Open();
         }
-    }
-
-    private void UpdateMacroCache()
-    {
-        if ((DateTime.Now - _state.LastCacheUpdate).TotalSeconds <= 5) return;
-
-        try
-        {
-            _state.FolderMacroCounts.Clear();
-            foreach (var folderPath in C.GetFolderPaths().Where(f => !string.IsNullOrEmpty(f)))
-                _state.FolderMacroCounts[folderPath] = C.GetMacroCount(folderPath);
-
-            _state.LastCacheUpdate = DateTime.Now;
-        }
-        catch (Exception ex)
-        {
-            Svc.Log.Error(ex, "Error updating macro cache");
-        }
-    }
-
-    private bool ShowDeleteFolderConfirmation(string folderPath)
-    {
-        var macroCount = _state.FolderMacroCounts.GetValueOrDefault(folderPath, 0);
-        var message = macroCount > 0
-            ? $"Are you sure you want to delete folder '{folderPath}' and move {macroCount} macro(s) to root folder?"
-            : $"Are you sure you want to delete empty folder '{folderPath}'?";
-
-        if (ImGui.GetIO().KeyCtrl)
-            return true;
-
-        var confirmed = false;
-        ImGui.OpenPopup("Delete Folder");
-        var isOpen = true;
-        using var popup = ImRaii.PopupModal("Delete Folder", ref isOpen, ImGuiWindowFlags.AlwaysAutoResize);
-        if (popup)
-        {
-            ImGui.TextWrapped(message);
-            ImGui.Separator();
-
-            if (ImGui.Button("Yes", new Vector2(120, 0)))
-            {
-                confirmed = true;
-                ImGui.CloseCurrentPopup();
-            }
-
-            ImGui.SameLine();
-            if (ImGui.Button("No", new Vector2(120, 0)))
-                ImGui.CloseCurrentPopup();
-        }
-        return confirmed;
     }
 
     private void MoveMacroToFolder(string macroId, string folderPath)
