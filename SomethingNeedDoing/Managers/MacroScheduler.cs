@@ -4,12 +4,12 @@ using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
+using NLua;
 using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro;
 using SomethingNeedDoing.LuaMacro.Wrappers;
 using SomethingNeedDoing.NativeMacro;
-using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,8 +20,8 @@ namespace SomethingNeedDoing.Managers;
 /// </summary>
 public class MacroScheduler : IMacroScheduler, IDisposable
 {
-    private readonly ConcurrentDictionary<string, IMacroEngine> _enginesByMacroId = [];
-    private readonly ConcurrentDictionary<string, MacroExecutionState> _macroStates = [];
+    private readonly Dictionary<string, MacroExecutionState> _macroStates = [];
+    private readonly Dictionary<string, IMacroEngine> _enginesByMacroId = [];
     private readonly Dictionary<string, AutoRetainerApi> _arApis = [];
     private readonly Dictionary<string, AddonEventConfig> _addonEvents = [];
     private readonly MacroHierarchyManager _macroHierarchy = new();
@@ -54,6 +54,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _nativeEngine.MacroError += OnEngineError;
         _luaEngine.MacroError += OnEngineError;
         _triggerEventManager.TriggerEventOccurred += OnTriggerEventOccurred;
+        _triggerEventManager.FunctionExecutionRequested += OnFunctionExecutionRequested;
 
         _nativeEngine.MacroControlRequested += OnMacroControlRequested;
         _luaEngine.MacroControlRequested += OnMacroControlRequested;
@@ -355,7 +356,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// <param name="macroId">The ID of the macro to clean up.</param>
     public void CleanupMacro(string macroId)
     {
-        if (_macroStates.TryRemove(macroId, out var state))
+        if (_macroStates.Remove(macroId, out var state))
         {
             if (state.Macro is ConfigMacro configMacro)
                 _triggerEventManager.UnregisterAllTriggers(configMacro);
@@ -366,7 +367,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             state.Macro.StateChanged -= OnMacroStateChanged;
         }
 
-        _enginesByMacroId.TryRemove(macroId, out _);
+        _enginesByMacroId.Remove(macroId);
     }
 
     /// <inheritdoc/>
@@ -551,7 +552,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     tempMacro.StateChanged -= OnMacroStateChanged;
             }
 
-            if (_macroStates.TryRemove(e.MacroId, out var state))
+            if (_macroStates.Remove(e.MacroId, out var state))
             {
                 UnregisterFunctionTriggers(state.Macro);
                 state.CancellationSource.Cancel();
@@ -559,7 +560,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 state.Macro.StateChanged -= OnMacroStateChanged;
             }
 
-            _enginesByMacroId.TryRemove(e.MacroId, out _);
+            _enginesByMacroId.Remove(e.MacroId);
         }
     }
 
@@ -583,19 +584,39 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
                     _ = StartMacro(macro, e);
                 }
-                else
-                    Svc.Log.Warning($"[{nameof(MacroScheduler)}] Could not find parent macro {parts[0]} for temporary macro {macro.Id}");
             }
             else
             {
-                // don't let an infinte loop of it starting itself happen
-                if (macro.State == MacroState.Running)
-                {
-                    Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Macro {macro.Id} is already running, skipping trigger");
-                    return;
-                }
                 _ = StartMacro(macro, e);
             }
+        }
+    }
+
+    /// <summary>
+    /// Handles function execution requests from trigger events.
+    /// </summary>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="e">The function execution request event arguments.</param>
+    private void OnFunctionExecutionRequested(object? sender, FunctionExecutionRequestedEventArgs e)
+    {
+        try
+        {
+            if (GetEngineForMacro(e.MacroId) is NLuaMacroEngine nluaEngine && nluaEngine.GetLuaEnvironment(e.MacroId) is Lua lua)
+            {
+                if (C.GetMacro(e.MacroId) is { State: MacroState.Running } macro)
+                {
+                    Svc.Log.Verbose($"Executing function {e.FunctionName} in macro {macro.Name}");
+                    lua.DoString($"{e.FunctionName}()"); // call in the parent's lua state
+                }
+                else
+                    Svc.Log.Debug($"Skipping function {e.FunctionName} for stopped macro {e.MacroId}");
+            }
+            else
+                Svc.Log.Warning($"Could not find active Lua environment for macro {e.MacroId}");
+        }
+        catch (Exception ex)
+        {
+            Svc.Log.Error($"Error executing function {e.FunctionName} for macro {e.MacroId}: {ex}");
         }
     }
 
@@ -795,4 +816,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     /// <inheritdoc/>
     public void ExecuteCleanup(string macroId, string reason = "Manual") => _cleanupManager.ExecuteCleanup(macroId, reason);
+
+    /// <inheritdoc/>
+    public IMacroEngine? GetEngineForMacro(string macroId) => _enginesByMacroId.TryGetValue(macroId, out var engine) ? engine : null;
 }

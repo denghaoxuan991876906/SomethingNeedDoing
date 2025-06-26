@@ -1,7 +1,6 @@
 using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Interfaces;
 using System.Threading.Tasks;
-using System.Text.RegularExpressions;
 
 namespace SomethingNeedDoing.Managers;
 
@@ -64,6 +63,11 @@ public class TriggerEventManager : IDisposable
     /// Event raised when a trigger event occurs.
     /// </summary>
     public event EventHandler<TriggerEventArgs>? TriggerEventOccurred;
+
+    /// <summary>
+    /// Event raised when a function execution is requested.
+    /// </summary>
+    public event EventHandler<FunctionExecutionRequestedEventArgs>? FunctionExecutionRequested;
 
     /// <summary>
     /// Registers a macro to handle a specific trigger event.
@@ -223,43 +227,25 @@ public class TriggerEventManager : IDisposable
                 if (string.IsNullOrEmpty(triggerFunction.FunctionName))
                 {
                     // Macro-level trigger: raise the event for the entire macro
-                    Svc.Log.Verbose($"Raising trigger event {eventType} for macro {triggerFunction.Macro.Name}");
+                    Svc.Log.Verbose($"[{nameof(TriggerEventManager)}] Raising trigger event {eventType} for macro {triggerFunction.Macro.Name}");
                     TriggerEventOccurred?.Invoke(triggerFunction.Macro, args);
                 }
                 else
                 {
-                    string functionContent;
+                    // For function-level triggers, request function execution via event (doing this to avoid circular dependencies)
                     if (triggerFunction.Macro.Type == MacroType.Lua)
                     {
-                        Svc.Log.Verbose($"Looking for function {triggerFunction.FunctionName} in macro {triggerFunction.Macro.Name}");
-
-                        // get only the function body between 'function ...' and the matching 'end', nothing after
-                        var match = Regex.Match(triggerFunction.Macro.Content, $@"function\s+{triggerFunction.FunctionName}\s*\([^)]*\)\s*\n(.*?)\n\s*end", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-                        if (!match.Success)
-                        {
-                            Svc.Log.Error($"Could not find function {triggerFunction.FunctionName} in macro {triggerFunction.Macro.Name}");
-                            continue;
-                        }
-                        var functionBody = match.Groups[1].Value.Trim();
-                        functionContent = functionBody;
+                        Svc.Log.Verbose($"[{nameof(TriggerEventManager)}] Requesting function execution for {triggerFunction.FunctionName} in macro {triggerFunction.Macro.Name}");
+                        FunctionExecutionRequested?.Invoke(this, new FunctionExecutionRequestedEventArgs(triggerFunction.Macro.Id, triggerFunction.FunctionName, args));
                     }
                     else
-                        functionContent = triggerFunction.Macro.Content; // natives just use the whole macro
-
-                    // Create a temporary macro with the parent macro's ID
-                    var tempMacroId = $"{triggerFunction.Macro.Id}_{triggerFunction.FunctionName}_{Guid.NewGuid()}";
-                    var tempMacro = new TemporaryMacro(functionContent, tempMacroId)
-                    {
-                        Name = $"{triggerFunction.Macro.Name} - {triggerFunction.FunctionName}",
-                        Type = triggerFunction.Macro.Type
-                    };
-                    Svc.Log.Verbose($"Created temporary macro {tempMacro.Id} for function {triggerFunction.FunctionName} in macro {triggerFunction.Macro.Name}");
-                    TriggerEventOccurred?.Invoke(tempMacro, args);
+                        // I could technically support this, but I don't think it's necessary
+                        throw new NotSupportedException($"[{nameof(TriggerEventManager)}] Trigger event handling for {triggerFunction.Macro.Type} macros is not supported.");
                 }
             }
             catch (Exception ex)
             {
-                Svc.Log.Error($"Error handling trigger event {eventType} for macro {triggerFunction.Macro.Name} function {triggerFunction.FunctionName}: {ex}");
+                Svc.Log.Error($"[{nameof(TriggerEventManager)}] Error handling trigger event {eventType} for macro {triggerFunction.Macro.Name} function {triggerFunction.FunctionName}: {ex}");
             }
         }
     }

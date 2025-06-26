@@ -129,4 +129,11 @@ public interface IMacroScheduler
     /// <param name="macroId">The ID of the macro to execute cleanup for.</param>
     /// <param name="reason">The reason for cleanup execution.</param>
     void ExecuteCleanup(string macroId, string reason = "Manual");
+
+    /// <summary>
+    /// Gets the engine currently executing a macro.
+    /// </summary>
+    /// <param name="macroId">The ID of the macro.</param>
+    /// <returns>The engine, or null if not found.</returns>
+    IMacroEngine? GetEngineForMacro(string macroId);
 }

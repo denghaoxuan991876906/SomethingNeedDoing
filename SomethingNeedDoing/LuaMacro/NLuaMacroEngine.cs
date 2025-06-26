@@ -26,9 +26,11 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
     public IMacroScheduler? Scheduler { get; set; }
 
     private readonly Dictionary<string, TemporaryMacro> _temporaryMacros = [];
+    private readonly Dictionary<string, Lua> _activeLuaEnvironments = [];
 
     /// <inheritdoc/>
     public IMacro? GetTemporaryMacro(string macroId) => _temporaryMacros.TryGetValue(macroId, out var macro) ? macro : null;
+    public Lua? GetLuaEnvironment(string macroId) => _activeLuaEnvironments.TryGetValue(macroId, out var lua) ? lua : null;
 
     /// <summary>
     /// Represents the current state of a macro execution.
@@ -90,6 +92,8 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
             lua.RegisterClass<Svc>();
             lua.DoString("luanet.load_assembly('FFXIVClientStructs')");
             moduleManager.RegisterAll(lua);
+
+            _activeLuaEnvironments[macro.Macro.Id] = lua; // for function triggers to access the same state
 
             await LoadDependenciesIntoScope(lua, macro.Macro);
             await Svc.Framework.RunOnTick(async () =>
@@ -234,6 +238,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
         }
         finally
         {
+            _activeLuaEnvironments.Remove(macro.Macro.Id);
             macro.Dispose();
         }
     }
