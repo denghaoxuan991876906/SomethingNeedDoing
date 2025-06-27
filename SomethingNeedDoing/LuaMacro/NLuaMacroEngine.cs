@@ -1,7 +1,7 @@
 ﻿using NLua;
 using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Interfaces;
-using SomethingNeedDoing.Utils;
+using SomethingNeedDoing.Managers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,7 +11,7 @@ namespace SomethingNeedDoing.LuaMacro;
 /// <summary>
 /// Executes Lua script macros using NLua.
 /// </summary>
-public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
+public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager cleanupManager) : IMacroEngine
 {
     /// <inheritdoc/>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
@@ -56,6 +56,12 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
     {
         if (macro.Type != MacroType.Lua)
             throw new ArgumentException("This engine only supports Lua macros", nameof(macro));
+
+        // Register cleanup functions for this macro
+        if (macro is not TemporaryMacro)
+        {
+            cleanupManager.RegisterCleanupFunctions(macro);
+        }
 
         var state = new MacroInstance(macro);
 
@@ -201,7 +207,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                             //{
                             //    errorDetails = ex.Message;
                             //}
-
+                            // TODO: fix
                             Svc.Log.Error(ex, $"Error executing Lua function for macro {macro.Macro.Id}: {errorDetails}");
                             break;
                         }
@@ -217,7 +223,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
                 }
                 finally
                 {
-                    // Ensure we unsubscribe from the event
+                    await ExecuteCleanupFunctions(lua, macro.Macro);
                     if (Scheduler is { } scheduler && macro.StateChangedHandler is { })
                     {
                         scheduler.MacroStateChanged -= macro.StateChangedHandler;
@@ -276,6 +282,92 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager) : IMacroEngine
 
     /// <inheritdoc/>
     public void Dispose() { }
+
+    /// <summary>
+    /// Executes cleanup functions for a macro.
+    /// </summary>
+    /// <param name="lua">The Lua environment.</param>
+    /// <param name="macro">The macro to execute cleanup for.</param>
+    private async Task ExecuteCleanupFunctions(Lua lua, IMacro macro)
+    {
+        if (macro is TemporaryMacro) return;
+
+        var cleanupFunctions = GetCleanupFunctions(macro.Id);
+        if (cleanupFunctions.Count == 0) return;
+
+        foreach (var functionName in cleanupFunctions)
+        {
+            try
+            {
+                var results = lua.LoadEntryPointWrappedScript($@"{functionName}()");
+                if (results.Length == 0 || results[0] is not LuaFunction func)
+                {
+                    Svc.Log.Error($"Failed to load cleanup function {functionName}");
+                    continue;
+                }
+
+                try
+                {
+                    // TODO: don't duplicate logic from executemacro?
+                    while (true)
+                    {
+                        if (func == null)
+                        {
+                            Svc.Log.Debug($"Cleanup function {functionName} completed (func is null)");
+                            break;
+                        }
+
+                        var result = func.Call();
+                        if (result.Length == 0)
+                        {
+                            Svc.Log.Debug($"Cleanup function {functionName} completed");
+                            break;
+                        }
+
+                        if (result[0] is string command)
+                        {
+                            var tempMacro = new TemporaryMacro(command, $"{macro.Id}_cleanup_cmd_{Guid.NewGuid()}")
+                            {
+                                Name = $"{macro.Name} - Cleanup Command",
+                                Type = MacroType.Native
+                            };
+
+                            if (Scheduler is { } scheduler)
+                                await scheduler.StartMacro(tempMacro);
+                            break;
+                        }
+                        else
+                        {
+                            Svc.Log.Warning($"Cleanup function {functionName} completed with non-string result");
+                            break;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Svc.Log.Error($"Error during cleanup function {functionName} execution: {ex}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Svc.Log.Error($"Error executing cleanup function {functionName} for macro {macro.Name}: {ex}");
+            }
+        }
+
+        if (macro is not TemporaryMacro)
+        {
+            cleanupManager.UnregisterCleanupFunctions(macro);
+            Svc.Log.Debug($"Unregistered cleanup functions for macro {macro.Name} after execution");
+        }
+    }
+
+    /// <summary>
+    /// Gets cleanup functions for a macro from the cleanup manager.
+    /// </summary>
+    /// <param name="macroId">The macro ID.</param>
+    /// <returns>List of cleanup function names.</returns>
+    private List<string> GetCleanupFunctions(string macroId)
+        => cleanupManager.HasCleanupFunctions(macroId) ? [.. cleanupManager.GetCleanupFunctions(macroId)] : [];
 }
 
 /// <summary>

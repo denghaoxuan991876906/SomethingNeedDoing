@@ -117,20 +117,6 @@ public interface IMacroScheduler
     void UnsubscribeFromTriggerEvent(IMacro macro, TriggerEvent triggerEvent);
 
     /// <summary>
-    /// Checks if a macro has any registered cleanup functions.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro to check.</param>
-    /// <returns>True if the macro has cleanup functions, false otherwise.</returns>
-    bool HasCleanupFunctions(string macroId);
-
-    /// <summary>
-    /// Manually executes cleanup functions for a macro.
-    /// </summary>
-    /// <param name="macroId">The ID of the macro to execute cleanup for.</param>
-    /// <param name="reason">The reason for cleanup execution.</param>
-    void ExecuteCleanup(string macroId, string reason = "Manual");
-
-    /// <summary>
     /// Gets the engine currently executing a macro.
     /// </summary>
     /// <param name="macroId">The ID of the macro.</param>

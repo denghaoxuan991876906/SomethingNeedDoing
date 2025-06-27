@@ -26,7 +26,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private readonly Dictionary<string, AddonEventConfig> _addonEvents = [];
     private readonly MacroHierarchyManager _macroHierarchy = new();
     private readonly Dictionary<string, IDisableable> _disableablePlugins = [];
-    private readonly CleanupManager _cleanupManager = new();
 
     private readonly NativeMacroEngine _nativeEngine;
     private readonly NLuaMacroEngine _luaEngine;
@@ -60,8 +59,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _luaEngine.MacroControlRequested += OnMacroControlRequested;
         _nativeEngine.MacroStepCompleted += OnMacroStepCompleted;
         _luaEngine.MacroStepCompleted += OnMacroStepCompleted;
-
-        _cleanupManager.CleanupFunctionRequested += OnCleanupFunctionRequested;
 
         foreach (var plugin in disableablePlugins)
             _disableablePlugins[plugin.InternalName] = plugin;
@@ -171,7 +168,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             }
         }
         _functionTriggersRegistered.Add(macro.Id);
-        _cleanupManager.RegisterCleanupFunctions(macro);
     }
 
     /// <summary>
@@ -203,7 +199,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             }
         }
         _functionTriggersRegistered.Remove(macro.Id);
-        _cleanupManager.UnregisterCleanupFunctions(macro);
     }
 
     /// <inheritdoc/>
@@ -542,8 +537,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 }
             }
 
-            _cleanupManager.ExecuteCleanup(e.MacroId, e.NewState.ToString()); // must be done before lua state is disposed
-
             // If this is a temporary macro, unregister it and clean up
             if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro2)
             {
@@ -778,75 +771,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnMacroStepCompleted(object? sender, MacroStepCompletedEventArgs e)
         => Svc.Log.Verbose($"Macro step completed for {e.MacroId}: {e.StepIndex}/{e.TotalSteps}");
-
-    private async void OnCleanupFunctionRequested(object? sender, CleanupFunctionEventArgs e)
-    {
-        try
-        {
-            if (GetEngineForMacro(e.MacroId) is NLuaMacroEngine nluaEngine && nluaEngine.GetLuaEnvironment(e.MacroId) is Lua lua)
-            {
-                if (C.GetMacro(e.MacroId) is { State: MacroState.Running or MacroState.Completed or MacroState.Error } macro)
-                {
-                    Svc.Log.Verbose($"Executing cleanup function {e.FunctionName} in macro {macro.Name} (reason: {e.Reason})");
-
-                    // repeat the same logic that's in the macro engine
-                    var results = lua.LoadEntryPointWrappedScript($@"{e.FunctionName}()");
-                    if (results.Length == 0 || results[0] is not LuaFunction func)
-                    {
-                        Svc.Log.Error($"Failed to load cleanup function {e.FunctionName}");
-                        return;
-                    }
-
-                    try
-                    {
-                        while (true)
-                        {
-                            if (func == null)
-                            {
-                                Svc.Log.Debug($"Cleanup function {e.FunctionName} completed (func is null)");
-                                break;
-                            }
-
-                            var result = func.Call();
-                            if (result.Length == 0)
-                            {
-                                Svc.Log.Debug($"Cleanup function {e.FunctionName} completed");
-                                break;
-                            }
-
-                            if (result[0] is string command)
-                            {
-                                var tempMacro = new TemporaryMacro(command, $"{e.MacroId}_cleanup_cmd_{Guid.NewGuid()}")
-                                {
-                                    Name = $"{macro.Name} - Cleanup Command",
-                                    Type = MacroType.Native
-                                };
-                                await StartMacro(tempMacro);
-                                break;
-                            }
-                            else
-                            {
-                                Svc.Log.Debug($"Cleanup function {e.FunctionName} completed with non-string result");
-                                break;
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Svc.Log.Error($"Error during cleanup function {e.FunctionName} execution: {ex}");
-                    }
-                }
-                else
-                    Svc.Log.Debug($"Skipping cleanup function {e.FunctionName} for macro {e.MacroId} (reason: {e.Reason}) - macro state: {C.GetMacro(e.MacroId)?.State}");
-            }
-            else
-                Svc.Log.Warning($"Could not find active Lua environment for cleanup function {e.FunctionName} in macro {e.MacroId}");
-        }
-        catch (Exception ex)
-        {
-            Svc.Log.Error($"Error executing cleanup function {e.FunctionName} for macro {e.MacroId}: {ex}");
-        }
-    }
     #endregion
 
     /// <inheritdoc/>
@@ -860,8 +784,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _luaEngine.MacroControlRequested -= OnMacroControlRequested;
         _nativeEngine.MacroStepCompleted -= OnMacroStepCompleted;
         _luaEngine.MacroStepCompleted -= OnMacroStepCompleted;
-
-        _cleanupManager.CleanupFunctionRequested -= OnCleanupFunctionRequested;
 
         _macroStates.Values.Each(s => s.Dispose());
         _macroStates.Clear();
@@ -882,14 +804,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _addonEvents.Clear();
 
         _triggerEventManager.Dispose();
-        _cleanupManager.Dispose();
     }
-
-    /// <inheritdoc/>
-    public bool HasCleanupFunctions(string macroId) => _cleanupManager.HasCleanupFunctions(macroId);
-
-    /// <inheritdoc/>
-    public void ExecuteCleanup(string macroId, string reason = "Manual") => _cleanupManager.ExecuteCleanup(macroId, reason);
 
     /// <inheritdoc/>
     public IMacroEngine? GetEngineForMacro(string macroId) => _enginesByMacroId.TryGetValue(macroId, out var engine) ? engine : null;
