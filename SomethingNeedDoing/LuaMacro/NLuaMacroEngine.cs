@@ -333,8 +333,31 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
                             };
 
                             if (Scheduler is { } scheduler)
+                            {
+                                var tcs = new TaskCompletionSource<bool>();
+                                var actualMacroId = string.Empty;
+                                var firstStateChange = true;
+
+                                void stateChangedHandler(object? sender, MacroStateChangedEventArgs e)
+                                {
+                                    if (firstStateChange && e.NewState == MacroState.Running)
+                                    {
+                                        firstStateChange = false;
+                                        actualMacroId = e.MacroId;
+                                    }
+
+                                    if (!string.IsNullOrEmpty(actualMacroId) && e.MacroId == actualMacroId && e.NewState is MacroState.Completed or MacroState.Error)
+                                        tcs.TrySetResult(e.NewState == MacroState.Completed);
+                                }
+
+                                scheduler.MacroStateChanged += stateChangedHandler;
                                 await scheduler.StartMacro(tempMacro);
-                            break;
+                                var completedSuccessfully = await tcs.Task;
+                                scheduler.MacroStateChanged -= stateChangedHandler;
+
+                                if (!completedSuccessfully)
+                                    throw new MacroException($"Cleanup temporary macro failed");
+                            }
                         }
                         else
                         {
