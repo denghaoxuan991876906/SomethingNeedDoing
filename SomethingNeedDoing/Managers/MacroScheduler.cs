@@ -609,6 +609,23 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
             if (C.GetMacro(e.MacroId) is { State: MacroState.Running } macro)
             {
+                // Check if the function exists in the Lua environment before trying to call it
+                // This happens the first few frames if you have a trigger like OnUpdate
+                try
+                {
+                    var exists = lua.DoString($"return {e.FunctionName} ~= nil")[0] as bool?;
+                    if (exists != true)
+                    {
+                        Svc.Log.Debug($"Skipping function {e.FunctionName} for macro {e.MacroId} - function not yet defined in Lua environment");
+                        return;
+                    }
+                }
+                catch
+                {
+                    Svc.Log.Debug($"Skipping function {e.FunctionName} for macro {e.MacroId} - function not yet defined in Lua environment");
+                    return;
+                }
+
                 Svc.Log.Verbose($"Executing function {e.FunctionName} in macro {macro.Name}");
                 lua.DoString($"{e.FunctionName}()"); // call in the parent's lua state
             }
@@ -762,7 +779,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private void OnMacroStepCompleted(object? sender, MacroStepCompletedEventArgs e)
         => Svc.Log.Verbose($"Macro step completed for {e.MacroId}: {e.StepIndex}/{e.TotalSteps}");
 
-    private void OnCleanupFunctionRequested(object? sender, CleanupFunctionEventArgs e)
+    private async void OnCleanupFunctionRequested(object? sender, CleanupFunctionEventArgs e)
     {
         try
         {
@@ -771,16 +788,56 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 if (C.GetMacro(e.MacroId) is { State: MacroState.Running or MacroState.Completed or MacroState.Error } macro)
                 {
                     Svc.Log.Verbose($"Executing cleanup function {e.FunctionName} in macro {macro.Name} (reason: {e.Reason})");
-                    lua.DoString($@"
-                        local co = coroutine.create({e.FunctionName})
-                        local status, result = coroutine.resume(co)
-                        if not status then
-                            error(result)
-                        end
-                    ");
+
+                    // repeat the same logic that's in the macro engine
+                    var results = lua.LoadEntryPointWrappedScript($@"{e.FunctionName}()");
+                    if (results.Length == 0 || results[0] is not LuaFunction func)
+                    {
+                        Svc.Log.Error($"Failed to load cleanup function {e.FunctionName}");
+                        return;
+                    }
+
+                    try
+                    {
+                        while (true)
+                        {
+                            if (func == null)
+                            {
+                                Svc.Log.Debug($"Cleanup function {e.FunctionName} completed (func is null)");
+                                break;
+                            }
+
+                            var result = func.Call();
+                            if (result.Length == 0)
+                            {
+                                Svc.Log.Debug($"Cleanup function {e.FunctionName} completed");
+                                break;
+                            }
+
+                            if (result[0] is string command)
+                            {
+                                var tempMacro = new TemporaryMacro(command, $"{e.MacroId}_cleanup_cmd_{Guid.NewGuid()}")
+                                {
+                                    Name = $"{macro.Name} - Cleanup Command",
+                                    Type = MacroType.Native
+                                };
+                                await StartMacro(tempMacro);
+                                break;
+                            }
+                            else
+                            {
+                                Svc.Log.Debug($"Cleanup function {e.FunctionName} completed with non-string result");
+                                break;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Svc.Log.Error($"Error during cleanup function {e.FunctionName} execution: {ex}");
+                    }
                 }
                 else
-                    Svc.Log.Debug($"Skipping cleanup function {e.FunctionName} for macro {e.MacroId} (reason: {e.Reason})");
+                    Svc.Log.Debug($"Skipping cleanup function {e.FunctionName} for macro {e.MacroId} (reason: {e.Reason}) - macro state: {C.GetMacro(e.MacroId)?.State}");
             }
             else
                 Svc.Log.Warning($"Could not find active Lua environment for cleanup function {e.FunctionName} in macro {e.MacroId}");
