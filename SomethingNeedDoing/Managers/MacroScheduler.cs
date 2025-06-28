@@ -749,7 +749,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             }
             else if (sender is IMacroEngine engine && engine.GetTemporaryMacro(e.MacroId) is { } tempMacro)
             {
-                Svc.Log.Info($"[{nameof(MacroScheduler)}] Starting temporary macro {e.MacroId}");
+                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Starting temporary macro {e.MacroId}");
                 // Find the parent macro by looking at the ID prefix
                 var parentId = e.MacroId.Split("_")[0];
                 if (C.GetMacro(parentId) is { } parentMacro)

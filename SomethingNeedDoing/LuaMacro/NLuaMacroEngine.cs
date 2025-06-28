@@ -11,7 +11,7 @@ namespace SomethingNeedDoing.LuaMacro;
 /// <summary>
 /// Executes Lua script macros using NLua.
 /// </summary>
-public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager cleanupManager) : IMacroEngine
+public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager cleanupManager, MacroHierarchyManager macroHierarchy) : IMacroEngine
 {
     /// <inheritdoc/>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
@@ -42,7 +42,6 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
         public CancellationTokenSource CancellationSource { get; } = new();
         public ManualResetEventSlim PauseEvent { get; } = new(true);
         public Task? ExecutionTask { get; set; }
-        public EventHandler<MacroStateChangedEventArgs>? StateChangedHandler { get; set; }
 
         public void Dispose()
         {
@@ -57,11 +56,8 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
         if (macro.Type != MacroType.Lua)
             throw new ArgumentException("This engine only supports Lua macros", nameof(macro));
 
-        // Register cleanup functions for this macro
         if (macro is not TemporaryMacro)
-        {
             cleanupManager.RegisterCleanupFunctions(macro);
-        }
 
         var state = new MacroInstance(macro);
 
@@ -144,42 +140,15 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
                             _temporaryMacros[nativeMacroId] = tempMacro;
                             Svc.Log.Debug($"Created temporary macro {nativeMacroId} with content: {text}");
 
-                            // TCS to wait for the native macro to complete
-                            var tcs = new TaskCompletionSource<bool>();
-                            var actualMacroId = string.Empty;
-                            var firstStateChange = true;
-                            macro.StateChangedHandler = (sender, e) =>
+                            if (Scheduler is { } scheduler)
                             {
-                                // On the first Running state, capture the actual macro ID
-                                if (firstStateChange && e.NewState == MacroState.Running)
-                                {
-                                    firstStateChange = false;
-                                    actualMacroId = e.MacroId;
-                                }
-
-                                // If we have an actual macro ID, use it for matching
-                                if (!string.IsNullOrEmpty(actualMacroId) && e.MacroId == actualMacroId && e.NewState is MacroState.Completed or MacroState.Error)
-                                    tcs.TrySetResult(e.NewState == MacroState.Completed);
-                            };
-
-                            if (Scheduler is { })
-                                Scheduler.MacroStateChanged += macro.StateChangedHandler;
-
-                            MacroControlRequested?.Invoke(this, new MacroControlEventArgs(nativeMacroId, MacroControlType.Start));
-
-                            var completedSuccessfully = await tcs.Task;
-
-                            if (Scheduler is { } && macro.StateChangedHandler is { })
-                            {
-                                Scheduler.MacroStateChanged -= macro.StateChangedHandler;
-                                macro.StateChangedHandler = null;
+                                var parentId = nativeMacroId.Split("_")[0];
+                                if (C.GetMacro(parentId) is { } parentMacro)
+                                    macroHierarchy.RegisterTemporaryMacro(parentMacro, tempMacro);
+                                await scheduler.StartMacro(tempMacro);
                             }
 
                             _temporaryMacros.Remove(nativeMacroId);
-
-                            // Must propagate the macro error back to the caller
-                            if (!completedSuccessfully)
-                                throw new MacroException($"Temporary macro {nativeMacroId} failed");
 
                             MacroStepCompleted?.Invoke(this, new MacroStepCompletedEventArgs(macro.Macro.Id, 1, 1));
 
@@ -224,11 +193,6 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
                 finally
                 {
                     await ExecuteCleanupFunctions(lua, macro.Macro);
-                    if (Scheduler is { } scheduler && macro.StateChangedHandler is { })
-                    {
-                        scheduler.MacroStateChanged -= macro.StateChangedHandler;
-                        macro.StateChangedHandler = null;
-                    }
                 }
             }, cancellationToken: token).ConfigureAwait(false);
         }
@@ -334,29 +298,8 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
 
                             if (Scheduler is { } scheduler)
                             {
-                                var tcs = new TaskCompletionSource<bool>();
-                                var actualMacroId = string.Empty;
-                                var firstStateChange = true;
-
-                                void stateChangedHandler(object? sender, MacroStateChangedEventArgs e)
-                                {
-                                    if (firstStateChange && e.NewState == MacroState.Running)
-                                    {
-                                        firstStateChange = false;
-                                        actualMacroId = e.MacroId;
-                                    }
-
-                                    if (!string.IsNullOrEmpty(actualMacroId) && e.MacroId == actualMacroId && e.NewState is MacroState.Completed or MacroState.Error)
-                                        tcs.TrySetResult(e.NewState == MacroState.Completed);
-                                }
-
-                                scheduler.MacroStateChanged += stateChangedHandler;
+                                macroHierarchy.RegisterTemporaryMacro(macro, tempMacro);
                                 await scheduler.StartMacro(tempMacro);
-                                var completedSuccessfully = await tcs.Task;
-                                scheduler.MacroStateChanged -= stateChangedHandler;
-
-                                if (!completedSuccessfully)
-                                    throw new MacroException($"Cleanup temporary macro failed");
                             }
                         }
                         else
