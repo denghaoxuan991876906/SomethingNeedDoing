@@ -75,7 +75,11 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         var startBtn = GetStartOrResumeAction(macro);
         group.AddIconOnly(FontAwesomeIcon.PlayCircle, () => startBtn.action(), startBtn.tooltip);
         group.AddIconOnly(FontAwesomeIcon.PauseCircle, () => _scheduler.PauseMacro(macro.Id), "Pause", new() { Condition = () => _scheduler.GetMacroState(macro.Id) is MacroState.Running });
-        group.AddIconOnly(FontAwesomeIcon.StopCircle, () => _scheduler.StopMacro(macro.Id), "Stop");
+        group.AddIconOnly(FontAwesomeIcon.StopCircle, () =>
+        {
+            _scheduler.StopMacro(macro.Id);
+            _editor.SetReadonly(false);
+        }, "Stop");
         group.AddIconOnly(FontAwesomeIcon.Clipboard, () => Copy(macro.Content), "Copy");
         group.Draw();
     }
@@ -83,8 +87,16 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
     private (Action action, string tooltip) GetStartOrResumeAction(IMacro macro)
         => _scheduler.GetMacroState(macro.Id) switch
         {
-            MacroState.Paused => (() => _scheduler.ResumeMacro(macro.Id), "Resume"),
-            _ => (() => _scheduler.StartMacro(macro), "Start")
+            MacroState.Paused => (() =>
+            {
+                _editor.SetReadonly(true);
+                _scheduler.ResumeMacro(macro.Id);
+            }, "Resume"),
+            _ => (() =>
+            {
+                _editor.SetReadonly(true);
+                _scheduler.StartMacro(macro);
+            }, "Start")
         };
 
     private void DrawRightAlignedControls(IMacro macro)

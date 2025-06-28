@@ -47,6 +47,16 @@ public class CodeEditor
 
     public string GetContent() => _editor.Buffer.GetText();
 
+    public void SetReadonly(bool value)
+    {
+        if (_editor.IsReadOnly == value)
+        {
+            return;
+        }
+
+        _editor.ToggleReadOnly();
+    }
+
     public bool Draw()
     {
         if (macro == null)
