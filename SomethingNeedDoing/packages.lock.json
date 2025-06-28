@@ -16,9 +16,9 @@
       },
       "ImGuiColorTextEditNetDalamud": {
         "type": "Direct",
-        "requested": "[0.2.0, )",
-        "resolved": "0.2.0",
-        "contentHash": "Frme1qDGRlyJTyM/hot4ZsguMAfjSOs7EoV0QAI2YaZFmkoStUJMSfIAUKZCuxloU4pNlqDPUU1wKBLSphV6lg=="
+        "requested": "[0.5.1, )",
+        "resolved": "0.5.1",
+        "contentHash": "OW1P/z3X2n6nkLgomi0VeVohsxX9ux2kj2Y2yHLVVlFAb0Ds2sSzCiuuebeNb84wR2V8pzpEClF+lQV5eE3kcg=="
       },
       "Laylua": {
         "type": "Direct",
