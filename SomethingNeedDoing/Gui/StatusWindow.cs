@@ -55,6 +55,7 @@ public class StatusWindow : Window
     private void DrawMacro(IMacro macro, bool indent = false)
     {
         using var _ = ImRaii.PushIndent(condition: indent); // TODO: this doesn't work?
+        using var id = ImRaii.PushId(macro.Id);
         var (statusColor, statusIcon) = GetStatusInfo(macro.State);
         ImGuiEx.Icon(statusColor, statusIcon);
         ImGui.SameLine();
