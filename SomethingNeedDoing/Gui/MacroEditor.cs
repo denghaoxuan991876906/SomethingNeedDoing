@@ -18,8 +18,6 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
 {
     private readonly IMacroScheduler _scheduler = scheduler;
     private readonly GitMacroManager _gitManager = gitManager;
-    private bool _showLineNumbers = true;
-    private bool _highlightSyntax = true;
     private UpdateState _updateState = UpdateState.Unknown;
     private readonly CodeEditor _editor = new();
 
@@ -91,7 +89,11 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
 
     private void DrawRightAlignedControls(IMacro macro)
     {
-        ImGui.SameLine(ImGui.GetWindowWidth() - (macro is ConfigMacro { IsGitMacro: true } ? 145 : 120));
+        int buttonCount = 4;
+        int offset = 40 * buttonCount;
+        int gitMacroPadding = 25;
+
+        ImGui.SameLine(ImGui.GetWindowWidth() - (macro is ConfigMacro { IsGitMacro: true } ? offset + gitMacroPadding : offset));
 
         using var _ = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
 
@@ -108,17 +110,16 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         }
 
         ImGui.SameLine();
-        if (ImGuiUtils.IconButton(
-            _showLineNumbers ? FontAwesomeHelper.IconSortAsc : FontAwesomeHelper.IconSortDesc,
-            "Toggle Line Numbers"))
-            _showLineNumbers = !_showLineNumbers;
+        if (ImGuiUtils.IconButton(_editor.IsShowingLineNumbers() ? FontAwesomeHelper.IconSortAsc : FontAwesomeHelper.IconSortDesc, "Toggle Line Numbers"))
+            _editor.ToggleLineNumbers();
 
         ImGui.SameLine();
-        if (ImGuiUtils.IconButton(_highlightSyntax ? FontAwesomeHelper.IconCheck : FontAwesomeHelper.IconXmark, "Syntax Highlighting"))
-        {
-            _highlightSyntax = !_highlightSyntax;
-            _editor.SetHighlightSyntax(_highlightSyntax);
-        }
+        if (ImGuiUtils.IconButton(_editor.IsShowingWhitespaces() ? FontAwesomeHelper.IconInvisible : FontAwesomeHelper.IconVisible, "Toggle Line Numbers"))
+            _editor.ToggleWhitespace();
+
+        ImGui.SameLine();
+        if (ImGuiUtils.IconButton(_editor.IsHighlightingSyntax() ? FontAwesomeHelper.IconCheck : FontAwesomeHelper.IconXmark, "Syntax Highlighting"))
+            _editor.ToggleSyntaxHighlight();
 
         if (macro is ConfigMacro { IsGitMacro: true } configMacro)
         {
