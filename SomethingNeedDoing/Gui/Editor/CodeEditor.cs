@@ -24,12 +24,25 @@ public class CodeEditor
     public bool ReadOnly
     {
         get => _editor.IsReadOnly;
-        set
-        {
-            if (_editor.IsReadOnly == value)
-                return;
-            _editor.ToggleReadOnly();
-        }
+        set => _editor.SetReadOnly(value);
+    }
+
+    public bool IsHighlightingSyntax
+    {
+        get => _editor.Colorizer.Enabled;
+        set => _editor.Colorizer.SetEnabled(value);
+    }
+
+    public bool IsShowingWhitespace
+    {
+        get => _editor.Style.ShowWhitespace;
+        set => _editor.Style.SetShowWhitespace(value);
+    }
+
+    public bool IsShowingLineNumbers
+    {
+        get => _editor.Style.ShowLineNumbers;
+        set => _editor.Style.SetShowLineNumbers(value);
     }
 
     public void SetMacro(IMacro macro)
@@ -44,18 +57,6 @@ public class CodeEditor
         if (_languages.TryGetValue(macro.Type, out var language))
             _editor.Language = language;
     }
-
-    public bool IsHighlightingSyntax() => _editor.Colorizer.Enabled;
-
-    public void ToggleSyntaxHighlight() => _editor.Colorizer.Toggle();
-
-    public bool IsShowingWhitespaces() => _editor.Style.ShowWhitespace;
-
-    public void ToggleWhitespace() => _editor.Style.ToggleWhitespace();
-
-    public bool IsShowingLineNumbers() => _editor.Style.ShowLineNumbers;
-
-    public void ToggleLineNumbers() => _editor.Style.ToggleLineNumbers();
 
     public string GetContent() => _editor.Buffer.GetText();
 
