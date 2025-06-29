@@ -40,6 +40,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         }
 
         _editor.SetMacro(macro);
+        _editor.ReadOnly = _scheduler.GetMacroState(macro.Id) is MacroState.Running;
 
         DrawEditorToolbar(macro);
         ImGui.Separator();
@@ -75,11 +76,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         var startBtn = GetStartOrResumeAction(macro);
         group.AddIconOnly(FontAwesomeIcon.PlayCircle, () => startBtn.action(), startBtn.tooltip);
         group.AddIconOnly(FontAwesomeIcon.PauseCircle, () => _scheduler.PauseMacro(macro.Id), "Pause", new() { Condition = () => _scheduler.GetMacroState(macro.Id) is MacroState.Running });
-        group.AddIconOnly(FontAwesomeIcon.StopCircle, () =>
-        {
-            _scheduler.StopMacro(macro.Id);
-            _editor.SetReadonly(false);
-        }, "Stop");
+        group.AddIconOnly(FontAwesomeIcon.StopCircle, () => _scheduler.StopMacro(macro.Id), "Stop");
         group.AddIconOnly(FontAwesomeIcon.Clipboard, () => Copy(macro.Content), "Copy");
         group.Draw();
     }
@@ -87,16 +84,8 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
     private (Action action, string tooltip) GetStartOrResumeAction(IMacro macro)
         => _scheduler.GetMacroState(macro.Id) switch
         {
-            MacroState.Paused => (() =>
-            {
-                _editor.SetReadonly(true);
-                _scheduler.ResumeMacro(macro.Id);
-            }, "Resume"),
-            _ => (() =>
-            {
-                _editor.SetReadonly(true);
-                _scheduler.StartMacro(macro);
-            }, "Start")
+            MacroState.Paused => (() => _scheduler.ResumeMacro(macro.Id), "Resume"),
+            _ => (() => _scheduler.StartMacro(macro), "Start")
         };
 
     private void DrawRightAlignedControls(IMacro macro)
@@ -185,7 +174,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         using var _ = ImRaii.PushColor(ImGuiCol.FrameBg, new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
 
         var chars = macro.Content.Length;
-        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Name: {macro.Name}  |  Lines: {_editor.Lines}  |  Chars: {chars}  |");
+        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Name: {macro.Name}  |  Lines: {_editor.Lines}  |  Chars: {chars}  |  Readonly: {_editor.ReadOnly}  |");
         ImGui.SameLine(0, 5);
         ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Type: {macro.Type}");
         if (ImGui.IsItemClicked())

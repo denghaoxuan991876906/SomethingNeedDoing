@@ -21,6 +21,16 @@ public class CodeEditor
     private IMacro? macro = null;
 
     public int Lines => _editor.Buffer.LineCount;
+    public bool ReadOnly
+    {
+        get => _editor.IsReadOnly;
+        set
+        {
+            if (_editor.IsReadOnly == value)
+                return;
+            _editor.ToggleReadOnly();
+        }
+    }
 
     public void SetMacro(IMacro macro)
     {
@@ -48,16 +58,6 @@ public class CodeEditor
     public void ToggleLineNumbers() => _editor.Style.ToggleLineNumbers();
 
     public string GetContent() => _editor.Buffer.GetText();
-
-    public void SetReadonly(bool value)
-    {
-        if (_editor.IsReadOnly == value)
-        {
-            return;
-        }
-
-        _editor.ToggleReadOnly();
-    }
 
     public bool Draw()
     {
