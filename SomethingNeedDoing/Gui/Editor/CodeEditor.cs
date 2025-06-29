@@ -9,13 +9,13 @@ namespace SomethingNeedDoing.Gui.Editor;
 /// <summary>
 /// DalamudCodeEditor TextEditor wrapper.
 /// </summary>
-public class CodeEditor
+public class CodeEditor(LuaLanguageDefinition lua)
 {
     private readonly TextEditor _editor = new();
 
     private readonly Dictionary<MacroType, LanguageDefinition> _languages = new()
     {
-        { MacroType.Lua, new LuaLanguageDefinition() }, { MacroType.Native, new NativeMacroLanguageDefinition() },
+        { MacroType.Lua, lua }, { MacroType.Native, new NativeMacroLanguageDefinition() },
     };
 
     private IMacro? macro = null;
