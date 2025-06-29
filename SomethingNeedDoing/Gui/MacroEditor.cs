@@ -119,7 +119,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
 
         ImGui.SameLine();
         if (ImGuiUtils.IconButton(_editor.IsHighlightingSyntax ? FontAwesomeHelper.IconCheck : FontAwesomeHelper.IconXmark, "Syntax Highlighting"))
-            _editor.IsShowingLineNumbers ^= true;
+            _editor.IsHighlightingSyntax ^= true;
 
         if (macro is ConfigMacro { IsGitMacro: true } configMacro)
         {
