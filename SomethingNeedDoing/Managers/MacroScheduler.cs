@@ -218,6 +218,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
         if (MissingRequiredPlugins(macro, out var missingPlugins))
         {
+            Svc.Log.Error($"Cannot run {macro.Name}. The following plugins need to be installed: {string.Join(", ", missingPlugins)}");
             Svc.Chat.PrintMessage($"Cannot run {macro.Name}. The following plugins need to be installed: {string.Join(", ", missingPlugins)}");
             return;
         }
@@ -226,6 +227,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         var (areAvailable, missingDependencies) = await AreDependenciesAvailableAsync(macro);
         if (!areAvailable)
         {
+            Svc.Log.Error($"Cannot run {macro.Name}. The following dependencies are not available: {string.Join(", ", missingDependencies)}");
             Svc.Chat.PrintMessage($"Cannot run {macro.Name}. The following dependencies are not available: {string.Join(", ", missingDependencies)}");
             return;
         }
