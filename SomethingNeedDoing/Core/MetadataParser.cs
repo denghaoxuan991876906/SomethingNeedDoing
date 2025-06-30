@@ -108,8 +108,9 @@ public class MetadataParser
     /// Writes metadata to macro content.
     /// </summary>
     /// <param name="macro">The macro to write metadata to.</param>
+    /// <param name="onContentUpdated">Optional callback to call when content is updated.</param>
     /// <returns>True if the metadata was written successfully.</returns>
-    public bool WriteMetadata(ConfigMacro macro)
+    public bool WriteMetadata(ConfigMacro macro, Action? onContentUpdated = null)
     {
         if (macro == null) return false;
 
@@ -201,13 +202,17 @@ public class MetadataParser
 
         var match = MetadataBlockRegex.Match(macro.Content);
         if (match.Success)
+        {
             // Replace existing block
-            macro.Content = macro.Content[..match.Index] + metadataBlock + macro.Content[(match.Index + match.Length)..].TrimStart('\r', '\n');
+            var afterMetadata = macro.Content[(match.Index + match.Length)..]; // for ensuring there's a new line after the end
+            macro.Content = macro.Content[..match.Index] + metadataBlock + (afterMetadata.StartsWith('\n') || afterMetadata.StartsWith('\r') ? "" : "\n") + afterMetadata;
+        }
         else
             // Add new block
             macro.Content = metadataBlock + (macro.Content.StartsWith('\n') ? "" : "\n") + macro.Content;
 
         C.Save();
+        onContentUpdated?.Invoke(); // there's probably a better way
         return true;
     }
 

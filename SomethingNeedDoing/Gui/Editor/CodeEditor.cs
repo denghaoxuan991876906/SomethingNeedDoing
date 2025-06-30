@@ -9,16 +9,21 @@ namespace SomethingNeedDoing.Gui.Editor;
 /// <summary>
 /// DalamudCodeEditor TextEditor wrapper.
 /// </summary>
-public class CodeEditor(LuaLanguageDefinition lua)
+public class CodeEditor : IDisposable
 {
+    private readonly LuaLanguageDefinition _lua;
     private readonly TextEditor _editor = new();
 
-    private readonly Dictionary<MacroType, LanguageDefinition> _languages = new()
-    {
-        { MacroType.Lua, lua }, { MacroType.Native, new NativeMacroLanguageDefinition() },
-    };
+    private readonly Dictionary<MacroType, LanguageDefinition> _languages;
 
     private IMacro? macro = null;
+
+    public CodeEditor(LuaLanguageDefinition lua)
+    {
+        _lua = lua;
+        _languages = new() { { MacroType.Lua, _lua }, { MacroType.Native, new NativeMacroLanguageDefinition() } };
+        Config.ConfigFileChanged += RefreshContent;
+    }
 
     public int Lines => _editor.Buffer.LineCount;
     public bool ReadOnly
@@ -60,6 +65,12 @@ public class CodeEditor(LuaLanguageDefinition lua)
             _editor.Language = language;
     }
 
+    public void RefreshContent()
+    {
+        if (macro != null)
+            _editor.Buffer.SetText(macro.Content);
+    }
+
     public string GetContent() => _editor.Buffer.GetText();
 
     public bool Draw()
@@ -71,4 +82,6 @@ public class CodeEditor(LuaLanguageDefinition lua)
         _editor.Draw(macro.Name);
         return _editor.Buffer.IsDirty;
     }
+
+    public void Dispose() => Config.ConfigFileChanged -= RefreshContent;
 }

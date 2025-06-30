@@ -13,6 +13,46 @@ public class Config : IEzConfig
 {
     public int Version { get; set; } = 1;
 
+    public static event Action? ConfigFileChanged;
+
+    private static FileSystemWatcher? _configWatcher;
+    private static DateTime _lastConfigChange = DateTime.MinValue;
+
+    public static void InitializeFileWatcher()
+    {
+        try
+        {
+            var dir = EzConfig.GetPluginConfigDirectory();
+            _configWatcher = new FileSystemWatcher(dir, EzConfig.DefaultSerializationFactory.DefaultConfigFileName)
+            {
+                EnableRaisingEvents = true,
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
+            };
+
+            _configWatcher.Changed += OnConfigFileChanged;
+            _configWatcher.Created += OnConfigFileChanged;
+        }
+        catch (Exception ex)
+        {
+            Svc.Log.Error(ex, "Failed to initialize config file watcher");
+        }
+    }
+
+    public static void DisposeFileWatcher()
+    {
+        _configWatcher?.Dispose();
+        _configWatcher = null;
+    }
+
+    private static void OnConfigFileChanged(object sender, FileSystemEventArgs e)
+    {
+        if ((DateTime.Now - _lastConfigChange).TotalMilliseconds < 500) // debounce rapid changes
+            return;
+
+        _lastConfigChange = DateTime.Now;
+        Svc.Framework.RunOnTick(() => ConfigFileChanged?.Invoke());
+    }
+
     #region General Settings
     public XivChatType ChatType { get; set; } = XivChatType.Debug;
     public XivChatType ErrorChatType { get; set; } = XivChatType.Urgent;

@@ -15,6 +15,8 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
     private DependencyType _dependencyType = DependencyType.Local;
     private readonly List<string> _disableablePluginNames = [.. disableablePlugins.Select(p => p.InternalName)];
 
+    public Action? OnContentUpdated { get; set; } // for refreshing after writing the metadata
+
     public void Draw(ConfigMacro? selectedMacro)
     {
         using var child = ImRaii.Child("SettingsChild", new(-1, ImGui.GetContentRegionAvail().Y), false);
@@ -201,7 +203,7 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
 
             if (ImGui.Button("Write Metadata to Content"))
             {
-                if (metadataParser.WriteMetadata(selectedMacro))
+                if (metadataParser.WriteMetadata(selectedMacro, OnContentUpdated))
                     Svc.Log.Debug($"Wrote metadata to macro {selectedMacro.Name}");
                 else
                     Svc.Log.Error($"Failed to write metadata to macro {selectedMacro.Name}");

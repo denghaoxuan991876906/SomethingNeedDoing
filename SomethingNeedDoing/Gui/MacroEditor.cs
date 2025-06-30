@@ -42,6 +42,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
 
         editor.SetMacro(macro);
         editor.ReadOnly = _scheduler.GetMacroState(macro.Id) is MacroState.Running;
+        settingsSection.OnContentUpdated = editor.RefreshContent;
 
         DrawEditorToolbar(macro);
         ImGui.Separator();
