@@ -68,8 +68,8 @@ public unsafe class InstancedContentModule : LuaModuleBase
     {
         [LuaDocs] public uint QuestId => data->QuestId;
         [LuaDocs] public uint ZoneNameId => data->ZoneNameId;
-        [LuaDocs] public uint CipherItemId => data->CurrencyItemIds[2];
-        [LuaDocs] public uint CipherNameId => data->CurrencyNameIds[2];
+        [LuaDocs] public uint CipherItemId => data->CipherItemId;
+        [LuaDocs] public int CipherNameId => data->CipherNameId;
     }
 
     public class OccultCrescentStateWrapper(OccultCrescentState* state) : IWrapper
