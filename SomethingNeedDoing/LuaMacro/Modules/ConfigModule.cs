@@ -22,6 +22,11 @@ public class ConfigModule(IMacro macro) : LuaModuleBase
         return defaultValue ?? string.Empty;
     }
 
+    [LuaFunction] public int GetInt(string name, object? defaultValue = null) => Get(name, defaultValue) is int i ? i : throw new InvalidCastException($"Config value {name} is not an int");
+    [LuaFunction] public float GetFloat(string name, object? defaultValue = null) => Get(name, defaultValue) is float f ? f : throw new InvalidCastException($"Config value {name} is not a float");
+    [LuaFunction] public bool GetBool(string name, object? defaultValue = null) => Get(name, defaultValue) is bool b ? b : throw new InvalidCastException($"Config value {name} is not a bool");
+    [LuaFunction] public string GetString(string name, object? defaultValue = null) => Get(name, defaultValue) is string s ? s : throw new InvalidCastException($"Config value {name} is not a string");
+
     [LuaFunction]
     public void Set(string name, object value)
     {
