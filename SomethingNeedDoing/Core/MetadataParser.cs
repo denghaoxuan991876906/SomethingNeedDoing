@@ -13,7 +13,7 @@ namespace SomethingNeedDoing.Core;
 public class MetadataParser
 {
     public static readonly Regex MetadataBlockRegex = new(
-        @"(?:--\[\[|/\*)\n\[\[SND\s*Metadata\]\]\n(.*?)\n\[\[End\s*Metadata\]\]\n(?:\]\]|\*/)",
+        @"(?:--\[=====\[|/\*).*?\[\[SND\s*Metadata\]\].*?\[\[End\s*Metadata\]\].*?(?:\]=====\]|\*/)",
         RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
     private static readonly IDeserializer _deserializer = new DeserializerBuilder()
@@ -162,16 +162,35 @@ public class MetadataParser
         {
             metadataDict["configs"] = macro.Metadata.Configs.ToDictionary(
                 kvp => kvp.Key,
-                kvp => new Dictionary<string, object?>
+                kvp =>
                 {
-                    ["default"] = kvp.Value.DefaultValue,
-                    ["description"] = kvp.Value.Description,
-                    ["type"] = kvp.Value.Type,
-                    ["min"] = kvp.Value.MinValue,
-                    ["max"] = kvp.Value.MaxValue,
-                    ["required"] = kvp.Value.Required,
-                    ["validation_pattern"] = kvp.Value.ValidationPattern,
-                    ["validation_message"] = kvp.Value.ValidationMessage
+                    var configDict = new Dictionary<string, object>();
+
+                    if (!string.IsNullOrEmpty(kvp.Value.DefaultValue?.ToString()))
+                        configDict["default"] = kvp.Value.DefaultValue;
+
+                    if (!string.IsNullOrEmpty(kvp.Value.Description))
+                        configDict["description"] = kvp.Value.Description;
+
+                    if (!string.IsNullOrEmpty(kvp.Value.Type))
+                        configDict["type"] = kvp.Value.Type;
+
+                    if (kvp.Value.MinValue != null)
+                        configDict["min"] = kvp.Value.MinValue;
+
+                    if (kvp.Value.MaxValue != null)
+                        configDict["max"] = kvp.Value.MaxValue;
+
+                    if (kvp.Value.Required)
+                        configDict["required"] = kvp.Value.Required;
+
+                    if (!string.IsNullOrEmpty(kvp.Value.ValidationPattern))
+                        configDict["validation_pattern"] = kvp.Value.ValidationPattern;
+
+                    if (!string.IsNullOrEmpty(kvp.Value.ValidationMessage))
+                        configDict["validation_message"] = kvp.Value.ValidationMessage;
+
+                    return configDict;
                 }
             );
         }
