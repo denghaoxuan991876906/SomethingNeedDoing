@@ -45,6 +45,8 @@ public class CodeEditor(LuaLanguageDefinition lua)
         set => _editor.Style.SetShowLineNumbers(value);
     }
 
+    public int Column => _editor.Cursor.GetPosition().Column;
+
     public void SetMacro(IMacro macro)
     {
         if (this.macro?.Id == macro.Id)

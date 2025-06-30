@@ -173,7 +173,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         using var _ = ImRaii.PushColor(ImGuiCol.FrameBg, new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
 
         var chars = macro.Content.Length;
-        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Name: {macro.Name}  |  Lines: {_editor.Lines}  |  Chars: {chars}  |  Readonly: {_editor.ReadOnly}  |");
+        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Name: {macro.Name}  |  Lines: {_editor.Lines}  |  Chars: {chars}  |  Column: {_editor.Column}  |  Readonly: {_editor.ReadOnly}  |");
         ImGui.SameLine(0, 5);
         ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Type: {macro.Type}");
         if (ImGui.IsItemClicked())
