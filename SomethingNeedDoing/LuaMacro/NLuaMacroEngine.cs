@@ -96,7 +96,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
             lua.RegisterClass<Svc>();
             lua.DoString("luanet.load_assembly('FFXIVClientStructs')");
             moduleManager.RegisterAll(lua);
-            moduleManager.RegisterModule(new ConfigModule(macro.Macro));
+            new ConfigModule(macro.Macro).Register(lua);
 
             _activeLuaEnvironments[macro.Macro.Id] = lua; // for function triggers to access the same state
 
