@@ -15,12 +15,11 @@ namespace SomethingNeedDoing.Gui;
 /// <summary>
 /// Macro editor with IDE-like features
 /// </summary>
-public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, WindowSystem ws, CodeEditor _editor)
+public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, WindowSystem ws, CodeEditor editor, MacroSettingsSection settingsSection)
 {
     private readonly IMacroScheduler _scheduler = scheduler;
     private readonly GitMacroManager _gitManager = gitManager;
     private UpdateState _updateState = UpdateState.Unknown;
-    private readonly CodeEditor _editor = new();
     private bool _showSettings;
 
     private enum UpdateState
@@ -41,8 +40,8 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
             return;
         }
 
-        _editor.SetMacro(macro);
-        _editor.ReadOnly = _scheduler.GetMacroState(macro.Id) is MacroState.Running;
+        editor.SetMacro(macro);
+        editor.ReadOnly = _scheduler.GetMacroState(macro.Id) is MacroState.Running;
 
         DrawEditorToolbar(macro);
         ImGui.Separator();
@@ -118,16 +117,16 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         }
 
         ImGui.SameLine();
-        if (ImGuiUtils.IconButton(_editor.IsShowingLineNumbers ? FontAwesomeHelper.IconSortAsc : FontAwesomeHelper.IconSortDesc, "Toggle Line Numbers"))
-            _editor.IsShowingLineNumbers ^= true;
+        if (ImGuiUtils.IconButton(editor.IsShowingLineNumbers ? FontAwesomeHelper.IconSortAsc : FontAwesomeHelper.IconSortDesc, "Toggle Line Numbers"))
+            editor.IsShowingLineNumbers ^= true;
 
         ImGui.SameLine();
-        if (ImGuiUtils.IconButton(_editor.IsShowingWhitespace ? FontAwesomeHelper.IconInvisible : FontAwesomeHelper.IconVisible, "Toggle Line Numbers"))
-            _editor.IsShowingWhitespace ^= true;
+        if (ImGuiUtils.IconButton(editor.IsShowingWhitespace ? FontAwesomeHelper.IconInvisible : FontAwesomeHelper.IconVisible, "Toggle Line Numbers"))
+            editor.IsShowingWhitespace ^= true;
 
         ImGui.SameLine();
-        if (ImGuiUtils.IconButton(_editor.IsHighlightingSyntax ? FontAwesomeHelper.IconCheck : FontAwesomeHelper.IconXmark, "Syntax Highlighting"))
-            _editor.IsHighlightingSyntax ^= true;
+        if (ImGuiUtils.IconButton(editor.IsHighlightingSyntax ? FontAwesomeHelper.IconCheck : FontAwesomeHelper.IconXmark, "Syntax Highlighting"))
+            editor.IsHighlightingSyntax ^= true;
 
         ImGui.SameLine();
         if (ImGuiUtils.IconButton(FontAwesomeIcon.Cog, "Settings"))
@@ -171,9 +170,9 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
 
         if (macro is ConfigMacro configMacro)
         {
-            if (_editor.Draw())
+            if (editor.Draw())
             {
-                configMacro.Content = _editor.GetContent();
+                configMacro.Content = editor.GetContent();
                 C.Save();
             }
         }
@@ -185,7 +184,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         using var _ = ImRaii.PushColor(ImGuiCol.FrameBg, new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
 
         var chars = macro.Content.Length;
-        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Name: {macro.Name}  |  Lines: {_editor.Lines}  |  Chars: {chars}  |  Column: {_editor.Column}  |  Readonly: {_editor.ReadOnly}  |");
+        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Name: {macro.Name}  |  Lines: {editor.Lines}  |  Chars: {chars}  |  Column: {editor.Column}  |  Readonly: {editor.ReadOnly}  |");
         ImGui.SameLine(0, 5);
         ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Type: {macro.Type}");
         if (ImGui.IsItemClicked())
