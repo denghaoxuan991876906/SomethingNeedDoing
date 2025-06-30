@@ -13,7 +13,7 @@ namespace SomethingNeedDoing.Core;
 public class MetadataParser
 {
     public static readonly Regex MetadataBlockRegex = new(
-        @"(?:--\[=====\[|/\*).*?\[\[SND\s*Metadata\]\].*?\[\[End\s*Metadata\]\].*?(?:\]=====\]|\*/)",
+        @"(?:--\[=====\[|/\*).*?\[\[SND\s*Metadata\]\](.*?)\[\[End\s*Metadata\]\].*?(?:\]=====\]|\*/)",
         RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
     private static readonly IDeserializer _deserializer = new DeserializerBuilder()
@@ -35,7 +35,9 @@ public class MetadataParser
         var match = MetadataBlockRegex.Match(content);
         if (!match.Success) return new MacroMetadata();
 
-        var metadataContent = match.Groups[1].Value;
+        var metadataContent = match.Groups[1].Value.Trim();
+        if (string.IsNullOrEmpty(metadataContent)) return new MacroMetadata();
+
         var metadata = new MacroMetadata();
 
         try

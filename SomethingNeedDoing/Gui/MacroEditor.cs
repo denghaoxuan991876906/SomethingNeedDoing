@@ -97,11 +97,10 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
 
     private void DrawRightAlignedControls(IMacro macro)
     {
-        int buttonCount = 4;
-        int offset = 40 * buttonCount;
-        int gitMacroPadding = 25;
+        var buttonCount = 5;
+        var buttonWidth = ImGuiEx.CalcIconSize(FontAwesomeIcon.None, true).X + ImGui.GetStyle().ItemSpacing.X;
 
-        ImGui.SameLine(ImGui.GetWindowWidth() - (macro is ConfigMacro { IsGitMacro: true } ? offset + gitMacroPadding : offset));
+        ImGui.SameLine(ImGui.GetWindowWidth() - (macro is ConfigMacro { IsGitMacro: true } ? buttonWidth * (buttonCount + 1) : buttonWidth * buttonCount));
 
         using var _ = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey);
 
