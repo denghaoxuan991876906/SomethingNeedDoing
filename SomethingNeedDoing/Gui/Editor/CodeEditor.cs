@@ -1,8 +1,10 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using DalamudCodeEditor;
-using TextEditor = DalamudCodeEditor.TextEditor.Editor;
 using SomethingNeedDoing.Core.Interfaces;
+using System.Threading;
+using System.Threading.Tasks;
+using TextEditor = DalamudCodeEditor.TextEditor.Editor;
 
 namespace SomethingNeedDoing.Gui.Editor;
 
@@ -13,14 +15,17 @@ public class CodeEditor : IDisposable
 {
     private readonly LuaLanguageDefinition _lua;
     private readonly TextEditor _editor = new();
-
+    private readonly MetadataParser _metadataParser;
     private readonly Dictionary<MacroType, LanguageDefinition> _languages;
 
     private IMacro? macro = null;
+    private CancellationTokenSource? _debounceCts;
+    private bool _lastIsDirty = false;
 
-    public CodeEditor(LuaLanguageDefinition lua)
+    public CodeEditor(LuaLanguageDefinition lua, MetadataParser metadataParser)
     {
         _lua = lua;
+        _metadataParser = metadataParser;
         _languages = new() { { MacroType.Lua, _lua }, { MacroType.Native, new NativeMacroLanguageDefinition() } };
         Config.ConfigFileChanged += RefreshContent;
     }
@@ -80,8 +85,89 @@ public class CodeEditor : IDisposable
 
         using var font = ImRaii.PushFont(UiBuilder.MonoFont);
         _editor.Draw(macro.Name);
-        return _editor.Buffer.IsDirty;
+
+        var isDirty = _editor.Buffer.IsDirty;
+        if (isDirty && !_lastIsDirty && macro is ConfigMacro configMacro)
+        {
+            _debounceCts?.Cancel();
+            _debounceCts = new CancellationTokenSource();
+
+            _ = Task.Delay(500, _debounceCts.Token).ContinueWith(task =>
+            {
+                if (task.IsCompletedSuccessfully && !_debounceCts.Token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        if (macro?.Id == configMacro.Id)
+                        {
+                            var content = GetContent();
+                            var newMetadata = _metadataParser.ParseMetadata(content);
+                            if (!MetadataEquals(configMacro.Metadata, newMetadata))
+                            {
+                                configMacro.Metadata = newMetadata;
+                                C.Save();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Svc.Log.Error(ex, "Failed to auto-parse metadata");
+                    }
+                }
+
+                return Task.CompletedTask;
+            }, _debounceCts.Token);
+        }
+
+        _lastIsDirty = isDirty;
+        return isDirty;
     }
 
-    public void Dispose() => Config.ConfigFileChanged -= RefreshContent;
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        Config.ConfigFileChanged -= RefreshContent;
+    }
+
+    private static bool MetadataEquals(MacroMetadata m1, MacroMetadata m2)
+    {
+        if (m1 == null && m2 == null) return true;
+        if (m1 == null || m2 == null) return false;
+
+        return m1.Author == m2.Author &&
+               m1.Version == m2.Version &&
+               m1.Description == m2.Description &&
+               m1.CraftingLoop == m2.CraftingLoop &&
+               m1.CraftLoopCount == m2.CraftLoopCount &&
+               m1.TriggerEvents.SequenceEqual(m2.TriggerEvents) &&
+               m1.PluginDependecies.SequenceEqual(m2.PluginDependecies) &&
+               m1.PluginsToDisable.SequenceEqual(m2.PluginsToDisable) &&
+               ConfigsEqual(m1.Configs, m2.Configs);
+    }
+
+    private static bool ConfigsEqual(Dictionary<string, MacroConfigItem> c1, Dictionary<string, MacroConfigItem> c2)
+    {
+        if (c1.Count != c2.Count) return false;
+
+        foreach (var kvp in c1)
+        {
+            if (!c2.TryGetValue(kvp.Key, out var v2)) return false;
+
+            var v1 = kvp.Value;
+            if (v1.DefaultValue?.ToString() != v2.DefaultValue?.ToString() ||
+                v1.Description != v2.Description ||
+                v1.Type != v2.Type ||
+                v1.MinValue?.ToString() != v2.MinValue?.ToString() ||
+                v1.MaxValue?.ToString() != v2.MaxValue?.ToString() ||
+                v1.Required != v2.Required ||
+                v1.ValidationPattern != v2.ValidationPattern ||
+                v1.ValidationMessage != v2.ValidationMessage)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
