@@ -10,7 +10,8 @@ public unsafe class AddonWrapper(string name) : IWrapper
     private AtkValue[] AtkValuesList => Addon->AtkValuesSpan.ToArray();
 
     [LuaDocs(description: "Check if the Addon Exists, regardless of visibility.")] public bool Exists => Addon != null;
-    [LuaDocs(description: "Check if the Addon is Visible and Ready.")] public bool Ready
+    [LuaDocs(description: "Check if the Addon is Visible and Ready.")]
+    public bool Ready
     {
         get
         {

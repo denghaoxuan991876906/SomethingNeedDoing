@@ -135,7 +135,7 @@ public unsafe class InventoryModule : LuaModuleBase
 
     public unsafe class InventoryItemWrapper : IWrapper
     {
-        private InventoryType[] playerInv = [
+        private readonly InventoryType[] playerInv = [
             InventoryType.Inventory1,
             InventoryType.Inventory2,
             InventoryType.Inventory3,

@@ -26,7 +26,7 @@ public class IndexModifier(string text, int index) : MacroModifierBase(text)
         var match = Regex.Match(text);
         if (!match.Success)
         {
-            modifier = null;
+            modifier = null!;
             return false;
         }
 

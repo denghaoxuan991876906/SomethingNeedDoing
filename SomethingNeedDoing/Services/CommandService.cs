@@ -201,14 +201,14 @@ public class CommandService
             Svc.Chat.PrintError($"Macro '{macroName}' not found.");
     }
 
-    private void HandleConfigCommand(string arguments)
-    {
-        var args = arguments.Split(" ");
-        if (args.Length != 2)
-        {
-            Svc.Chat.PrintError("Invalid config command format. Usage: /snd cfg <setting> <value>");
-            return;
-        }
-        C.SetProperty(args[0], args[1]);
-    }
+    //private void HandleConfigCommand(string arguments)
+    //{
+    //    var args = arguments.Split(" ");
+    //    if (args.Length != 2)
+    //    {
+    //        Svc.Chat.PrintError("Invalid config command format. Usage: /snd cfg <setting> <value>");
+    //        return;
+    //    }
+    //    C.SetProperty(args[0], args[1]);
+    //}
 }

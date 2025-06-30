@@ -90,6 +90,7 @@ public static class TypeExtensions
             return true;
 
         // For properties/methods that return wrapper types
+#pragma warning disable IDE0002
         if (type.IsClass)
             if (Type.GetType($"{nameof(SomethingNeedDoing.LuaMacro.Wrappers)}.{type.Name}, SomethingNeedDoing") is { } wrapper && typeof(IWrapper).IsAssignableFrom(wrapper))
                 return true;

@@ -11,7 +11,7 @@ namespace SomethingNeedDoing.Core;
 /// </remarks>
 /// <param name="httpClient">The HTTP client.</param>
 /// <param name="gitService">The Git service.</param>
-public class DependencyFactory(HttpClient httpClient, IGitService gitService)
+public class DependencyFactory(IGitService gitService)
 {
 
     /// <summary>
