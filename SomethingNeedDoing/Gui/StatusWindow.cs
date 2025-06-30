@@ -12,14 +12,17 @@ public class StatusWindow : Window
 {
     private readonly IMacroScheduler _scheduler;
     private readonly MacroHierarchyManager _macroHierarchy;
+    private readonly TriggerEventManager _triggerEventManager;
     private readonly TitleBarButton _minimiseBtn;
     private bool _minimised;
+    private bool _showTriggerEvents;
 
-    public StatusWindow(IMacroScheduler scheduler, MacroHierarchyManager macroHierarchy) : base($"{P.Name} - Macro Status###{P.Name}_{nameof(StatusWindow)}", ImGuiWindowFlags.NoScrollbar)
+    public StatusWindow(IMacroScheduler scheduler, MacroHierarchyManager macroHierarchy, TriggerEventManager triggerEventManager) : base($"{P.Name} - Macro Status###{P.Name}_{nameof(StatusWindow)}", ImGuiWindowFlags.NoScrollbar)
     {
         _scheduler = scheduler;
         _macroHierarchy = macroHierarchy;
-        Size = new Vector2(400, 200);
+        _triggerEventManager = triggerEventManager;
+        Size = new Vector2(500, 300);
         SizeCondition = ImGuiCond.FirstUseEver;
         _minimiseBtn = new TitleBarButton()
         {
@@ -39,6 +42,22 @@ public class StatusWindow : Window
 
     public override void Draw()
     {
+        if (ImGui.Button(_showTriggerEvents ? "Hide Trigger Events" : "Show Trigger Events"))
+            _showTriggerEvents = !_showTriggerEvents;
+
+        ImGui.SameLine();
+        ImGui.TextColored(ImGuiColors.DalamudGrey, "|");
+        ImGui.SameLine();
+        ImGui.TextColored(ImGuiColors.DalamudGrey, "Macro Status");
+
+        ImGui.Separator();
+
+        if (_showTriggerEvents)
+        {
+            DrawTriggerEventsSection();
+            ImGui.Separator();
+        }
+
         var macros = _minimised ? _scheduler.GetMacros().Where(m => m.State is MacroState.Running or MacroState.Paused) : _scheduler.GetMacros();
         var parents = macros.Where(m => _macroHierarchy.GetParentMacro(m.Id) == null).ToList();
 
@@ -91,4 +110,36 @@ public class StatusWindow : Window
         MacroState.Ready => (ImGuiColors.DalamudGrey, FontAwesomeIcon.Circle),
         _ => (ImGuiColors.DalamudGrey, FontAwesomeIcon.QuestionCircle)
     };
+
+    private void DrawTriggerEventsSection()
+    {
+        ImGuiEx.Text(ImGuiColors.DalamudOrange, "Registered Trigger Events");
+        ImGui.Spacing();
+
+        var triggerEvents = _triggerEventManager.EventHandlers;
+        if (triggerEvents.Count == 0)
+        {
+            ImGui.TextColored(ImGuiColors.DalamudGrey, "No trigger events registered");
+            return;
+        }
+
+        foreach (var kvp in triggerEvents.OrderBy(x => x.Key.ToString()))
+        {
+            using var tree = ImRaii.TreeNode($"{kvp.Key} ({kvp.Value.Count})");
+            if (!tree) return;
+            foreach (var function in kvp.Value.OrderBy(f => f.Macro.Name))
+            {
+                using var id = ImRaii.PushId($"{function.Macro.Id}_{function.FunctionName}");
+
+                var displayText = string.IsNullOrEmpty(function.FunctionName) ? function.Macro.Name : $"{function.Macro.Name} → {function.FunctionName}";
+                ImGuiEx.IconWithText(ImGuiUtils.Icons.GetMacroIcon(function.Macro), displayText);
+
+                if (kvp.Key == TriggerEvent.OnAddonEvent && !string.IsNullOrEmpty(function.AddonName))
+                {
+                    ImGui.SameLine();
+                    ImGui.TextColored(ImGuiColors.DalamudGrey, $"({function.AddonName}: {function.AddonEventType})");
+                }
+            }
+        }
+    }
 }

@@ -57,7 +57,7 @@ public class TriggerFunction(IMacro macro, string functionName, TriggerEvent eve
 /// </summary>
 public class TriggerEventManager : IDisposable
 {
-    private readonly Dictionary<TriggerEvent, List<TriggerFunction>> _eventHandlers = [];
+    public Dictionary<TriggerEvent, List<TriggerFunction>> EventHandlers { get; } = [];
 
     /// <summary>
     /// Event raised when a trigger event occurs.
@@ -76,12 +76,12 @@ public class TriggerEventManager : IDisposable
     /// <param name="eventType">The type of event to register for.</param>
     public void RegisterTrigger(IMacro macro, TriggerEvent eventType)
     {
-        if (!_eventHandlers.ContainsKey(eventType))
-            _eventHandlers[eventType] = [];
+        if (!EventHandlers.ContainsKey(eventType))
+            EventHandlers[eventType] = [];
 
         var triggerFunction = new TriggerFunction(macro, string.Empty, eventType);
-        if (!_eventHandlers[eventType].Contains(triggerFunction))
-            _eventHandlers[eventType].Add(triggerFunction);
+        if (!EventHandlers[eventType].Contains(triggerFunction))
+            EventHandlers[eventType].Add(triggerFunction);
     }
 
     /// <summary>
@@ -97,17 +97,17 @@ public class TriggerEventManager : IDisposable
             var parts = functionName.Split('_');
             if (parts.Length == 3) // OnAddonEvent_AddonName_EventType
             {
-                if (!_eventHandlers.ContainsKey(TriggerEvent.OnAddonEvent))
-                    _eventHandlers[TriggerEvent.OnAddonEvent] = [];
+                if (!EventHandlers.ContainsKey(TriggerEvent.OnAddonEvent))
+                    EventHandlers[TriggerEvent.OnAddonEvent] = [];
 
                 var triggerFunction = new TriggerFunction(macro, functionName, TriggerEvent.OnAddonEvent);
-                if (_eventHandlers[TriggerEvent.OnAddonEvent].Contains(triggerFunction))
+                if (EventHandlers[TriggerEvent.OnAddonEvent].Contains(triggerFunction))
                 {
                     Svc.Log.Debug($"[{nameof(TriggerEventManager)}] Function trigger already registered for macro {macro.Name} function {functionName} (Addon: {parts[1]}, Event: {parts[2]})");
                     return;
                 }
                 Svc.Log.Debug($"[{nameof(TriggerEventManager)}] Registering OnAddonEvent trigger for macro {macro.Name} function {functionName} (Addon: {parts[1]}, Event: {parts[2]})");
-                _eventHandlers[TriggerEvent.OnAddonEvent].Add(triggerFunction);
+                EventHandlers[TriggerEvent.OnAddonEvent].Add(triggerFunction);
                 return;
             }
         }
@@ -119,17 +119,17 @@ public class TriggerEventManager : IDisposable
 
             if (functionName.StartsWith(eventType.ToString(), StringComparison.OrdinalIgnoreCase))
             {
-                if (!_eventHandlers.ContainsKey(eventType))
-                    _eventHandlers[eventType] = [];
+                if (!EventHandlers.ContainsKey(eventType))
+                    EventHandlers[eventType] = [];
 
                 var triggerFunction = new TriggerFunction(macro, functionName, eventType);
-                if (_eventHandlers[eventType].Contains(triggerFunction))
+                if (EventHandlers[eventType].Contains(triggerFunction))
                 {
                     Svc.Log.Debug($"[{nameof(TriggerEventManager)}] Function trigger already registered for macro {macro.Name} function {functionName} event {eventType}");
                     return;
                 }
                 Svc.Log.Debug($"[{nameof(TriggerEventManager)}] Registering trigger event {eventType} for macro {macro.Name} function {functionName}");
-                _eventHandlers[eventType].Add(triggerFunction);
+                EventHandlers[eventType].Add(triggerFunction);
                 return;
             }
         }
@@ -142,7 +142,7 @@ public class TriggerEventManager : IDisposable
     /// <param name="eventType">The type of event to unregister from.</param>
     public void UnregisterTrigger(IMacro macro, TriggerEvent eventType)
     {
-        if (_eventHandlers.TryGetValue(eventType, out var value))
+        if (EventHandlers.TryGetValue(eventType, out var value))
             value.RemoveAll(tf => tf.Macro.Id == macro.Id && string.IsNullOrEmpty(tf.FunctionName));
     }
 
@@ -159,7 +159,7 @@ public class TriggerEventManager : IDisposable
             var parts = functionName.Split('_');
             if (parts.Length == 3) // OnAddonEvent_AddonName_EventType
             {
-                if (_eventHandlers.TryGetValue(TriggerEvent.OnAddonEvent, out var value))
+                if (EventHandlers.TryGetValue(TriggerEvent.OnAddonEvent, out var value))
                 {
                     var removed = value.RemoveAll(tf => tf.Macro.Id == macro.Id && tf.FunctionName == functionName);
                     if (removed > 0)
@@ -176,7 +176,7 @@ public class TriggerEventManager : IDisposable
 
             if (functionName.StartsWith(eventType.ToString(), StringComparison.OrdinalIgnoreCase))
             {
-                if (_eventHandlers.TryGetValue(eventType, out var value))
+                if (EventHandlers.TryGetValue(eventType, out var value))
                 {
                     var removed = value.RemoveAll(tf => tf.Macro.Id == macro.Id && tf.FunctionName == functionName);
                     if (removed > 0)
@@ -193,7 +193,7 @@ public class TriggerEventManager : IDisposable
     /// <param name="macro">The macro to unregister.</param>
     public void UnregisterAllTriggers(IMacro macro)
     {
-        foreach (var handlers in _eventHandlers.Values)
+        foreach (var handlers in EventHandlers.Values)
             handlers.RemoveAll(tf => tf.Macro.Id == macro.Id);
     }
 
@@ -204,7 +204,7 @@ public class TriggerEventManager : IDisposable
     /// <param name="data">Optional data associated with the event.</param>
     public async Task RaiseTriggerEvent(TriggerEvent eventType, object? data = null)
     {
-        if (!_eventHandlers.TryGetValue(eventType, out var handlers) || handlers.Count == 0)
+        if (!EventHandlers.TryGetValue(eventType, out var handlers) || handlers.Count == 0)
             return;
 
         var args = new TriggerEventArgs(eventType, data);
@@ -251,5 +251,5 @@ public class TriggerEventManager : IDisposable
     /// <summary>
     /// Disposes of the trigger event manager.
     /// </summary>
-    public void Dispose() => _eventHandlers.Clear();
+    public void Dispose() => EventHandlers.Clear();
 }

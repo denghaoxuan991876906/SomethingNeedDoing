@@ -100,6 +100,7 @@ public class ConfigModule(IMacro macro) : LuaModuleBase
         {
             switch (configItem.Type.ToLower())
             {
+                case "number":
                 case "int":
                     if (int.TryParse(value.ToString(), out var intValue))
                     {
