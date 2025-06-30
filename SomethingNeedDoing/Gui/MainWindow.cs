@@ -17,11 +17,11 @@ public class MainWindow : Window
     private bool ClickedHeaderLastFrame;
     private bool ClickedHeaderCurrentFrame;
 
-    public MainWindow(IMacroScheduler scheduler, MacroEditor macroEditor, MacroSettingsSection macroSettings, HelpTab helpTab, VersionHistoryModal versionHistoryModal)
+    public MainWindow(IMacroScheduler scheduler, MacroEditor macroEditor, HelpTab helpTab, VersionHistoryModal versionHistoryModal)
         : base($"{P.Name} v{P.Version}###{P.Name}_{nameof(MainWindow)}", ImGuiWindowFlags.NoScrollbar)
     {
         _helpTab = helpTab;
-        _macrosTab = new MacrosTab(scheduler, macroSettings, macroEditor);
+        _macrosTab = new MacrosTab(scheduler, macroEditor);
         _versionHistoryModal = versionHistoryModal;
 
         Size = new Vector2(1000, 600);

@@ -8,7 +8,7 @@ using SomethingNeedDoing.Gui.Modals;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 
-public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSettings, MacroEditor macroEditor)
+public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor)
 {
     private static class UiConstants
     {
@@ -81,8 +81,6 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         DrawMacroTreeHeader();
         if (!_state.IsFolderSectionCollapsed)
             DrawFolderTree();
-        ImGui.Separator();
-        macroSettings.Draw(C.GetMacro(_state.SelectedMacroId));
     }
 
     private void DrawMacroTreeHeader()
@@ -117,7 +115,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
 
     private void DrawFolderTree()
     {
-        using var child = ImRaii.Child("FolderTree", new(-1, ImGui.GetContentRegionAvail().Y * 0.6f), false);
+        using var child = ImRaii.Child("FolderTree", new(-1, ImGui.GetContentRegionAvail().Y), false);
         if (!child) return;
 
         DrawCustomFolders();

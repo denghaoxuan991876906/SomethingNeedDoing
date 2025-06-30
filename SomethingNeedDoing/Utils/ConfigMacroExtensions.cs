@@ -5,16 +5,12 @@ using System.Text.RegularExpressions;
 namespace SomethingNeedDoing.Utils;
 public static class ConfigMacroExtensions
 {
-    private static readonly Regex MetadataBlockRegex = new(
-        @"^--\[\[SND\s*Metadata\s*\]\]\s*\n(.*?)\n--\[\[End\s*Metadata\s*\]\]",
-        RegexOptions.Singleline | RegexOptions.IgnoreCase);
-
     /// <summary>
     /// Removes the metadata block from macro content.
     /// </summary>
     public static string ContentSansMetadata(this IMacro macro)
     {
-        var match = MetadataBlockRegex.Match(macro.Content);
+        var match = MetadataParser.MetadataBlockRegex.Match(macro.Content);
         if (!match.Success)
             return macro.Content;
         return macro.Content[..match.Index] + macro.Content[(match.Index + match.Length)..].TrimStart('\r', '\n');

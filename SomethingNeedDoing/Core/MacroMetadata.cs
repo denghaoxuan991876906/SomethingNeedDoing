@@ -48,6 +48,11 @@ public class MacroMetadata
     public Dictionary<string, string> AdditionalData { get; set; } = [];
 
     /// <summary>
+    /// Gets or sets the macro configuration items.
+    /// </summary>
+    public Dictionary<string, MacroConfigItem> Configs { get; set; } = [];
+
+    /// <summary>
     /// Gets or sets the addon event configuration for this macro.
     /// </summary>
     public AddonEventConfig? AddonEventConfig { get; set; }

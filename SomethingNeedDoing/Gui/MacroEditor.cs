@@ -6,6 +6,7 @@ using ECommons.ImGuiMethods;
 using ECommons.MathHelpers;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Gui.Editor;
+using SomethingNeedDoing.Gui.Tabs;
 using SomethingNeedDoing.Managers;
 using System.Threading.Tasks;
 
@@ -14,12 +15,13 @@ namespace SomethingNeedDoing.Gui;
 /// <summary>
 /// Macro editor with IDE-like features
 /// </summary>
-public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, WindowSystem ws)
+public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, WindowSystem ws, MacroSettingsSection settingsSection)
 {
     private readonly IMacroScheduler _scheduler = scheduler;
     private readonly GitMacroManager _gitManager = gitManager;
     private UpdateState _updateState = UpdateState.Unknown;
     private readonly CodeEditor _editor = new();
+    private bool _showSettings;
 
     private enum UpdateState
     {
@@ -45,9 +47,14 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         DrawEditorToolbar(macro);
         ImGui.Separator();
 
-        var editorHeight = ImGui.GetContentRegionAvail().Y - ImGui.GetFrameHeightWithSpacing() * 2;
-        DrawCodeEditor(macro, editorHeight);
-        DrawStatusBar(macro);
+        if (_showSettings && macro is ConfigMacro m)
+            settingsSection.Draw(m);
+        else
+        {
+            var editorHeight = ImGui.GetContentRegionAvail().Y - ImGui.GetFrameHeightWithSpacing() * 2;
+            DrawCodeEditor(macro, editorHeight);
+            DrawStatusBar(macro);
+        }
     }
 
     private void DrawEmptyState()
@@ -121,6 +128,10 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         ImGui.SameLine();
         if (ImGuiUtils.IconButton(_editor.IsHighlightingSyntax() ? FontAwesomeHelper.IconCheck : FontAwesomeHelper.IconXmark, "Syntax Highlighting"))
             _editor.ToggleSyntaxHighlight();
+
+        ImGui.SameLine();
+        if (ImGuiUtils.IconButton(FontAwesomeIcon.Cog, "Settings"))
+            _showSettings ^= true;
 
         if (macro is ConfigMacro { IsGitMacro: true } configMacro)
         {
