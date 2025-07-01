@@ -189,6 +189,8 @@ public class MacroParser
             "keyitem" => ParseKeyItemCommand(info.Parameters),
             "recipe" => ParseRecipeCommand(info.Parameters),
             "require" => ParseRequireCommand(info.Parameters),
+            "requirerepair" => ParseRequireRepairCommand(info.Parameters),
+            "requirespiritbond" => ParseRequireSpiritbondCommand(info.Parameters),
             "runmacro" => ParseRunMacroCommand(info.Parameters, scheduler),
             "send" => ParseKeyCommand<SendCommand>(info.Parameters),
             "hold" => ParseKeyCommand<HoldCommand>(info.Parameters),
@@ -401,6 +403,28 @@ public class MacroParser
     {
         var conditions = parameters.Split(',').Select(c => c.Trim()).ToArray();
         return new RequireCommand(parameters, conditions);
+    }
+
+    private RequireRepairCommand ParseRequireRepairCommand(string parameters)
+    {
+        if (string.IsNullOrWhiteSpace(parameters))
+            return new RequireRepairCommand(parameters, 0);
+
+        if (int.TryParse(parameters.Trim(), out var durabilityThreshold))
+            return new RequireRepairCommand(parameters, durabilityThreshold);
+
+        throw new MacroSyntaxError($"Invalid durability threshold: {parameters}");
+    }
+
+    private RequireSpiritbondCommand ParseRequireSpiritbondCommand(string parameters)
+    {
+        if (string.IsNullOrWhiteSpace(parameters))
+            return new RequireSpiritbondCommand(parameters, 100f);
+
+        if (float.TryParse(parameters.Trim(), out var within))
+            return new RequireSpiritbondCommand(parameters, within);
+
+        throw new MacroSyntaxError($"Invalid within percentage: {parameters}");
     }
 
     private RunMacroCommand ParseRunMacroCommand(string parameters, IMacroScheduler scheduler)

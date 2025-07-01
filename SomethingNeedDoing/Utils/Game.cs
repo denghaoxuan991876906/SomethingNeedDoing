@@ -1,5 +1,4 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
-using ECommons;
 using ECommons.ExcelServices;
 using ECommons.UIHelpers.AddonMasterImplementations;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -33,6 +32,65 @@ public static unsafe class Game
         var result = agent->UseItem(itemId);
         if (result != 0)
             throw new MacroException("Failed to use item");
+    }
+
+    public static bool NeedsRepair(int durabilityThreshold = 0)
+    {
+        var container = InventoryManager.Instance()->GetInventoryContainer(InventoryType.EquippedItems);
+        if (container == null) return false;
+
+        for (var i = 0; i < container->Size; i++)
+        {
+            var item = container->GetInventorySlot(i);
+            if (item is null) continue;
+
+            var durabilityPercent = Convert.ToInt32(Convert.ToDouble(item->Condition) / 30000.0 * 100.0);
+            if (durabilityPercent <= durabilityThreshold)
+                return true;
+        }
+        return false;
+    }
+
+    public static bool HasSpiritbondedItems(float within = 100)
+    {
+        var equipped = InventoryManager.Instance()->GetInventoryContainer(InventoryType.EquippedItems);
+        if (equipped == null || !equipped->IsLoaded) return false;
+
+        var hasFullySpiritbonded = false;
+        var maxPartialSpiritbond = 0f;
+        var itemCount = 0;
+
+        for (var i = 0; i < equipped->Size; i++)
+        {
+            var item = equipped->GetInventorySlot(i);
+            if (item == null || item->ItemId == 0) continue;
+
+            itemCount++;
+            var spiritbond = item->SpiritbondOrCollectability / 100f;
+
+            if (spiritbond >= 100f)
+                hasFullySpiritbonded = true;
+            else
+                maxPartialSpiritbond = Math.Max(maxPartialSpiritbond, spiritbond);
+        }
+
+        if (itemCount == 0) return false;
+
+        // All items are fully spiritbonded
+        if (maxPartialSpiritbond == 0f)
+            return true;
+
+        // No fully spiritbonded items
+        if (!hasFullySpiritbonded) return false;
+
+        // 100 = a single spiritbond is good enough
+        if (within >= 100f)
+            return true;
+
+        // Continue if next highest is within threshold, otherwise pause
+        var shouldPause = maxPartialSpiritbond < within;
+        Svc.Log.Debug($"Highest partial spiritbond: {maxPartialSpiritbond:F1}%, threshold: {within:F1}%, pausing: {shouldPause}");
+        return shouldPause;
     }
 
     public static class Crafting
