@@ -14,7 +14,7 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 public class RequireSpiritbondCommand(string text, float within = 100f) : RequireCommandBase(text)
 {
     /// <inheritdoc/>
-    protected override Task<bool> CheckCondition(MacroContext context) => Task.FromResult(Game.HasSpiritbondedItems(within));
+    protected override Task<bool> CheckCondition(MacroContext context) => Task.FromResult(!Game.HasSpiritbondedItems(within));
 
     /// <inheritdoc/>
     protected override string GetErrorMessage() => $"No items are spiritbonded (within: {within}%)";
