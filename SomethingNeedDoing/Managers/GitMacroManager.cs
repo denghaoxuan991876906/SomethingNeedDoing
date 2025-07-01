@@ -59,6 +59,35 @@ public class GitMacroManager : IDisposable
     }
 
     /// <summary>
+    /// Adds a new Git macro from a full GitHub URL.
+    /// </summary>
+    /// <param name="githubUrl">The full GitHub URL (e.g., https://github.com/owner/repo/blob/branch/path)</param>
+    /// <returns>The created Git macro.</returns>
+    public async Task<ConfigMacro> AddGitMacroFromUrl(string githubUrl)
+    {
+        var (repositoryUrl, filePath, branch) = ParseGitHubUrl(githubUrl);
+        if (string.IsNullOrEmpty(repositoryUrl) || string.IsNullOrEmpty(filePath))
+            throw new ArgumentException("Invalid GitHub URL. Please use format: https://github.com/owner/repo/blob/branch/path");
+
+        // Store the full GitHub URL in RepositoryUrl for UI consistency
+        var macro = new ConfigMacro
+        {
+            GitInfo =
+            {
+                RepositoryUrl = githubUrl, // Store the full URL
+                FilePath = filePath,
+                Branch = branch
+            }
+        };
+
+        await UpdateMacro(macro);
+        C.Macros.Add(macro);
+        C.Save();
+
+        return macro;
+    }
+
+    /// <summary>
     /// Adds a new Git macro.
     /// </summary>
     /// <param name="repositoryUrl">The Git repository URL.</param>
@@ -67,8 +96,9 @@ public class GitMacroManager : IDisposable
     /// <returns>The created Git macro.</returns>
     public async Task<ConfigMacro> AddGitMacro(string repositoryUrl, string filePath, string branch = "main")
     {
-        var (ownerAndRepo, _) = GetOwnerAndRepo(repositoryUrl);
-        var parts = ownerAndRepo.Split('/');
+        var (owner, repo) = GetOwnerAndRepo(repositoryUrl);
+        if (string.IsNullOrEmpty(owner) || string.IsNullOrEmpty(repo))
+            throw new ArgumentException("Invalid repository URL");
 
         var macro = new ConfigMacro
         {
@@ -77,8 +107,8 @@ public class GitMacroManager : IDisposable
                 RepositoryUrl = repositoryUrl,
                 FilePath = filePath,
                 Branch = branch,
-                Owner = parts[0],
-                Repo = parts[1]
+                Owner = owner,
+                Repo = repo
             }
         };
 
@@ -110,12 +140,7 @@ public class GitMacroManager : IDisposable
         // Remove .git suffix if present
         repo = repo.EndsWith(".git") ? repo[..^4] : repo;
 
-        // Extract file path from the URL
-        var uri = new Uri(macro.GitInfo.RepositoryUrl);
-        var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        var filePath = string.Join("/", segments[4..]); // Skip owner/repo/blob/branch
-        filePath = Uri.UnescapeDataString(filePath);
-
+        var filePath = macro.GitInfo.FilePath;
         Svc.Log.Debug($"Checking for updates for {macro.Name}");
         Svc.Log.Debug($"File: {filePath}");
 
@@ -197,12 +222,7 @@ public class GitMacroManager : IDisposable
         // Remove .git suffix if present
         repo = repo.EndsWith(".git") ? repo[..^4] : repo;
 
-        // Extract file path from the URL
-        var uri = new Uri(macro.GitInfo.RepositoryUrl);
-        var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        var filePath = string.Join("/", segments[4..]); // Skip owner/repo/blob/branch
-        filePath = Uri.UnescapeDataString(filePath);
-
+        var filePath = macro.GitInfo.FilePath;
         Svc.Log.Debug($"File path: {filePath}");
 
         var url = $"https://api.github.com/repos/{owner}/{repo}/commits?path={Uri.EscapeDataString(filePath)}";
@@ -256,7 +276,7 @@ public class GitMacroManager : IDisposable
     /// <summary>
     /// Gets the owner and repository name from a repository URL.
     /// </summary>
-    /// <param name="url">The repository URL.</param>
+    /// <param name="url">The repository URL (can be full GitHub URL or base repo URL).</param>
     /// <returns>The owner and repository name.</returns>
     private (string owner, string repo) GetOwnerAndRepo(string url)
     {
@@ -271,17 +291,42 @@ public class GitMacroManager : IDisposable
             if (segments.Length < 2)
                 return (string.Empty, string.Empty);
 
-            if (segments.Length >= 4 && segments[2] == "blob") // github.com/owner/repo/blob/branch/path
-                return (segments[0], segments[1]);
-            else if (segments.Length >= 2) // github.com/owner/repo
-                return (segments[0], segments[1]);
-
-            return (string.Empty, string.Empty);
+            // Always return the first two segments (owner/repo) regardless of URL type
+            return (segments[0], segments[1]);
         }
         catch (Exception ex)
         {
             Svc.Log.Error(ex, $"Failed to parse repository URL: {url}");
             return (string.Empty, string.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Parses a full GitHub URL to extract repository URL, file path, and branch.
+    /// </summary>
+    /// <param name="url">The full GitHub URL (e.g., https://github.com/owner/repo/blob/branch/path)</param>
+    /// <returns>The repository URL, file path, and branch.</returns>
+    private (string repositoryUrl, string filePath, string branch) ParseGitHubUrl(string url)
+    {
+        try
+        {
+            var uri = new Uri(url);
+            var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+            if (segments.Length < 5 || segments[2] != "blob")
+                return (string.Empty, string.Empty, "main");
+
+            var owner = segments[0];
+            var repo = segments[1];
+            var branch = segments[3];
+            var filePath = string.Join("/", segments[4..]);
+
+            var repositoryUrl = $"https://github.com/{owner}/{repo}";
+            return (repositoryUrl, filePath, branch);
+        }
+        catch
+        {
+            return (string.Empty, string.Empty, "main");
         }
     }
 
@@ -302,11 +347,7 @@ public class GitMacroManager : IDisposable
 
         repo = repo.EndsWith(".git") ? repo[..^4] : repo;
 
-        var uri = new Uri(macro.GitInfo.RepositoryUrl);
-        var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        var filePath = string.Join("/", segments[4..]); // skip owner/repo/blob/branch
-        filePath = Uri.UnescapeDataString(filePath);
-
+        var filePath = macro.GitInfo.FilePath;
         Svc.Log.Debug($"Updating macro {macro.Name}");
         Svc.Log.Debug($"File: {filePath}");
 
@@ -338,14 +379,14 @@ public class GitMacroManager : IDisposable
         }
 
         // Download the file content
-        var fileUrl = $"https://raw.githubusercontent.com/{owner}/{repo}/{commitHash}/{filePath}";
+        var fileUrl = $"https://raw.githubusercontent.com/{owner}/{repo}/{macro.GitInfo.Branch}/{filePath}";
         Svc.Log.Debug($"Downloading file from: {fileUrl}");
 
         var fileResponse = await _httpClient.GetAsync(fileUrl);
         if (!fileResponse.IsSuccessStatusCode)
         {
             var error = await fileResponse.Content.ReadAsStringAsync();
-            Svc.Log.Error($"Failed to download file: {fileResponse.StatusCode} - {error}");
+            Svc.Log.Error($"Failed to download file: {fileResponse.StatusCode} - {error} from url [{fileUrl}] for macro [{macro.Name}]");
             throw new Exception($"Failed to download file: {fileResponse.StatusCode}");
         }
 

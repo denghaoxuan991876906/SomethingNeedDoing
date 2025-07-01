@@ -5,6 +5,7 @@ using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Gui.Modals;
 using SomethingNeedDoing.Gui.Tabs;
+using SomethingNeedDoing.Managers;
 using System.Diagnostics;
 
 namespace SomethingNeedDoing.Gui;
@@ -14,15 +15,17 @@ public class MainWindow : Window
     private readonly HelpTab _helpTab;
     private readonly MacrosTab _macrosTab;
     private readonly VersionHistoryModal _versionHistoryModal;
+    private readonly CreateMacroModal _createMacroModal;
     private bool ClickedHeaderLastFrame;
     private bool ClickedHeaderCurrentFrame;
 
-    public MainWindow(IMacroScheduler scheduler, MacroEditor macroEditor, HelpTab helpTab, VersionHistoryModal versionHistoryModal)
+    public MainWindow(IMacroScheduler scheduler, MacroEditor macroEditor, HelpTab helpTab, VersionHistoryModal versionHistoryModal, GitMacroManager gitManager)
         : base($"{P.Name} v{P.Version}###{P.Name}_{nameof(MainWindow)}", ImGuiWindowFlags.NoScrollbar)
     {
         _helpTab = helpTab;
-        _macrosTab = new MacrosTab(scheduler, macroEditor);
+        _macrosTab = new MacrosTab(scheduler, macroEditor, gitManager);
         _versionHistoryModal = versionHistoryModal;
+        _createMacroModal = new CreateMacroModal(gitManager);
 
         Size = new Vector2(1000, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
@@ -69,7 +72,7 @@ public class MainWindow : Window
 
     public override void Draw()
     {
-        CreateMacroModal.DrawModal();
+        _createMacroModal.DrawModal();
         CreateFolderModal.DrawModal();
         RenameModal.DrawModal();
         RenameFolderModal.DrawModal();

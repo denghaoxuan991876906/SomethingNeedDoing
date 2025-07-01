@@ -5,10 +5,11 @@ using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Gui.Modals;
+using SomethingNeedDoing.Managers;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 
-public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor)
+public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor, GitMacroManager gitManager)
 {
     private static class UiConstants
     {
@@ -29,6 +30,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor)
     }
 
     private readonly State _state = new();
+    private readonly CreateMacroModal _createMacroModal = new(gitManager);
 
     public void Draw()
     {
@@ -99,7 +101,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor)
         using var style = ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
 
         if (ImGuiUtils.IconButton(FontAwesomeIcon.FileAlt, "Create a new macro"))
-            CreateMacroModal.Open();
+            _createMacroModal.Open();
 
         ImGui.SameLine(0, 5);
 

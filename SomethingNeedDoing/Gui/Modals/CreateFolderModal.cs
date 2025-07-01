@@ -42,7 +42,9 @@ public static class CreateFolderModal
 
         ImGui.AlignTextToFramePadding();
         ImGui.Text("Name:");
+
         ImGui.SameLine();
+        ImGuiUtils.SetFocusIfAppearing();
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
         ImGui.InputText("##FolderName", ref _newFolderName, 100);
 

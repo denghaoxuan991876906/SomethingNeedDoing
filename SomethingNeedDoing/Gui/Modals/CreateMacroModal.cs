@@ -1,29 +1,36 @@
 ﻿using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
+using SomethingNeedDoing.Managers;
+using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.Gui.Modals;
-public static class CreateMacroModal
+public class CreateMacroModal(GitMacroManager gitManager)
 {
-    private static Vector2 Size = new(400, 200);
+    private static Vector2 Size = new(400, 250);
     private static bool IsOpen = false;
 
     private static string _newMacroName = "New Macro";
     private static MacroType _newMacroType = MacroType.Native;
+    private static string _githubUrl = "";
+    private static bool _isImporting = false;
+    private static string _importError = "";
 
-    public static void Open()
+    public void Open()
     {
         IsOpen = true;
         _newMacroName = "New Macro";
         _newMacroType = MacroType.Native;
+        _githubUrl = "";
+        _importError = "";
     }
 
-    public static void Close()
+    public void Close()
     {
         IsOpen = false;
         ImGui.CloseCurrentPopup();
     }
 
-    public static void DrawModal()
+    public void DrawModal()
     {
         if (!IsOpen) return;
 
@@ -40,14 +47,14 @@ public static class CreateMacroModal
         ImGui.SameLine();
         ImGui.Text("Create New Macro");
         ImGui.Separator();
-        ImGui.Spacing();
 
         ImGui.AlignTextToFramePadding();
         ImGui.Text("Name:");
+
         ImGui.SameLine();
-        ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
+        ImGuiUtils.SetFocusIfAppearing();
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
         ImGui.InputText("##MacroName", ref _newMacroName, 100);
-        ImGui.PopItemWidth();
 
         ImGui.Spacing();
 
@@ -58,23 +65,82 @@ public static class CreateMacroModal
         _newMacroType = ImGuiUtils.EnumRadioButtons(_newMacroType);
 
         ImGui.Spacing();
+
+        ImGuiUtils.Section("Optional: Import from Github", () =>
+        {
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text("GitHub URL:");
+            ImGui.SameLine();
+            ImGuiEx.Tooltip("Enter a GitHub URL (e.g., https://github.com/owner/repo/blob/branch/path)");
+
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            ImGui.InputText("##GitHubUrl", ref _githubUrl, 500);
+
+            if (!string.IsNullOrEmpty(_importError))
+            {
+                ImGui.Spacing();
+                ImGuiEx.Text(EzColor.RedBright, _importError);
+            }
+        });
+
+        ImGui.Spacing();
         ImGui.Spacing();
 
-        ImGuiUtils.CenteredButtons(("Create", () =>
+        if (_isImporting)
+            ImGuiUtils.CenteredButtons(("Importing...", () => { }));
+        else
         {
-            var uniqueName = C.GetUniqueMacroName(_newMacroName);
-            var newMacro = new ConfigMacro
+            ImGuiUtils.CenteredButtons(("Create", async () =>
             {
-                Name = uniqueName,
-                Type = _newMacroType == 0 ? MacroType.Native : MacroType.Lua,
-                Content = string.Empty,
-                FolderPath = ConfigMacro.Root
-            };
+                if (!string.IsNullOrWhiteSpace(_githubUrl))
+                    await ImportFromGitHub();
+                else
+                {
+                    var uniqueName = C.GetUniqueMacroName(_newMacroName);
+                    var newMacro = new ConfigMacro
+                    {
+                        Name = uniqueName,
+                        Type = _newMacroType == 0 ? MacroType.Native : MacroType.Lua,
+                        Content = string.Empty,
+                        FolderPath = ConfigMacro.Root
+                    };
 
-            C.Macros.Add(newMacro);
-            C.Save();
+                    C.Macros.Add(newMacro);
+                    C.Save();
+                    Close();
+                }
+            }
+            ), ("Cancel", Close));
+        }
+    }
+
+    private async Task ImportFromGitHub()
+    {
+        _isImporting = true;
+        _importError = "";
+
+        try
+        {
+            // Create the git macro using the GitMacroManager
+            var macro = await gitManager.AddGitMacroFromUrl(_githubUrl);
+
+            // Update the name if provided
+            if (!string.IsNullOrWhiteSpace(_newMacroName) && _newMacroName != "New Macro")
+            {
+                macro.Name = C.GetUniqueMacroName(_newMacroName);
+                C.Save();
+            }
+
             Close();
         }
-        ), ("Cancel", Close));
+        catch (Exception ex)
+        {
+            _importError = $"Failed to import from GitHub: {ex.Message}";
+            Svc.Log.Error(ex, "Failed to import macro from GitHub");
+        }
+        finally
+        {
+            _isImporting = false;
+        }
     }
 }
