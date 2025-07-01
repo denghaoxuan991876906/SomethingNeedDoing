@@ -17,15 +17,42 @@ public class ConfigModule(IMacro macro) : LuaModuleBase
             return defaultValue ?? string.Empty;
 
         if (macro.Metadata.Configs.TryGetValue(name, out var configItem))
-            return configItem.Value;
+            return ValidateValue(configItem, configItem.Value);
 
         return defaultValue ?? string.Empty;
     }
 
-    [LuaFunction] public int GetInt(string name, object? defaultValue = null) => Get(name, defaultValue) is int i ? i : throw new InvalidCastException($"Config value {name} is not an int");
-    [LuaFunction] public float GetFloat(string name, object? defaultValue = null) => Get(name, defaultValue) is float f ? f : throw new InvalidCastException($"Config value {name} is not a float");
-    [LuaFunction] public bool GetBool(string name, object? defaultValue = null) => Get(name, defaultValue) is bool b ? b : throw new InvalidCastException($"Config value {name} is not a bool");
-    [LuaFunction] public string GetString(string name, object? defaultValue = null) => Get(name, defaultValue) is string s ? s : throw new InvalidCastException($"Config value {name} is not a string");
+    [LuaFunction]
+    public int GetInt(string name, object? defaultValue = null) => Get(name, defaultValue) switch
+    {
+        int i => i,
+        string s when int.TryParse(s, out var parsed) => parsed,
+        double d => (int)d,
+        float f => (int)f,
+        _ => throw new InvalidCastException($"Config value {name} cannot be converted to int. Current value: {Get(name, defaultValue)} (type: {Get(name, defaultValue)?.GetType().Name})")
+    };
+
+    [LuaFunction]
+    public float GetFloat(string name, object? defaultValue = null) => Get(name, defaultValue) switch
+    {
+        float f => f,
+        double d => (float)d,
+        int i => i,
+        string s when float.TryParse(s, out var parsed) => parsed,
+        _ => throw new InvalidCastException($"Config value {name} cannot be converted to float. Current value: {Get(name, defaultValue)} (type: {Get(name, defaultValue)?.GetType().Name})")
+    };
+
+    [LuaFunction]
+    public bool GetBool(string name, object? defaultValue = null) => Get(name, defaultValue) switch
+    {
+        bool b => b,
+        string s when bool.TryParse(s, out var parsed) => parsed,
+        int i => i != 0,
+        _ => throw new InvalidCastException($"Config value {name} cannot be converted to bool. Current value: {Get(name, defaultValue)} (type: {Get(name, defaultValue)?.GetType().Name})")
+    };
+
+    [LuaFunction]
+    public string GetString(string name, object? defaultValue = null) => Get(name, defaultValue)?.ToString() ?? string.Empty;
 
     [LuaFunction]
     public void Set(string name, object value)
