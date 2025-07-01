@@ -4,10 +4,12 @@ using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Gui.Modals;
+using SomethingNeedDoing.Managers;
+using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 
-public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory dependencyFactory, VersionHistoryModal versionHistoryModal, MetadataParser metadataParser, IEnumerable<IDisableable> disableablePlugins)
+public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory dependencyFactory, VersionHistoryModal versionHistoryModal, MetadataParser metadataParser, GitMacroManager gitManager, IEnumerable<IDisableable> disableablePlugins)
 {
     private string _pluginDependency = string.Empty;
     private string _pluginToDisable = string.Empty;
@@ -254,7 +256,7 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
         ImGuiUtils.Section("Git Information", () =>
         {
             ImGui.AlignTextToFramePadding();
-            ImGui.Text("Repository URL:");
+            ImGui.Text("GitHub URL:");
             ImGui.SameLine(100);
 
             var repoUrl = selectedMacro.GitInfo.RepositoryUrl;
@@ -264,6 +266,7 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                 selectedMacro.GitInfo.RepositoryUrl = repoUrl;
                 C.Save();
             }
+            ImGuiEx.Tooltip("Enter a GitHub URL (e.g., https://github.com/owner/repo/blob/branch/path)");
 
             if (selectedMacro.IsGitMacro)
             {
@@ -276,6 +279,23 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                 }
 
                 var group = new ImGuiEx.EzButtonGroup();
+                group.AddIconWithText(FontAwesomeIcon.Download, "Import", () =>
+                {
+                    if (!string.IsNullOrWhiteSpace(repoUrl))
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await gitManager.AddGitInfoToMacro(selectedMacro, repoUrl);
+                            }
+                            catch (Exception ex)
+                            {
+                                Svc.Log.Error(ex, $"Failed to import macro from {repoUrl}");
+                            }
+                        });
+                    }
+                });
                 group.AddIconWithText(FontAwesomeIcon.History, "Version History", () => versionHistoryModal.Open(selectedMacro));
                 group.AddIconWithText(FontAwesomeIcon.Sync, "Reset Git Info",
                     () => { selectedMacro.GitInfo = new GitInfo(); C.Save(); }, "Wipes all git information and reverts this macro back to a standard local macro.",

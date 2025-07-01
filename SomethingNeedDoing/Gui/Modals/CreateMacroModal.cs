@@ -126,11 +126,10 @@ public class CreateMacroModal(GitMacroManager gitManager)
 
             // Update the name if provided
             if (!string.IsNullOrWhiteSpace(_newMacroName) && _newMacroName != "New Macro")
-            {
                 macro.Name = C.GetUniqueMacroName(_newMacroName);
-                C.Save();
-            }
 
+            macro.Type = _newMacroType;
+            C.Save();
             Close();
         }
         catch (Exception ex)

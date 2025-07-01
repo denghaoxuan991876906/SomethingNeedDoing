@@ -91,6 +91,24 @@ public class GitMacroManager : IDisposable
         return macro;
     }
 
+    public async Task<ConfigMacro> AddGitInfoToMacro(ConfigMacro macro, string githubUrl)
+    {
+        var (repositoryUrl, filePath, branch) = ParseGitHubUrl(githubUrl);
+        if (string.IsNullOrEmpty(repositoryUrl) || string.IsNullOrEmpty(filePath))
+            throw new ArgumentException("Invalid GitHub URL. Please use format: https://github.com/owner/repo/blob/branch/path");
+
+        macro.GitInfo = new GitInfo
+        {
+            RepositoryUrl = githubUrl, // Store the full URL
+            FilePath = filePath,
+            Branch = branch
+        };
+
+        await UpdateMacro(macro);
+        C.Save();
+        return macro;
+    }
+
     /// <summary>
     /// Adds a new Git macro.
     /// </summary>
@@ -195,6 +213,7 @@ public class GitMacroManager : IDisposable
         await CheckForUpdates(macro);
         if (macro.GitInfo.HasUpdate)
             await UpdateMacro(macro, null);
+        macro.GitInfo.HasUpdate = false;
     }
 
     public class GitCommit
