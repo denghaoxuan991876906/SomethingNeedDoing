@@ -14,7 +14,7 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 public class RequireRepairCommand(string text, int durabilityThreshold = 0) : RequireCommandBase(text)
 {
     /// <inheritdoc/>
-    protected override Task<bool> CheckCondition(MacroContext context) => Task.FromResult(Game.NeedsRepair(durabilityThreshold));
+    protected override Task<bool> CheckCondition(MacroContext context) => Task.FromResult(!Game.NeedsRepair(durabilityThreshold));
 
     /// <inheritdoc/>
     protected override string GetErrorMessage() => $"No items need repair (durability threshold: {durabilityThreshold}%)";
