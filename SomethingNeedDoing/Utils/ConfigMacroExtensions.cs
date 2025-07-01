@@ -93,4 +93,29 @@ public static class ConfigMacroExtensions
         foreach (var triggerEvent in eventsToAdd)
             macro.AddTriggerEvent(scheduler, triggerEvent);
     }
+
+    public static bool HasValidConfigs(this IMacro macro)
+    {
+        if (macro is ConfigMacro m)
+        {
+            foreach (var cfg in m.Metadata.Configs)
+            {
+                if (!string.IsNullOrEmpty(cfg.Value.ValidationPattern))
+                {
+                    try
+                    {
+                        var regex = new Regex(cfg.Value.ValidationPattern);
+                        if (!regex.IsMatch(cfg.Value.ToString() ?? string.Empty))
+                            return false;
+                    }
+                    catch
+                    {
+                        Svc.Log.Error($"Unable to validate config value [{cfg.Value}] against pattern [{cfg.Value.ValidationPattern}]");
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
 }

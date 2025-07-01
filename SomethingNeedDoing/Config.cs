@@ -1,7 +1,10 @@
-﻿using Dalamud.Game.Text;
+﻿using Dalamud.Game.Network.Structures;
+using Dalamud.Game.Text;
 using ECommons.Configuration;
+using FFXIVClientStructs.FFXIV.Common.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using SomethingNeedDoing.Core.Interfaces;
 using System.IO;
 using System.Text;
 
@@ -420,7 +423,6 @@ public class Config : IEzConfig
             Svc.Log.Error(ex, $"Failed to set property {name} to {value}");
         }
     }
-
     #endregion
 }
 

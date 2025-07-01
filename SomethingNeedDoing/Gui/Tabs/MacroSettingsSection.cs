@@ -130,23 +130,49 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                     default:
                         var stringValue = configValue.Value.ToString() ?? string.Empty;
                         ImGui.SetNextItemWidth(300);
-                        if (ImGui.InputText($"##{configName}Value", ref stringValue, 1000))
+
+                        var isValid = true;
+                        var validationMessage = string.Empty;
+                        if (!string.IsNullOrEmpty(configValue.ValidationPattern))
                         {
-                            configValue.Value = stringValue;
-                            valueChanged = true;
+                            try
+                            {
+                                var regex = new System.Text.RegularExpressions.Regex(configValue.ValidationPattern);
+                                isValid = regex.IsMatch(stringValue);
+                                if (!isValid)
+                                    validationMessage = configValue.ValidationMessage ?? "Value does not match pattern";
+                            }
+                            catch (Exception ex)
+                            {
+                                isValid = false;
+                                validationMessage = $"Invalid validation pattern: {ex.Message}";
+                            }
+                        }
+
+                        using (ImRaii.PushColor(ImGuiCol.Text, isValid ? ImGuiColors.HealerGreen : ImGuiColors.DalamudRed, !string.IsNullOrEmpty(configValue.ValidationPattern)))
+                        {
+                            if (ImGui.InputText($"##{configName}Value", ref stringValue, 1000))
+                            {
+                                configValue.Value = stringValue;
+                                valueChanged = true;
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(configValue.ValidationPattern))
+                        {
+                            ImGui.SameLine();
+                            ImGuiEx.Icon(isValid ? ImGuiColors.HealerGreen : ImGuiColors.DalamudRed, isValid ? FontAwesomeIcon.Check : FontAwesomeIcon.ExclamationTriangle);
+
+                            if (!isValid && !string.IsNullOrEmpty(validationMessage))
+                                ImGuiEx.Tooltip(validationMessage);
+                            else if (isValid)
+                                ImGuiEx.Tooltip("Value matches validation pattern");
                         }
                         break;
                 }
 
                 if (valueChanged)
                     C.Save();
-
-                if (!string.IsNullOrEmpty(configValue.ValidationPattern))
-                {
-                    ImGui.SameLine();
-                    ImGui.TextColored(ImGuiColors.DalamudGrey, "✓");
-                    ImGuiEx.Tooltip($"Validates against pattern: {configValue.ValidationPattern}");
-                }
 
                 if (configValue.Required)
                 {
