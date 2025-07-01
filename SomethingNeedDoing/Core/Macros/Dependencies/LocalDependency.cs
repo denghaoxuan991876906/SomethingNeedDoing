@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 namespace SomethingNeedDoing.Core;
 
 /// <summary>
-/// Represents a local dependency (file or macro).
+/// Represents a local file dependency
 /// </summary>
 public class LocalDependency : IMacroDependency
 {
@@ -22,21 +22,22 @@ public class LocalDependency : IMacroDependency
     public string Source { get; set; } = string.Empty;
 
     /// <inheritdoc/>
-    public async Task<string> GetContentAsync() => await File.ReadAllTextAsync(Source);
+    public async Task<string> GetContentAsync() => await File.ReadAllTextAsync(Source.NormalizeFilePath());
 
     /// <inheritdoc/>
-    public Task<bool> IsAvailableAsync() => Task.FromResult(File.Exists(Source));
+    public Task<bool> IsAvailableAsync() => Task.FromResult(File.Exists(Source.NormalizeFilePath()));
 
     /// <inheritdoc/>
     public async Task<DependencyValidationResult> ValidateAsync()
     {
-        if (!File.Exists(Source))
-            return DependencyValidationResult.Failure($"File not found: {Source}");
+        var normalizedPath = Source.NormalizeFilePath();
+        if (!File.Exists(normalizedPath))
+            return DependencyValidationResult.Failure($"File not found: {normalizedPath}");
 
         try
         {
             // Try to read the file to validate it
-            await File.ReadAllTextAsync(Source);
+            await File.ReadAllTextAsync(normalizedPath);
             return DependencyValidationResult.Success();
         }
         catch (Exception ex)

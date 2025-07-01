@@ -155,9 +155,15 @@ public class MetadataParser
         {
             metadataDict["dependencies"] = macro.Metadata.Dependencies.Select(dep => new Dictionary<string, object>
             {
-                ["repo"] = dep.Source,
-                ["path"] = dep.Name,
-                ["name"] = dep.Name
+                ["source"] = dep.Source,
+                ["name"] = dep.Name,
+                ["type"] = dep switch
+                {
+                    GitDependency => "git",
+                    LocalMacroDependency => "macro",
+                    LocalDependency => "file",
+                    _ => "unknown"
+                }
             }).ToList();
         }
 
@@ -246,6 +252,8 @@ public class MetadataParser
                     var path = depDict.TryGetValue("path", out var p) ? p?.ToString() : string.Empty;
                     var name = depDict.TryGetValue("name", out var n) ? n?.ToString() : string.Empty;
                     var branch = depDict.TryGetValue("branch", out var b) ? b?.ToString() : "main";
+                    var source = depDict.TryGetValue("source", out var s) ? s?.ToString() : string.Empty;
+                    var type = depDict.TryGetValue("type", out var t) ? t?.ToString() : string.Empty;
 
                     if (!string.IsNullOrEmpty(repo) && !string.IsNullOrEmpty(path))
                     {
@@ -260,6 +268,30 @@ public class MetadataParser
                             Source = repo,
                             Name = string.IsNullOrEmpty(name) ? Path.GetFileNameWithoutExtension(path) : name
                         });
+                    }
+                    else if (!string.IsNullOrEmpty(source))
+                    {
+                        if (type == "macro" && Guid.TryParse(source, out _))
+                        {
+                            var macro = C.GetMacro(source);
+                            if (macro != null)
+                            {
+                                result.Add(new LocalMacroDependency
+                                {
+                                    Source = source,
+                                    Name = string.IsNullOrEmpty(name) ? macro.Name : name
+                                });
+                            }
+                        }
+                        else if (File.Exists(source.NormalizeFilePath()))
+                        {
+                            var normalizedPath = source.NormalizeFilePath();
+                            result.Add(new LocalDependency
+                            {
+                                Source = normalizedPath,
+                                Name = string.IsNullOrEmpty(name) ? Path.GetFileNameWithoutExtension(normalizedPath) : name
+                            });
+                        }
                     }
                 }
             }

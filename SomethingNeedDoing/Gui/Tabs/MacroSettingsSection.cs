@@ -12,7 +12,9 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
     private string _pluginDependency = string.Empty;
     private string _pluginToDisable = string.Empty;
     private string _gitUrl = string.Empty;
+    private string _localFilePath = string.Empty;
     private DependencyType _dependencyType = DependencyType.Local;
+    private LocalDependencyType _localDependencyType = LocalDependencyType.Macro;
     private readonly List<string> _disableablePluginNames = [.. disableablePlugins.Select(p => p.InternalName)];
 
     public Action? OnContentUpdated { get; set; } // for refreshing after writing the metadata
@@ -476,10 +478,14 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                     using var __ = ImRaii.PushId(i);
 
                     var macroId = dependency.Id;
-                    var isGit = macroId.StartsWith("git://");
                     var displayName = $"[{macroId[..7]}] {dependency.Name}";
 
-                    ImGuiEx.IconWithText(isGit ? ImGuiColors.ParsedBlue : ImGuiColors.DalamudWhite, isGit ? FontAwesomeIcon.CloudDownloadAlt : FontAwesomeIcon.FileAlt, displayName);
+                    var icon = macroId.StartsWith("git://") ? FontAwesomeIcon.CloudDownloadAlt :
+                              dependency is LocalMacroDependency ? FontAwesomeIcon.Code :
+                              dependency is LocalDependency ? FontAwesomeIcon.FileAlt :
+                              FontAwesomeIcon.Globe;
+
+                    ImGuiEx.IconWithText(icon, displayName);
 
                     ImGui.SameLine(ImGui.GetContentRegionAvail().X - 30);
                     if (ImGuiUtils.IconButton(FontAwesomeIcon.Trash, "Remove dependency"))
@@ -503,15 +509,40 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
 
             if (_dependencyType == DependencyType.Local)
             {
-                var localMacros = C.Macros.Where(m => m.Id != selectedMacro.Id).OrderBy(m => m.Name).ToList();
-                var selectedMacroId = string.Empty;
-                var macroNames = localMacros.ToDictionary(m => m.Id, m => $"{m.Name} [{m.FolderPath}]");
+                ImGui.Text("Local Dependency Type:");
+                ImGui.Spacing();
 
-                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                if (ImGuiEx.Combo("##LocalMacroSelector", ref selectedMacroId, localMacros.Select(m => m.Id), names: macroNames))
+                ImGuiEx.EnumRadio(ref _localDependencyType, true);
+                ImGui.Spacing();
+
+                if (_localDependencyType == LocalDependencyType.Macro)
                 {
-                    selectedMacro.Metadata.Dependencies.Add(dependencyFactory.CreateDependency(selectedMacroId));
-                    C.Save();
+                    var localMacros = C.Macros.Where(m => m.Id != selectedMacro.Id).OrderBy(m => m.Name).ToList();
+                    var selectedMacroId = string.Empty;
+                    var macroNames = localMacros.ToDictionary(m => m.Id, m => $"{m.Name} [{m.FolderPath}]");
+
+                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                    if (ImGuiEx.Combo("##LocalMacroSelector", ref selectedMacroId, localMacros.Select(m => m.Id), names: macroNames))
+                    {
+                        selectedMacro.Metadata.Dependencies.Add(dependencyFactory.CreateDependency(selectedMacroId));
+                        C.Save();
+                    }
+                }
+                else
+                {
+                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                    ImGui.InputText("##LocalFilePath", ref _localFilePath, 1000);
+                    ImGuiEx.Tooltip("Enter the full path to a local file");
+
+                    if (ImGui.Button("Add File Dependency"))
+                    {
+                        if (!string.IsNullOrWhiteSpace(_localFilePath))
+                        {
+                            selectedMacro.Metadata.Dependencies.Add(dependencyFactory.CreateDependency(_localFilePath));
+                            C.Save();
+                            _localFilePath = string.Empty;
+                        }
+                    }
                 }
             }
             else

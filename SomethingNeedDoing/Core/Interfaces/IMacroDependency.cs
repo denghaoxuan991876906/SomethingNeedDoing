@@ -63,6 +63,22 @@ public enum DependencyType
 }
 
 /// <summary>
+/// Enum for local dependency types.
+/// </summary>
+public enum LocalDependencyType
+{
+    /// <summary>
+    /// A local file dependency.
+    /// </summary>
+    File,
+
+    /// <summary>
+    /// A local macro dependency.
+    /// </summary>
+    Macro
+}
+
+/// <summary>
 /// Represents the result of validating a dependency.
 /// </summary>
 public class DependencyValidationResult

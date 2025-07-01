@@ -1,5 +1,4 @@
 using SomethingNeedDoing.Core.Interfaces;
-using System.Net.Http;
 
 namespace SomethingNeedDoing.Core;
 
@@ -47,12 +46,25 @@ public class DependencyFactory(IGitService gitService)
                 return gitDep;
             }
         }
-        else if (System.IO.File.Exists(source))
+        else if (IsMacroId(source))
         {
+            var macro = C.GetMacro(source);
+            if (macro != null)
+            {
+                return new LocalMacroDependency
+                {
+                    Name = macro.Name,
+                    Source = source
+                };
+            }
+        }
+        else if (System.IO.File.Exists(source.NormalizeFilePath()))
+        {
+            var normalizedPath = source.NormalizeFilePath();
             return new LocalDependency
             {
-                Name = System.IO.Path.GetFileNameWithoutExtension(source),
-                Source = source
+                Name = System.IO.Path.GetFileNameWithoutExtension(normalizedPath),
+                Source = normalizedPath
             };
         }
 
@@ -63,6 +75,11 @@ public class DependencyFactory(IGitService gitService)
         };
         return httpDep;
     }
+
+    /// <summary>
+    /// Checks if a string looks like a macro ID (GUID format).
+    /// </summary>
+    private static bool IsMacroId(string source) => !string.IsNullOrWhiteSpace(source) && Guid.TryParse(source, out _);
 
     /// <summary>
     /// Normalizes a source URL to a consistent format.
