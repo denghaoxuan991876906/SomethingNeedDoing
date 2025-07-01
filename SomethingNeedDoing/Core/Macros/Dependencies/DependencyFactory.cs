@@ -97,6 +97,9 @@ public class DependencyFactory(IGitService gitService)
                 var branch = pathParts.Length > 3 && pathParts[2] == "blob" ? pathParts[3] : "main";
                 var path = pathParts.Length > 4 && pathParts[2] == "blob" ? string.Join("/", pathParts.Skip(4)) : null;
 
+                if (path != null)
+                    path = Uri.UnescapeDataString(path);
+
                 return $"git://{owner}/{repo}/{branch}/{path}";
             }
         }

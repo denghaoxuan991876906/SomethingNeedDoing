@@ -4,6 +4,7 @@ using SomethingNeedDoing.Core.Interfaces;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using SomethingNeedDoing.Core;
 
 namespace SomethingNeedDoing.Managers;
 
@@ -13,6 +14,7 @@ namespace SomethingNeedDoing.Managers;
 public class GitMacroManager : IDisposable
 {
     private readonly IMacroScheduler _scheduler;
+    private readonly MetadataParser _metadataParser;
     private readonly HttpClient _httpClient = new()
     {
         DefaultRequestHeaders =
@@ -36,10 +38,12 @@ public class GitMacroManager : IDisposable
     /// Initializes a new instance of the <see cref="GitMacroManager"/> class.
     /// </summary>
     /// <param name="scheduler">The macro scheduler.</param>
-    /// <param name="dependencyFactory">The dependency factory.</param>
-    public GitMacroManager(IMacroScheduler scheduler, IGitService gitService)
+    /// <param name="gitService">The git service.</param>
+    /// <param name="metadataParser">The metadata parser.</param>
+    public GitMacroManager(IMacroScheduler scheduler, IGitService gitService, MetadataParser metadataParser)
     {
         _scheduler = scheduler;
+        _metadataParser = metadataParser;
         _ = UpdateAllMacros();
 
         // TODO: This is like this because having a parametered construct meant that IMacroDependencies couldn't be deserialized by the json deserializer
@@ -320,6 +324,7 @@ public class GitMacroManager : IDisposable
             var repo = segments[1];
             var branch = segments[3];
             var filePath = string.Join("/", segments[4..]);
+            filePath = Uri.UnescapeDataString(filePath);
 
             var repositoryUrl = $"https://github.com/{owner}/{repo}";
             return (repositoryUrl, filePath, branch);
@@ -402,6 +407,7 @@ public class GitMacroManager : IDisposable
         macro.GitInfo.CommitHash = commitHash;
         macro.GitInfo.HasUpdate = false;
         macro.GitInfo.LastUpdateCheck = DateTime.Now;
+        macro.Metadata = _metadataParser.ParseMetadata(fileContent);
 
         // Update dependencies
         await UpdateDependencies(macro);
