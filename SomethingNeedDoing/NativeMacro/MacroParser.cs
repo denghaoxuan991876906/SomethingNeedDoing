@@ -12,21 +12,8 @@ namespace SomethingNeedDoing.NativeMacro;
 /// </summary>
 public class MacroParser
 {
-    // Combined regex pattern for all modifiers
-    private static readonly Regex ModifierRegex = new(
-        @"(?<modifier>" +
-        @"<wait\.(?<wait>\d+(?:\.\d+)?)(?:-(?<until>\d+(?:\.\d+)?))?>" + "|" +  // Wait modifier
-        @"<maxwait\.(?<maxwait>\d+(?:\.\d+)?)>" + "|" +                         // MaxWait modifier
-        @"<echo>" + "|" +                                                        // Echo modifier
-        @"<unsafe>" + "|" +                                                      // Unsafe modifier
-        @"<condition\.(?<not>(not\.|\!))?(?<conditions>[^>]+)>" + "|" +         // Condition modifier
-        @"<index\.(?<index>\d+)>" + "|" +                                       // Index modifier
-        @"<list\.(?<list>\d+)>" + "|" +                                         // List modifier
-        @"<(?<party>[1-8])>" + "|" +                                            // Party index modifier
-        @"<distance\.(?<distance>\d+(?:\.\d+)?)>" + "|" +                       // Distance modifier
-        @"<hq>" + "|" +                                                         // Item quality modifier
-        @"<errorif\.(?<errorif>[^>]+)>" +                                       // ErrorIf modifier
-        @")",
+    private static readonly Regex SndModifierRegex = new(
+        ModifierDefinitions.BuildRegexPattern(ModifierDefinitions.SndModifiers),
         RegexOptions.Compiled | RegexOptions.IgnoreCase
     );
 
@@ -43,105 +30,39 @@ public class MacroParser
     /// <exception cref="MacroSyntaxError">Thrown when the command line cannot be parsed.</exception>
     public IMacroCommand ParseLine(string text, IMacroScheduler scheduler)
     {
-        // First pass: Extract modifiers from the text
-        var (textWithoutModifiers, modifiers) = ExtractModifiers(text);
+        var (textWithoutModifiers, modifiers) = ExtractSndModifiers(text); // this is because the index modifier is a native modifier that some non-snd commands use
         Svc.Log.Verbose($"Extracted modifiers: {string.Join(", ", modifiers)}. Leftover text: [{textWithoutModifiers}]");
-
-        // Second pass: Parse the command structure without modifiers
         var commandInfo = ParseCommandStructure(textWithoutModifiers) ?? throw new MacroSyntaxError(text);
-
-        // Create command based on command type
-        var command = CreateCommand(commandInfo, scheduler);
-
-        // Apply modifiers to the command
+        var command = CreateCommand(commandInfo with { RemainingText = textWithoutModifiers }, scheduler);
         ApplyModifiers(modifiers, command);
-
         return command;
     }
 
     /// <summary>
-    /// Extracts modifiers from the command text.
+    /// Extracts only SND-specific modifiers from the command text, preserving game-supported modifiers.
     /// </summary>
     /// <param name="text">The command text.</param>
-    /// <returns>A tuple containing the text without modifiers and the list of modifiers.</returns>
-    private (string TextWithoutModifiers, List<ModifierInfo> Modifiers) ExtractModifiers(string text)
+    /// <returns>A tuple containing the text without SND modifiers and the list of SND modifiers.</returns>
+    private (string TextWithoutModifiers, List<ModifierInfo> Modifiers) ExtractSndModifiers(string text)
     {
         var modifiers = new List<ModifierInfo>();
         var textWithoutModifiers = text;
 
-        // Find all modifiers in the text from right to left
-        var matches = ModifierRegex.Matches(text).Cast<Match>().Reverse();
+        var matches = SndModifierRegex.Matches(text).Cast<Match>().Reverse();
         foreach (var match in matches)
         {
-            var modifierGroup = match.Groups["modifier"];
-            var modifierText = modifierGroup.Value;
-
-            // Extract modifier name and parameters based on which groups are present
-            string modifierName;
-            var modifierParam = string.Empty;
-
-            if (match.Groups["wait"].Success)
+            var modifierDefinition = ModifierDefinitions.FindMatchingModifier(match, ModifierDefinitions.SndModifiers);
+            if (modifierDefinition == null)
             {
-                modifierName = "wait";
-                var waitValue = match.Groups["wait"].Value;
-                var untilValue = match.Groups["until"].Success ? match.Groups["until"].Value : null;
-                modifierParam = untilValue != null ? $"{waitValue}-{untilValue}" : waitValue;
-            }
-            else if (match.Groups["maxwait"].Success)
-            {
-                modifierName = "maxwait";
-                modifierParam = match.Groups["maxwait"].Value;
-            }
-            else if (match.Groups["conditions"].Success)
-            {
-                modifierName = "condition";
-                var isNegated = match.Groups["not"].Success;
-                var conditions = match.Groups["conditions"].Value;
-                modifierParam = isNegated ? $"!{conditions}" : conditions;
-            }
-            else if (match.Groups["index"].Success)
-            {
-                modifierName = "index";
-                modifierParam = match.Groups["index"].Value;
-            }
-            else if (match.Groups["list"].Success)
-            {
-                modifierName = "list";
-                modifierParam = match.Groups["list"].Value;
-            }
-            else if (match.Groups["party"].Success)
-            {
-                modifierName = "party";
-                modifierParam = match.Groups["party"].Value;
-            }
-            else if (match.Groups["distance"].Success)
-            {
-                modifierName = "distance";
-                modifierParam = match.Groups["distance"].Value;
-            }
-            else if (modifierText == "<echo>")
-                modifierName = "echo";
-            else if (modifierText == "<unsafe>")
-                modifierName = "unsafe";
-            else if (modifierText == "<hq>")
-                modifierName = "hq";
-            else if (match.Groups["errorif"].Success)
-            {
-                modifierName = "errorif";
-                modifierParam = match.Groups["errorif"].Value;
-                Svc.Log.Debug($"Found errorif modifier with param: {modifierParam}");
-            }
-            else
-            {
-                Svc.Log.Warning($"Unknown modifier: {modifierText}");
+                Svc.Log.Warning($"Unknown SND modifier match: {match.Value}");
                 continue;
             }
 
-            // Remove the modifier from the text
-            textWithoutModifiers = textWithoutModifiers.Remove(modifierGroup.Index, modifierGroup.Length);
+            var modifierText = match.Value;
+            var modifierParam = modifierDefinition.ParameterExtractor(match);
 
-            // Add the modifier info
-            modifiers.Add(new ModifierInfo(modifierName, modifierParam, modifierText));
+            textWithoutModifiers = textWithoutModifiers.Remove(match.Index, match.Length);
+            modifiers.Add(new ModifierInfo(modifierDefinition.Name, modifierParam, modifierText));
         }
 
         return (textWithoutModifiers.Trim(), modifiers);
@@ -154,7 +75,6 @@ public class MacroParser
     /// <returns>The command parse info, or null if the text cannot be parsed.</returns>
     private CommandParseInfo? ParseCommandStructure(string text)
     {
-        // Match the basic command pattern
         var match = Regex.Match(text, @"^/(\w+)(?:\s+(.*))?$");
         if (!match.Success)
             return null;
@@ -174,7 +94,6 @@ public class MacroParser
     /// <exception cref="MacroSyntaxError">Thrown when the command cannot be created.</exception>
     private IMacroCommand CreateCommand(CommandParseInfo info, IMacroScheduler scheduler)
     {
-        // Create appropriate command based on command name
         return info.CommandName switch
         {
             "target" => ParseTargetCommand(info.Parameters),
@@ -258,7 +177,7 @@ public class MacroParser
     }
 
     #region Command Parsing
-    private NativeCommand ParseNativeCommand(CommandParseInfo info) => new($"/{info.CommandName} {info.Parameters}".TrimEnd());
+    private NativeCommand ParseNativeCommand(CommandParseInfo info) => new(info.RemainingText);
 
     private TargetCommand ParseTargetCommand(string parameters)
     {
