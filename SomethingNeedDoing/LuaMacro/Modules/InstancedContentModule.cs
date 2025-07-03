@@ -81,8 +81,8 @@ public unsafe class InstancedContentModule : LuaModuleBase
         [LuaDocs] public ushort Gold => state->Gold;
         [LuaDocs] public byte CurrentSupportJob => state->CurrentSupportJob;
         [LuaDocs] public byte KnowledgeLevelSync => state->KnowledgeLevelSync;
-        [LuaDocs][Changelog("12.47")] public uint[] SupportJobExperience => state->SupportJobExperience.ToArray();
-        [LuaDocs][Changelog("12.47")] public byte[] SupportJobLevels => state->SupportJobLevels.ToArray();
+        //[LuaDocs][Changelog("12.47")] public uint[] SupportJobExperience => state->SupportJobExperience.ToArray();
+        //[LuaDocs][Changelog("12.47")] public byte[] SupportJobLevels => state->SupportJobLevels.ToArray();
     }
 
     [LuaFunction][Changelog("12.22")] public PublicInstanceWrapper PublicInstance => new();
