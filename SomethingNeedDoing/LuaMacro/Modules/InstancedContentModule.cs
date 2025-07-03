@@ -17,6 +17,7 @@ public unsafe class InstancedContentModule : LuaModuleBase
     {
         lua.DoString("DynamicEventState = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.InstanceContent.DynamicEventState')");
         lua.DoString("OceanFishingStatus = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.InstanceContent.OceanFishingStatus')");
+        lua.DoString("ContentType = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.Event.ContentType')");
         base.Register(lua);
     }
 
@@ -29,6 +30,11 @@ public unsafe class InstancedContentModule : LuaModuleBase
             return director == null ? 0f : director->ContentTimeLeft;
         }
     }
+
+    [LuaFunction][Changelog("12.47")] public uint GetCurrentContentId => EventFramework.GetCurrentContentId();
+    [LuaFunction][Changelog("12.47")] public FFXIVClientStructs.FFXIV.Client.Game.Event.ContentType GetCurrentContentType => EventFramework.GetCurrentContentType();
+    [LuaFunction][Changelog("12.47")] public bool CanLeaveCurrentContent => EventFramework.CanLeaveCurrentContent();
+    [LuaFunction][Changelog("12.47")] public void LeaveCurrentContent() => EventFramework.LeaveCurrentContent(true);
 
     [LuaFunction] public OceanFishingWrapper OceanFishing => new();
     [LuaFunction] public OccultCrescentWrapper OccultCrescent => new(this);
@@ -68,8 +74,8 @@ public unsafe class InstancedContentModule : LuaModuleBase
     {
         [LuaDocs] public uint QuestId => data->QuestId;
         [LuaDocs] public uint ZoneNameId => data->ZoneNameId;
-        [LuaDocs] public uint CipherItemId => data->CipherItemId;
-        [LuaDocs] public int CipherNameId => data->CipherNameId;
+        [LuaDocs] public uint CipherItemId => data->CurrencyItemIds[2];
+        [LuaDocs] public uint CipherNameId => data->CurrencyNameIds[2];
     }
 
     public class OccultCrescentStateWrapper(OccultCrescentState* state) : IWrapper
@@ -81,8 +87,8 @@ public unsafe class InstancedContentModule : LuaModuleBase
         [LuaDocs] public ushort Gold => state->Gold;
         [LuaDocs] public byte CurrentSupportJob => state->CurrentSupportJob;
         [LuaDocs] public byte KnowledgeLevelSync => state->KnowledgeLevelSync;
-        //[LuaDocs][Changelog("12.47")] public uint[] SupportJobExperience => state->SupportJobExperience.ToArray();
-        //[LuaDocs][Changelog("12.47")] public byte[] SupportJobLevels => state->SupportJobLevels.ToArray();
+        [LuaDocs][Changelog("12.47")] public uint[] SupportJobExperience => state->SupportJobExperience.ToArray();
+        [LuaDocs][Changelog("12.47")] public byte[] SupportJobLevels => state->SupportJobLevels.ToArray();
     }
 
     [LuaFunction][Changelog("12.22")] public PublicInstanceWrapper PublicInstance => new();
