@@ -16,21 +16,8 @@ public class RequireCommand(string text, string[] conditions) : RequireCommandBa
     /// <inheritdoc/>
     protected override async Task<bool> CheckCondition(MacroContext context)
     {
-        if (conditions.Length < 2) return Svc.ClientState.LocalPlayer?.StatusList.Any(s => s.GameData.Value.Name.ExtractText().EqualsIgnoreCase(conditions.ToString() ?? string.Empty)) ?? false;
-        var type = conditions[0].ToLower();
-        var value = conditions[1];
         var result = false;
-
-        await context.RunOnFramework(() => result = type switch
-        {
-            "gp" => Svc.ClientState.LocalPlayer?.CurrentGp >= int.Parse(value),
-            "mp" => Svc.ClientState.LocalPlayer?.CurrentMp >= int.Parse(value),
-            "cp" => Svc.ClientState.LocalPlayer?.CurrentCp >= int.Parse(value),
-            "condition" => conditions.Any(c => Enum.GetNames<ConditionFlag>().ContainsIgnoreCase(c)),
-            "ininstance" => InInstance(),
-            "item" => HasItem(uint.Parse(value)),
-            _ => Svc.ClientState.LocalPlayer?.StatusList.Any(s => s.GameData.Value.Name.ExtractText().EqualsIgnoreCase(value))
-        } ?? false);
+        await context.RunOnFramework(() => result = Svc.ClientState.LocalPlayer?.StatusList.Any(s => s.GameData.Value.Name.ExtractText().EqualsIgnoreCase(conditions.ToString() ?? string.Empty)) ?? false);
         return result;
     }
 
