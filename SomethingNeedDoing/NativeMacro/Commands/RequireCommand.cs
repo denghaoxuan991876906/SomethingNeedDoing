@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using FFXIVClientStructs.FFXIV.Client.Game;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.NativeMacro.Commands;
@@ -15,11 +16,21 @@ public class RequireCommand(string text, string[] conditions) : RequireCommandBa
     /// <inheritdoc/>
     protected override async Task<bool> CheckCondition(MacroContext context)
     {
+        if (conditions.Length < 2) return Svc.ClientState.LocalPlayer?.StatusList.Any(s => s.GameData.Value.Name.ExtractText().EqualsIgnoreCase(conditions.ToString() ?? string.Empty)) ?? false;
+        var type = conditions[0].ToLower();
+        var value = conditions[1];
         var result = false;
-        await context.RunOnFramework(() =>
+
+        await context.RunOnFramework(() => result = type switch
         {
-            result = conditions.Any(c => Game.Crafting.GetCondition().ToString() == c);
-        });
+            "gp" => Svc.ClientState.LocalPlayer?.CurrentGp >= int.Parse(value),
+            "mp" => Svc.ClientState.LocalPlayer?.CurrentMp >= int.Parse(value),
+            "cp" => Svc.ClientState.LocalPlayer?.CurrentCp >= int.Parse(value),
+            "condition" => conditions.Any(c => Enum.GetNames<ConditionFlag>().ContainsIgnoreCase(c)),
+            "ininstance" => InInstance(),
+            "item" => HasItem(uint.Parse(value)),
+            _ => Svc.ClientState.LocalPlayer?.StatusList.Any(s => s.GameData.Value.Name.ExtractText().EqualsIgnoreCase(value))
+        } ?? false);
         return result;
     }
 
@@ -33,31 +44,6 @@ public class RequireCommand(string text, string[] conditions) : RequireCommandBa
         await PerformWait(token);
     }
 
-    //protected override bool CheckCondition(MacroContext context)
-    //{
-    //    // Parse the condition string and check the corresponding state
-    //    var parts = condition.Split(' ');
-    //    if (parts.Length < 2) return false;
-
-    //    var type = parts[0].ToLower();
-    //    var value = parts[1];
-
-    //    return type switch
-    //    {
-    //        "gp" => CheckGP(value),
-    //        "mp" => CheckMP(value),
-    //        "cp" => CheckCP(value),
-    //        "incombat" => CheckInCombat(value),
-    //        "ininstance" => CheckInInstance(value),
-    //        "hasbuff" => CheckHasBuff(value),
-    //        "hasdebuff" => CheckHasDebuff(value),
-    //        "hasstatus" => CheckHasStatus(value),
-    //        "hasitem" => CheckHasItem(value),
-    //        "hasaction" => CheckHasAction(value),
-    //        "hasability" => CheckHasAbility(value),
-    //        "hasrecipe" => CheckHasRecipe(value),
-    //        "hasmateria" => CheckHasMateria(value),
-    //        _ => false
-    //    };
-    //}
+    private unsafe bool InInstance() => GameMain.Instance()->CurrentContentFinderConditionId != 0;
+    private unsafe bool HasItem(uint id) => InventoryManager.Instance()->GetInventoryItemCount(id) > 0;
 }
