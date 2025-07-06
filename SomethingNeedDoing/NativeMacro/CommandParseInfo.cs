@@ -7,22 +7,22 @@ namespace SomethingNeedDoing.NativeMacro;
 /// Initializes a new instance of the <see cref="CommandParseInfo"/> class.
 /// </remarks>
 /// <param name="commandName">The name of the command.</param>
-/// <param name="parameters">The parameters of the command.</param>
-/// <param name="remainingText">The remaining text after parsing the command.</param>
-public class CommandParseInfo(string commandName, string parameters, string remainingText)
+/// <param name="Parameters">The parameters of the command.</param>
+/// <param name="RemainingText">The remaining text after parsing the command.</param>
+public record class CommandParseInfo(string CommandName, string Parameters, string RemainingText)
 {
     /// <summary>
     /// Gets or sets the name of the command.
     /// </summary>
-    public string CommandName { get; set; } = commandName;
+    public string CommandName { get; set; } = CommandName;
 
     /// <summary>
     /// Gets or sets the parameters of the command.
     /// </summary>
-    public string Parameters { get; set; } = parameters;
+    public string Parameters { get; set; } = Parameters;
 
     /// <summary>
     /// Gets or sets the remaining text after parsing the command.
     /// </summary>
-    public string RemainingText { get; set; } = remainingText;
+    public string RemainingText { get; set; } = RemainingText;
 }

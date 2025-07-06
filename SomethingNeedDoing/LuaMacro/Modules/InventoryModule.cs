@@ -135,7 +135,7 @@ public unsafe class InventoryModule : LuaModuleBase
 
     public unsafe class InventoryItemWrapper : IWrapper
     {
-        private InventoryType[] playerInv = [
+        private readonly InventoryType[] playerInv = [
             InventoryType.Inventory1,
             InventoryType.Inventory2,
             InventoryType.Inventory3,
@@ -193,9 +193,23 @@ public unsafe class InventoryModule : LuaModuleBase
             var retval = new AtkValue();
             Span<AtkValue> param = [
                 new AtkValue { Type = ValueType.Int, Int = 0 },
-            new AtkValue { Type = ValueType.Bool, Byte = 1 }
+                new AtkValue { Type = ValueType.Bool, Byte = 1 }
             ];
             AgentSalvage.Instance()->AgentInterface.ReceiveEvent(&retval, param.GetPointer(0), 2, 1);
         }
+
+        [LuaDocs]
+        [Changelog("12.51")]
+        public void MoveItemSlot(InventoryType destinationContainer)
+            => InventoryManager.Instance()->MoveItemSlot(Container, (ushort)Slot, destinationContainer, GetFirstEmptySlot(destinationContainer));
+    }
+
+    private static unsafe ushort GetFirstEmptySlot(InventoryType container)
+    {
+        var cont = InventoryManager.Instance()->GetInventoryContainer(container);
+        for (ushort i = 0; i < cont->Size; i++)
+            if (cont->Items[i].ItemId == 0)
+                return i;
+        return 0;
     }
 }

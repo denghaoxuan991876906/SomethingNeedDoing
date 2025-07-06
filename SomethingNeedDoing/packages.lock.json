@@ -16,9 +16,9 @@
       },
       "ImGuiColorTextEditNetDalamud": {
         "type": "Direct",
-        "requested": "[0.5.1, )",
-        "resolved": "0.5.1",
-        "contentHash": "OW1P/z3X2n6nkLgomi0VeVohsxX9ux2kj2Y2yHLVVlFAb0Ds2sSzCiuuebeNb84wR2V8pzpEClF+lQV5eE3kcg=="
+        "requested": "[0.9.0, )",
+        "resolved": "0.9.0",
+        "contentHash": "ZAcDnutt3p/A/GHpwjGj8+gGYV3+PB779SI10tOM8zw5NKurbXQWveAwcxZkkTTNTl1+/spLpFw3t/O7BLhUsg=="
       },
       "Laylua": {
         "type": "Direct",
@@ -57,6 +57,12 @@
           "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
           "Microsoft.Extensions.DependencyModel": "8.0.2"
         }
+      },
+      "YamlDotNet": {
+        "type": "Direct",
+        "requested": "[16.3.0, )",
+        "resolved": "16.3.0",
+        "contentHash": "SgMOdxbz8X65z8hraIs6hOEdnkH6hESTAIUa7viEngHOYaH+6q5XJmwr1+yb9vJpNQ19hCQY69xbFsLtXpobQA=="
       },
       "KeraLua": {
         "type": "Transitive",

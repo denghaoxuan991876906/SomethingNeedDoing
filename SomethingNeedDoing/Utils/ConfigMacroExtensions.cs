@@ -5,16 +5,12 @@ using System.Text.RegularExpressions;
 namespace SomethingNeedDoing.Utils;
 public static class ConfigMacroExtensions
 {
-    private static readonly Regex MetadataBlockRegex = new(
-        @"^--\[\[SND\s*Metadata\s*\]\]\s*\n(.*?)\n--\[\[End\s*Metadata\s*\]\]",
-        RegexOptions.Singleline | RegexOptions.IgnoreCase);
-
     /// <summary>
     /// Removes the metadata block from macro content.
     /// </summary>
     public static string ContentSansMetadata(this IMacro macro)
     {
-        var match = MetadataBlockRegex.Match(macro.Content);
+        var match = MetadataParser.MetadataBlockRegex.Match(macro.Content);
         if (!match.Success)
             return macro.Content;
         return macro.Content[..match.Index] + macro.Content[(match.Index + match.Length)..].TrimStart('\r', '\n');
@@ -96,5 +92,30 @@ public static class ConfigMacroExtensions
         var eventsToAdd = triggerEvents.Where(e => !macro.Metadata.TriggerEvents.Contains(e)).ToList();
         foreach (var triggerEvent in eventsToAdd)
             macro.AddTriggerEvent(scheduler, triggerEvent);
+    }
+
+    public static bool HasValidConfigs(this IMacro macro)
+    {
+        if (macro is ConfigMacro m)
+        {
+            foreach (var cfg in m.Metadata.Configs)
+            {
+                if (!string.IsNullOrEmpty(cfg.Value.ValidationPattern))
+                {
+                    try
+                    {
+                        var regex = new Regex(cfg.Value.ValidationPattern);
+                        if (!regex.IsMatch(cfg.Value.ToString() ?? string.Empty))
+                            return false;
+                    }
+                    catch
+                    {
+                        Svc.Log.Error($"Unable to validate config value [{cfg.Value}] against pattern [{cfg.Value.ValidationPattern}]");
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 }

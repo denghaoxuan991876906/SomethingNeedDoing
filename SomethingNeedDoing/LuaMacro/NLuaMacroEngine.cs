@@ -1,6 +1,7 @@
 ﻿using NLua;
 using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Interfaces;
+using SomethingNeedDoing.LuaMacro.Modules;
 using SomethingNeedDoing.Managers;
 using System.Text;
 using System.Threading;
@@ -90,10 +91,12 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
             lua.LoadRequirePaths();
             lua.LoadErrorHandler();
             lua.ApplyPrintOverride();
+            lua.RegisterInternalFunctions();
             lua.SetTriggerEventData(triggerArgs);
             lua.RegisterClass<Svc>();
             lua.DoString("luanet.load_assembly('FFXIVClientStructs')");
             moduleManager.RegisterAll(lua);
+            new ConfigModule(macro.Macro).Register(lua);
 
             _activeLuaEnvironments[macro.Macro.Id] = lua; // for function triggers to access the same state
 

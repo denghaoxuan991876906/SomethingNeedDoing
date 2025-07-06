@@ -5,10 +5,11 @@ using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Gui.Modals;
+using SomethingNeedDoing.Managers;
 
 namespace SomethingNeedDoing.Gui.Tabs;
 
-public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSettings, MacroEditor macroEditor)
+public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor, GitMacroManager gitManager)
 {
     private static class UiConstants
     {
@@ -29,6 +30,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
     }
 
     private readonly State _state = new();
+    private readonly CreateMacroModal _createMacroModal = new(gitManager);
 
     public void Draw()
     {
@@ -81,8 +83,6 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         DrawMacroTreeHeader();
         if (!_state.IsFolderSectionCollapsed)
             DrawFolderTree();
-        ImGui.Separator();
-        macroSettings.Draw(C.GetMacro(_state.SelectedMacroId));
     }
 
     private void DrawMacroTreeHeader()
@@ -101,23 +101,17 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         using var style = ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
 
         if (ImGuiUtils.IconButton(FontAwesomeIcon.FileAlt, "创建新宏"))
-            CreateMacroModal.Open();
+            _createMacroModal.Open();
 
         ImGui.SameLine(0, 5);
 
         if (ImGuiUtils.IconButton(FontAwesomeIcon.FolderPlus, "创建新文件夹"))
             CreateFolderModal.Open();
-
-        ImGui.SameLine(0, 5);
-
-        if (ImGuiUtils.IconButton(FontAwesomeIcon.Redo, "刷新"))
-            P.ReloadConfig();
-
     }
 
     private void DrawFolderTree()
     {
-        using var child = ImRaii.Child("文件夹树", new(-1, ImGui.GetContentRegionAvail().Y * 0.6f), false);
+        using var child = ImRaii.Child("文件夹树", new(-1, ImGui.GetContentRegionAvail().Y), false);
         if (!child) return;
 
         DrawCustomFolders();

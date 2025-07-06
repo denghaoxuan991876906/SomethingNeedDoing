@@ -132,7 +132,7 @@ public unsafe class InstancesModule : LuaModuleBase
         [LuaDocs][Changelog("12.20")] public float DayTimeSeconds => FFXIVClientStructs.FFXIV.Client.Graphics.Environment.EnvManager.Instance()->DayTimeSeconds;
         [LuaDocs][Changelog("12.20")] public float ActiveTransitionTime => FFXIVClientStructs.FFXIV.Client.Graphics.Environment.EnvManager.Instance()->ActiveTransitionTime;
         [LuaDocs][Changelog("12.20")] public float CurrentTransitionTime => FFXIVClientStructs.FFXIV.Client.Graphics.Environment.EnvManager.Instance()->CurrentTransitionTime;
-        [LuaDocs][Changelog("12.20")] public byte IsInGame => FFXIVClientStructs.FFXIV.Client.Graphics.Environment.EnvManager.Instance()->ActiveWeather;
+        [LuaDocs][Changelog("12.20")] public byte ActiveWeather => FFXIVClientStructs.FFXIV.Client.Graphics.Environment.EnvManager.Instance()->ActiveWeather;
         [LuaDocs][Changelog("12.20")] public float TransitionTime => FFXIVClientStructs.FFXIV.Client.Graphics.Environment.EnvManager.Instance()->TransitionTime;
     }
 

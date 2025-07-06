@@ -1,7 +1,6 @@
 using Dalamud.Interface.Windowing;
 using Microsoft.Extensions.DependencyInjection;
 using SomethingNeedDoing.Core.Interfaces;
-using SomethingNeedDoing.Managers;
 using System.Net.Http;
 
 namespace SomethingNeedDoing.Utils;
@@ -12,7 +11,6 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<WindowSystem>();
         services.AddSingleton<HttpClient>();
-        services.AddSingleton<CleanupManager>();
 
         services.Scan(scan => scan
             .FromAssemblyOf<Plugin>()
