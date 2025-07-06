@@ -52,7 +52,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
     private void DrawEmptyState()
     {
         var center = ImGui.GetContentRegionAvail() / 2;
-        var text = "Select a macro or create a new one";
+        var text = "选择一个宏或创建新宏";
         var textSize = ImGui.CalcTextSize(text);
         ImGui.SetCursorPos(ImGui.GetCursorPos() + center - textSize / 2);
         ImGui.TextColored(ImGuiColors.DalamudGrey, text);
@@ -74,13 +74,13 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         var group = new ImGuiEx.EzButtonGroup();
         var startBtn = GetStartOrResumeAction(macro);
         group.AddIconOnly(FontAwesomeIcon.PlayCircle, () => startBtn.action(), startBtn.tooltip);
-        group.AddIconOnly(FontAwesomeIcon.PauseCircle, () => _scheduler.PauseMacro(macro.Id), "Pause", new() { Condition = () => _scheduler.GetMacroState(macro.Id) is MacroState.Running });
+        group.AddIconOnly(FontAwesomeIcon.PauseCircle, () => _scheduler.PauseMacro(macro.Id), "暂停", new() { Condition = () => _scheduler.GetMacroState(macro.Id) is MacroState.Running });
         group.AddIconOnly(FontAwesomeIcon.StopCircle, () =>
         {
             _scheduler.StopMacro(macro.Id);
             _editor.SetReadonly(false);
-        }, "Stop");
-        group.AddIconOnly(FontAwesomeIcon.Clipboard, () => Copy(macro.Content), "Copy");
+        }, "停止");
+        group.AddIconOnly(FontAwesomeIcon.Clipboard, () => Copy(macro.Content), "复制");
         group.Draw();
     }
 
@@ -91,12 +91,12 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
             {
                 _editor.SetReadonly(true);
                 _scheduler.ResumeMacro(macro.Id);
-            }, "Resume"),
+            }, "继续"),
             _ => (() =>
             {
                 _editor.SetReadonly(true);
                 _scheduler.StartMacro(macro);
-            }, "Start")
+            }, "开始")
         };
 
     private void DrawRightAlignedControls(IMacro macro)
@@ -117,20 +117,20 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
 
         using (ImRaii.PushColor(ImGuiCol.Text, statusColor))
         {
-            if (ImGuiUtils.IconButton(statusIcon, macroCount > 0 ? $"{macroCount} running" : "No macros running"))
+            if (ImGuiUtils.IconButton(statusIcon, macroCount > 0 ? $"{macroCount} 运行中" : "无运行中的宏"))
                 ws.Toggle<StatusWindow>();
         }
 
         ImGui.SameLine();
-        if (ImGuiUtils.IconButton(_editor.IsShowingLineNumbers() ? FontAwesomeHelper.IconSortAsc : FontAwesomeHelper.IconSortDesc, "Toggle Line Numbers"))
+        if (ImGuiUtils.IconButton(_editor.IsShowingLineNumbers() ? FontAwesomeHelper.IconSortAsc : FontAwesomeHelper.IconSortDesc, "切换行号显示"))
             _editor.ToggleLineNumbers();
 
         ImGui.SameLine();
-        if (ImGuiUtils.IconButton(_editor.IsShowingWhitespaces() ? FontAwesomeHelper.IconInvisible : FontAwesomeHelper.IconVisible, "Toggle Line Numbers"))
+        if (ImGuiUtils.IconButton(_editor.IsShowingWhitespaces() ? FontAwesomeHelper.IconInvisible : FontAwesomeHelper.IconVisible, "切换行号显示"))
             _editor.ToggleWhitespace();
 
         ImGui.SameLine();
-        if (ImGuiUtils.IconButton(_editor.IsHighlightingSyntax() ? FontAwesomeHelper.IconCheck : FontAwesomeHelper.IconXmark, "Syntax Highlighting"))
+        if (ImGuiUtils.IconButton(_editor.IsHighlightingSyntax() ? FontAwesomeHelper.IconCheck : FontAwesomeHelper.IconXmark, "语法高亮"))
             _editor.ToggleSyntaxHighlight();
 
         if (macro is ConfigMacro { IsGitMacro: true } configMacro)
@@ -138,9 +138,9 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
             ImGui.SameLine();
             var (updateIndicator, updateColor, tooltip) = _updateState switch
             {
-                UpdateState.None => ("0", ImGuiColors.DalamudGrey, "No updates available"),
-                UpdateState.Available => ("1", ImGuiColors.DPSRed, "Update available (click to update)"),
-                _ => ("?", ImGuiColors.DalamudGrey, "Check for updates")
+                UpdateState.None => ("0", ImGuiColors.DalamudGrey, "无可用更新"),
+                UpdateState.Available => ("1", ImGuiColors.DPSRed, "有可用更新（点击更新）"),
+                _ => ("?", ImGuiColors.DalamudGrey, "检查更新")
             };
 
             if (ImGuiUtils.IconButtonWithNotification(FontAwesomeIcon.Bell, updateIndicator, updateColor, tooltip))
@@ -185,9 +185,9 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
         using var _ = ImRaii.PushColor(ImGuiCol.FrameBg, new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
 
         var chars = macro.Content.Length;
-        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Name: {macro.Name}  |  Lines: {_editor.Lines}  |  Chars: {chars}  |");
+        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"名称: {macro.Name}  |  行数: {_editor.Lines}  |  字符数: {chars}  |");
         ImGui.SameLine(0, 5);
-        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"Type: {macro.Type}");
+        ImGuiEx.Text(ImGuiColors.DalamudGrey, $"类型: {macro.Type}");
         if (ImGui.IsItemClicked())
             _wantOpenSelector = true;
 

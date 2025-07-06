@@ -60,7 +60,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
     {
         ImGui.SetNextItemWidth(-1);
         var searchText = _state.SearchText;
-        if (ImGui.InputTextWithHint("##Search", "Search Folders & Macros...", ref searchText, 100))
+        if (ImGui.InputTextWithHint("##Search", "搜索文件夹和宏...", ref searchText, 100))
             _state.SearchText = searchText;
         ImGui.Separator();
 
@@ -88,36 +88,36 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
     private void DrawMacroTreeHeader()
     {
         using var group = ImRaii.Group();
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "FOLDERS");
+        ImGui.TextColored(ImGuiColors.DalamudViolet, "文件夹");
 
-        var textWidth = ImGui.CalcTextSize("FOLDERS").X;
+        var textWidth = ImGui.CalcTextSize("文件夹").X;
         ImGui.SameLine(textWidth + 15);
 
         if (ImGuiUtils.IconButton(_state.IsFolderSectionCollapsed ? FontAwesomeIcon.AngleDown : FontAwesomeIcon.AngleUp,
-            _state.IsFolderSectionCollapsed ? "Expand folder tree" : "Collapse folder tree"))
+            _state.IsFolderSectionCollapsed ? "展开" : "折叠"))
             _state.IsFolderSectionCollapsed ^= true;
 
         ImGui.SameLine(0, 5);
         using var style = ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(4, 4));
 
-        if (ImGuiUtils.IconButton(FontAwesomeIcon.FileAlt, "Create a new macro"))
+        if (ImGuiUtils.IconButton(FontAwesomeIcon.FileAlt, "创建新宏"))
             CreateMacroModal.Open();
 
         ImGui.SameLine(0, 5);
 
-        if (ImGuiUtils.IconButton(FontAwesomeIcon.FolderPlus, "Create a new folder"))
+        if (ImGuiUtils.IconButton(FontAwesomeIcon.FolderPlus, "创建新文件夹"))
             CreateFolderModal.Open();
 
         ImGui.SameLine(0, 5);
 
-        if (ImGuiUtils.IconButton(FontAwesomeIcon.Redo, "Refresh"))
+        if (ImGuiUtils.IconButton(FontAwesomeIcon.Redo, "刷新"))
             P.ReloadConfig();
 
     }
 
     private void DrawFolderTree()
     {
-        using var child = ImRaii.Child("FolderTree", new(-1, ImGui.GetContentRegionAvail().Y * 0.6f), false);
+        using var child = ImRaii.Child("文件夹树", new(-1, ImGui.GetContentRegionAvail().Y * 0.6f), false);
         if (!child) return;
 
         DrawCustomFolders();
@@ -147,8 +147,8 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, "Error drawing folders");
-            ImGui.TextColored(ImGuiColors.DalamudRed, "Error loading folders");
+            Svc.Log.Error(ex, "绘制文件夹时出错");
+            ImGui.TextColored(ImGuiColors.DalamudRed, "加载文件夹时出错");
         }
     }
 
@@ -198,7 +198,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
             var macros = C.GetMacrosInFolder(folderPath).ToList();
             if (macros.Count == 0)
             {
-                ImGui.TextColored(ImGuiColors.DalamudGrey, "No macros in this folder");
+                ImGui.TextColored(ImGuiColors.DalamudGrey, "此文件夹中无宏");
                 return;
             }
 
@@ -207,8 +207,8 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, $"Error loading macros in folder {folderPath}");
-            ImGui.TextColored(ImGuiColors.DalamudRed, "Error loading macros");
+            Svc.Log.Error(ex, $"加载文件夹 {folderPath} 中的宏时出错");
+            ImGui.TextColored(ImGuiColors.DalamudRed, "加载宏时出错");
         }
     }
 
@@ -217,13 +217,13 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         using var popup = ImRaii.ContextPopupItem($"##FolderContextMenu_{folderPath}");
         if (!popup) return;
 
-        ImGui.TextColored(ImGuiColors.DalamudViolet, $"Folder: {folderPath}");
+        ImGui.TextColored(ImGuiColors.DalamudViolet, $"文件夹: {folderPath}");
         ImGui.Separator();
 
-        if (ImGui.MenuItem("Rename Folder"))
+        if (ImGui.MenuItem("重命名文件夹"))
             RenameFolderModal.Open(folderPath);
 
-        if (ImGui.MenuItem("Delete Folder"))
+        if (ImGui.MenuItem("删除文件夹"))
         {
             try
             {
@@ -231,15 +231,15 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
             }
             catch (Exception ex)
             {
-                Svc.Log.Error(ex, "Error deleting folder");
+                Svc.Log.Error(ex, "删除文件夹时出错");
             }
         }
-        ImGuiEx.Tooltip("Delete this folder and move all macros to root folder");
+        ImGuiEx.Tooltip("删除此文件夹并将所有宏移至根文件夹");
     }
 
     private void DrawSearchResults()
     {
-        ImGui.TextColored(ImGuiColors.DalamudViolet, "SEARCH RESULTS");
+        ImGui.TextColored(ImGuiColors.DalamudViolet, "搜索结果");
 
         var allFolders = C.GetFolderPaths().Where(f => !string.IsNullOrEmpty(f));
         var foundAnyFolders = false;
@@ -263,7 +263,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         if (foundAnyFolders)
         {
             ImGui.Separator();
-            ImGui.TextColored(ImGuiColors.DalamudViolet, "MATCHING MACROS");
+            ImGui.TextColored(ImGuiColors.DalamudViolet, "匹配的宏");
         }
 
         var foundAnyMacros = false;
@@ -274,7 +274,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         }
 
         if (!foundAnyFolders && !foundAnyMacros)
-            ImGui.TextColored(ImGuiColors.DalamudGrey, "No matching folders or macros");
+            ImGui.TextColored(ImGuiColors.DalamudGrey, "无匹配的文件夹或宏");
     }
 
     private void DrawMacroTreeNode(ConfigMacro macro, bool showFolder)
@@ -308,22 +308,22 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         ImGui.TextColored(ImGuiColors.DalamudViolet, macro.Name);
         ImGui.Separator();
 
-        if (ImGuiUtils.IconMenuItem(FontAwesomeHelper.IconPlay, "Run"))
+        if (ImGuiUtils.IconMenuItem(FontAwesomeHelper.IconPlay, "运行"))
         {
             scheduler.StartMacro(macro);
             ImGui.CloseCurrentPopup();
         }
 
-        if (ImGuiUtils.IconMenuItem(FontAwesomeHelper.IconCopy, "Copy Content"))
+        if (ImGuiUtils.IconMenuItem(FontAwesomeHelper.IconCopy, "复制内容"))
         {
             ImGui.SetClipboardText(macro.Content);
             ImGui.CloseCurrentPopup();
         }
 
-        if (ImGuiUtils.IconMenuItem(FontAwesomeHelper.IconRename, "Rename"))
+        if (ImGuiUtils.IconMenuItem(FontAwesomeHelper.IconRename, "重命名"))
             RenameModal.Open(macro);
 
-        if (ImGuiUtils.IconMenuItem(FontAwesomeHelper.IconDelete, "Delete"))
+        if (ImGuiUtils.IconMenuItem(FontAwesomeHelper.IconDelete, "删除"))
         {
             var currentFolderId = _state.SelectedFolderId;
             var expandedFoldersCopy = new HashSet<string>(_state.ExpandedFolders);
@@ -346,7 +346,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         if (macro is ConfigMacro configMacro && !macro.IsGitMacro)
         {
             ImGui.Separator();
-            using var typeMenu = ImRaii.Menu("Type");
+            using var typeMenu = ImRaii.Menu("类型");
             if (typeMenu)
             {
                 var isNative = macro.Type == MacroType.Native;
@@ -367,14 +367,14 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
         }
 
         ImGui.Separator();
-        using var folderMenu = ImRaii.Menu("Move to folder");
+        using var folderMenu = ImRaii.Menu("移动到文件夹");
         if (folderMenu)
         {
-            ImGui.TextColored(ImGuiColors.DalamudViolet, "Select destination folder:");
+            ImGui.TextColored(ImGuiColors.DalamudViolet, "选择目标文件夹:");
             ImGui.Separator();
 
             var isInRoot = string.IsNullOrEmpty(macro.FolderPath);
-            if (ImGui.MenuItem("Root", null, isInRoot))
+            if (ImGui.MenuItem("根目录", null, isInRoot))
             {
                 if (!isInRoot)
                 {
@@ -398,7 +398,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
                 foreach (var folder in folders)
                 {
                     var isCurrentFolder = macro.FolderPath == folder;
-                    if (ImGui.MenuItem($"{folder}{(isCurrentFolder ? " (current)" : "")}", null, isCurrentFolder))
+                    if (ImGui.MenuItem($"{folder}{(isCurrentFolder ? " (当前)" : "")}", null, isCurrentFolder))
                     {
                         if (!isCurrentFolder)
                         {
@@ -415,7 +415,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroSettingsSection macroSett
             }
 
             ImGui.Separator();
-            if (ImGui.MenuItem("Create new folder..."))
+            if (ImGui.MenuItem("创建新文件夹..."))
                 CreateFolderModal.Open();
         }
     }

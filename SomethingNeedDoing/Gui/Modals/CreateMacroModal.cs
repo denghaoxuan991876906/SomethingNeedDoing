@@ -27,23 +27,23 @@ public static class CreateMacroModal
     {
         if (!IsOpen) return;
 
-        ImGui.OpenPopup($"CreateMacroPopup##{nameof(CreateMacroModal)}");
+        ImGui.OpenPopup($"创建宏##{nameof(CreateMacroModal)}");
 
         ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
         ImGui.SetNextWindowSize(Size);
 
         using var style = ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, new Vector2(15, 15));
-        using var popup = ImRaii.PopupModal($"CreateMacroPopup##{nameof(CreateMacroModal)}", ref IsOpen, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoTitleBar);
+        using var popup = ImRaii.PopupModal($"创建宏##{nameof(CreateMacroModal)}", ref IsOpen, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoTitleBar);
         if (!popup) return;
 
         ImGuiEx.Icon(FontAwesomeHelper.IconNew);
         ImGui.SameLine();
-        ImGui.Text("Create New Macro");
+        ImGui.Text("创建新宏");
         ImGui.Separator();
         ImGui.Spacing();
 
         ImGui.AlignTextToFramePadding();
-        ImGui.Text("Name:");
+        ImGui.Text("名称:");
         ImGui.SameLine();
         ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
         ImGui.InputText("##MacroName", ref _newMacroName, 100);
@@ -52,7 +52,7 @@ public static class CreateMacroModal
         ImGui.Spacing();
 
         ImGui.AlignTextToFramePadding();
-        ImGui.Text("Type:");
+        ImGui.Text("类型:");
         ImGui.SameLine();
 
         _newMacroType = ImGuiUtils.EnumRadioButtons(_newMacroType);
@@ -60,7 +60,7 @@ public static class CreateMacroModal
         ImGui.Spacing();
         ImGui.Spacing();
 
-        ImGuiUtils.CenteredButtons(("Create", () =>
+        ImGuiUtils.CenteredButtons(("创建", () =>
         {
             var uniqueName = C.GetUniqueMacroName(_newMacroName);
             var newMacro = new ConfigMacro
@@ -75,6 +75,6 @@ public static class CreateMacroModal
             C.Save();
             Close();
         }
-        ), ("Cancel", Close));
+        ), ("取消", Close));
     }
 }

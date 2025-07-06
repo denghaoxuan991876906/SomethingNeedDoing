@@ -15,7 +15,7 @@ public class StatusWindow : Window
     private readonly TitleBarButton _minimiseBtn;
     private bool _minimised;
 
-    public StatusWindow(IMacroScheduler scheduler, MacroHierarchyManager macroHierarchy) : base($"{P.Name} - Macro Status###{P.Name}_{nameof(StatusWindow)}", ImGuiWindowFlags.NoScrollbar)
+    public StatusWindow(IMacroScheduler scheduler, MacroHierarchyManager macroHierarchy) : base($"{P.Name} - 宏状态###{P.Name}_{nameof(StatusWindow)}", ImGuiWindowFlags.NoScrollbar)
     {
         _scheduler = scheduler;
         _macroHierarchy = macroHierarchy;
@@ -31,7 +31,7 @@ public class StatusWindow : Window
                 _minimised = !_minimised;
                 _minimiseBtn!.Icon = _minimised ? FontAwesomeIcon.WindowMaximize : FontAwesomeIcon.Minus;
             },
-            ShowTooltip = () => { using var _ = ImRaii.Tooltip(); ImGuiEx.Text(_minimised ? "Show All Macros" : "Show Running Macros Only"); },
+            ShowTooltip = () => { using var _ = ImRaii.Tooltip(); ImGuiEx.Text(_minimised ? "显示所有宏" : "仅显示运行中的宏"); },
             AvailableClickthrough = true,
         };
         TitleBarButtons.Add(_minimiseBtn);
@@ -68,17 +68,17 @@ public class StatusWindow : Window
     {
         if (macro.State == MacroState.Paused)
         {
-            if (ImGuiUtils.IconButton(FontAwesomeIcon.Play, "Resume"))
+            if (ImGuiUtils.IconButton(FontAwesomeIcon.Play, "继续"))
                 _scheduler.ResumeMacro(macro.Id);
         }
         else
         {
-            if (ImGuiUtils.IconButton(FontAwesomeIcon.Pause, "Pause"))
+            if (ImGuiUtils.IconButton(FontAwesomeIcon.Pause, "暂停"))
                 _scheduler.PauseMacro(macro.Id);
         }
 
         ImGui.SameLine();
-        if (ImGuiUtils.IconButton(FontAwesomeIcon.Stop, "Stop"))
+        if (ImGuiUtils.IconButton(FontAwesomeIcon.Stop, "停止"))
             _scheduler.StopMacro(macro.Id);
     }
 

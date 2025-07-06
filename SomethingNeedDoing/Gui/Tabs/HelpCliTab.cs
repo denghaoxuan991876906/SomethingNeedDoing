@@ -9,19 +9,19 @@ public class HelpCliTab(CommandService cmds)
     public void DrawTab()
     {
         using var child = ImRaii.Child(nameof(HelpCliTab));
-        ImGuiUtils.Section("Command Line Interface", () => ImGui.TextWrapped("The following commands can be used in chat or your macro text."));
+        ImGuiUtils.Section("命令行接口", () => ImGui.TextWrapped("以下命令可在聊天或宏文本中使用。"));
 
-        ImGuiUtils.Section("Main Command", () => ImGui.TextUnformatted(cmds.MainCommand), contentFont: UiBuilder.MonoFont);
+        ImGuiUtils.Section("主命令", () => ImGui.TextUnformatted(cmds.MainCommand), contentFont: UiBuilder.MonoFont);
 
-        ImGuiUtils.Section("Aliases", () => cmds.Aliases.Each(ImGui.TextUnformatted), contentFont: UiBuilder.MonoFont);
+        ImGuiUtils.Section("别名", () => cmds.Aliases.Each(ImGui.TextUnformatted), contentFont: UiBuilder.MonoFont);
 
-        ImGuiUtils.Section("Commands", () =>
+        ImGuiUtils.Section("命令列表", () =>
         {
             using var table = ImRaii.Table("CommandsTable", 2, ImGuiTableFlags.BordersOuter | ImGuiTableFlags.BordersInner);
             if (!table) return;
 
-            ImGui.TableSetupColumn("Command", ImGuiTableColumnFlags.WidthFixed, 180 * ImGuiHelpers.GlobalScale);
-            ImGui.TableSetupColumn("Description", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("命令", ImGuiTableColumnFlags.WidthFixed, 180 * ImGuiHelpers.GlobalScale);
+            ImGui.TableSetupColumn("描述", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableHeadersRow();
 
             foreach (var (name, desc) in cmds.GetCommandData())
