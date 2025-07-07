@@ -29,7 +29,14 @@ public static class LuaExtensions
     public static void LoadRequirePaths(this Lua lua)
     {
         foreach (var path in C.LuaRequirePaths)
+        {
+            if (!PathHelper.ValidatePath(path))
+            {
+                continue;
+            }
+
             lua.DoString($"table.insert(snd.require.paths, '{path}')");
+        }
     }
 
     public static void ApplyPrintOverride(this Lua lua)
