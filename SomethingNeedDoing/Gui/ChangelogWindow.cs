@@ -75,6 +75,7 @@ public class ChangelogWindow : Window
         Add("12.25", "Fixed deleting folders. Added renaming folders.");
         Add("12.35", "Added a config module to provide macros with configurable settings, editable outside of code");
         Add("12.41", "Added import from url for new macros.");
+        Add("12.53", "Added OnActivePluginsChanged");
     }
 
     private void Add(string version, string description)

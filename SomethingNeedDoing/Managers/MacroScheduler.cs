@@ -653,6 +653,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         Svc.ClientState.Logout += OnLogout;
     }
 
+    private HashSet<string> _activePlugins = [];
     private long _combatStart = 0;
     private void OnFrameworkUpdate(IFramework framework)
     {
@@ -679,7 +680,28 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             }
         }
 
+        var lastActivePlugins = _activePlugins;
+        var currentActivePlugins = Svc.PluginInterface.InstalledPlugins.Where(p => p.IsLoaded).Select(p => p.InternalName).ToHashSet();
+        lastActivePlugins.SymmetricExceptWith(currentActivePlugins);
+        if (lastActivePlugins.Count > 0)
+        {
+            var diffs = new List<PluginWrapper>();
+            lastActivePlugins.Where(currentActivePlugins.Contains).ToList().ForEach(plugin => diffs.Add(new PluginWrapper() { Name = plugin, IsLoaded = true }));
+            lastActivePlugins.Where(plugin => !currentActivePlugins.Contains(plugin)).ToList().ForEach(plugin => diffs.Add(new PluginWrapper() { Name = plugin, IsLoaded = false }));
+            var eventData = new Dictionary<string, object> { { "changedPlugins", diffs } };
+            _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnActivePluginsChanged, new { eventData });
+            Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(TriggerEvent.OnActivePluginsChanged)}] fired [{string.Join(", ", diffs)}]");
+        }
+        _activePlugins = currentActivePlugins;
+
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnUpdate);
+    }
+
+    private record class PluginWrapper
+    {
+        public required string Name;
+        public bool IsLoaded;
+        public override string ToString() => $"{Name}: {IsLoaded}";
     }
 
     private void OnAddonEvent(AddonEvent type, AddonArgs args)
