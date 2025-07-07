@@ -12,6 +12,7 @@ public static class PathHelper
             return false;
         }
 
+        // Ensure path is absolute and directory exists
         if (!Path.IsPathRooted(path) || !Directory.Exists(path))
         {
             return false;
