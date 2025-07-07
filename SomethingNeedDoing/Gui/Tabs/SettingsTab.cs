@@ -1,4 +1,5 @@
-﻿using Dalamud.Interface.Utility.Raii;
+﻿using Dalamud.Interface.Colors;
+using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Gui.Modals;
 
@@ -164,16 +165,31 @@ public static class SettingsTab
             ImGui.TextWrapped("Lua require paths (where to look for Lua modules):");
 
             var paths = C.LuaRequirePaths.ToArray();
-            for (var index = 0; index < paths.Length; index++)
+            using (ImRaii.Table("LuaRequirePaths", 2, ImGuiTableFlags.SizingStretchProp))
             {
-                var path = paths[index];
-
-                if (ImGui.InputText($"Path #{index}", ref path, 200))
+                for (var index = 0; index < paths.Length; index++)
                 {
-                    var newPaths = paths.ToList();
-                    newPaths[index] = path;
-                    C.LuaRequirePaths = [.. newPaths.Where(p => !string.IsNullOrWhiteSpace(p))];
-                    C.Save();
+                    var path = PathHelper.NormalizePath(paths[index]);
+
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+
+                    var isValid = PathHelper.ValidatePath(path);
+                    ImGui.TextColored(isValid ? ImGuiColors.HealerGreen : ImGuiColors.DalamudRed, $"Path #{index}");
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip(isValid ? "This path is valid." : "This path is invalid.");
+                    }
+
+                    ImGui.TableNextColumn();
+
+                    if (ImGui.InputText($"##Path{index}", ref path, 200))
+                    {
+                        var newPaths = paths.ToList();
+                        newPaths[index] = PathHelper.NormalizePath(path);
+                        C.LuaRequirePaths = [.. newPaths.Where(p => !string.IsNullOrWhiteSpace(p))];
+                        C.Save();
+                    }
                 }
             }
 
