@@ -176,10 +176,7 @@ public static class SettingsTab
 
                     var isValid = PathHelper.ValidatePath(path);
                     ImGui.TextColored(isValid ? ImGuiColors.HealerGreen : ImGuiColors.DalamudRed, $"Path #{index}");
-                    if (ImGui.IsItemHovered())
-                    {
-                        ImGui.SetTooltip(isValid ? "This path is valid." : "This path is invalid.");
-                    }
+                    ImGuiEx.Tooltip(isValid ? "This path is valid." : "This path is invalid.");
 
                     ImGui.TableNextColumn();
 

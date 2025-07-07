@@ -31,9 +31,7 @@ public static class LuaExtensions
         foreach (var path in C.LuaRequirePaths)
         {
             if (!PathHelper.ValidatePath(path))
-            {
                 continue;
-            }
 
             lua.DoString($"table.insert(snd.require.paths, '{path}')");
         }

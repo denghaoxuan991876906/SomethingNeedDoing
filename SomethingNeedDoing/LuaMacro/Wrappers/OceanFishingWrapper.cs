@@ -8,9 +8,9 @@ namespace SomethingNeedDoing.LuaMacro.Wrappers;
 public unsafe class OceanFishingWrapper : IWrapper
 {
     [LuaDocs] public uint CurrentRoute => EventFramework.Instance()->GetInstanceContentOceanFishing()->CurrentRoute;
-    [LuaDocs] public byte TimeOfDay => Svc.Data.GetExcelSheet<IKDRoute>()?.GetRow(CurrentRoute).Time[GetCurrentOceanFishingZone].Value.Unknown0 ?? 0;
+    [LuaDocs] public byte TimeOfDay => Svc.Data.GetExcelSheet<IKDRoute>()?.GetRow(CurrentRoute).Time[CurrentZone].Value.Unknown0 ?? 0;
     [LuaDocs] public OceanFishingStatus Status => EventFramework.Instance()->GetInstanceContentOceanFishing()->Status;
-    [LuaDocs] public int GetCurrentOceanFishingZone => (int)EventFramework.Instance()->GetInstanceContentOceanFishing()->CurrentZone;
+    [LuaDocs][Changelog("12.54", ChangelogType.Changed, "Changed name")] public int CurrentZone => (int)EventFramework.Instance()->GetInstanceContentOceanFishing()->CurrentZone;
     [LuaDocs] public float TimeLeft => EventFramework.Instance()->GetInstanceContentDirector()->ContentDirector.ContentTimeLeft - TimeOffset;
     [LuaDocs] public uint TimeOffset => EventFramework.Instance()->GetInstanceContentOceanFishing()->TimeOffset;
     [LuaDocs] public uint WeatherId => EventFramework.Instance()->GetInstanceContentOceanFishing()->WeatherId;
