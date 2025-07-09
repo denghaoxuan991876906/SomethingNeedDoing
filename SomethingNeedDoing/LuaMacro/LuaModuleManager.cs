@@ -1,6 +1,6 @@
 ﻿using NLua;
-using SomethingNeedDoing.Documentation;
 using SomethingNeedDoing.Core.Interfaces;
+using SomethingNeedDoing.Documentation;
 using SomethingNeedDoing.LuaMacro.Modules;
 
 namespace SomethingNeedDoing.LuaMacro;

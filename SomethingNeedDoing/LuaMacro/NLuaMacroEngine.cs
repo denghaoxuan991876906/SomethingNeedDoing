@@ -3,6 +3,7 @@ using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro.Modules;
 using SomethingNeedDoing.Managers;
+using SomethingNeedDoing.NativeMacro;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +13,7 @@ namespace SomethingNeedDoing.LuaMacro;
 /// <summary>
 /// Executes Lua script macros using NLua.
 /// </summary>
-public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager cleanupManager, MacroHierarchyManager macroHierarchy) : IMacroEngine
+public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager cleanupManager, MacroHierarchyManager macroHierarchy, MacroParser parser) : IMacroEngine
 {
     /// <inheritdoc/>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
@@ -96,6 +97,13 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
             lua.RegisterClass<Svc>();
             lua.DoString("luanet.load_assembly('FFXIVClientStructs')");
             moduleManager.RegisterAll(lua);
+
+            var engines = new List<IEngine>
+            {
+                new NativeEngine(Scheduler!, parser),
+                new LuaEngine(this)
+            };
+            new EnginesModule(engines).Register(lua);
             new ConfigModule(macro.Macro).Register(lua);
 
             _activeLuaEnvironments[macro.Macro.Id] = lua; // for function triggers to access the same state
