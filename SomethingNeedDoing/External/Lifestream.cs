@@ -141,7 +141,8 @@ public class Lifestream : IPC
     [EzIPC]
     [LuaFunction]
     [Changelog("12.12")]
-    public Func<bool> GetNumberOfInstances = null!;
+    [Changelog("12.58", ChangelogType.Fixed)]
+    public Func<int> GetNumberOfInstances = null!;
 
     [EzIPC]
     [LuaFunction(parameterDescriptions: ["number"])]
