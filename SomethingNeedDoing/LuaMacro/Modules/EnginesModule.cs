@@ -100,8 +100,5 @@ public class EnginesModule : LuaModuleBase
     /// </summary>
     /// <param name="content">The content to find an engine for.</param>
     /// <returns>The best engine, or null if none found.</returns>
-    private IEngine? FindBestEngine(string content)
-    {
-        return _engines.Values.FirstOrDefault(engine => engine.CanExecute(content));
-    }
+    private IEngine? FindBestEngine(string content) => _engines.Values.FirstOrDefault(engine => engine.CanExecute(content));
 }

@@ -1,4 +1,4 @@
-using SomethingNeedDoing.Core.Interfaces;
+using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.NativeMacro;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,8 +8,12 @@ namespace SomethingNeedDoing.LuaMacro.Modules;
 /// <summary>
 /// Engine for executing native commands.
 /// </summary>
-public class NativeEngine(IMacroScheduler scheduler, MacroParser parser) : IEngine
+public class NativeEngine(MacroParser parser) : IEngine
 {
+    /// <summary>
+    /// Event raised when a macro execution is requested.
+    /// </summary>
+    public event EventHandler<MacroExecutionRequestedEventArgs>? MacroExecutionRequested;
 
     public string Name => "Native";
 
@@ -17,7 +21,7 @@ public class NativeEngine(IMacroScheduler scheduler, MacroParser parser) : IEngi
     {
         try
         {
-            var commands = parser.Parse(content, scheduler);
+            var commands = parser.Parse(content);
             var tempMacro = new TemporaryMacro(content);
 
             foreach (var command in commands)
@@ -25,10 +29,16 @@ public class NativeEngine(IMacroScheduler scheduler, MacroParser parser) : IEngi
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
+                var context = new MacroContext(tempMacro);
+
+                // Subscribe to macro execution requests from commands
+                context.MacroExecutionRequested += (sender, e) =>
+                    MacroExecutionRequested?.Invoke(this, e);
+
                 if (command.RequiresFrameworkThread)
-                    await Svc.Framework.RunOnTick(() => command.Execute(new MacroContext(tempMacro), cancellationToken), cancellationToken: cancellationToken);
+                    await Svc.Framework.RunOnTick(() => command.Execute(context, cancellationToken), cancellationToken: cancellationToken);
                 else
-                    await command.Execute(new MacroContext(tempMacro), cancellationToken);
+                    await command.Execute(context, cancellationToken);
             }
         }
         catch (Exception ex)

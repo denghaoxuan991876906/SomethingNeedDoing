@@ -1,3 +1,4 @@
+using SomethingNeedDoing.Core.Events;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,6 +13,11 @@ public interface IEngine
     /// Gets the name of the engine.
     /// </summary>
     string Name { get; }
+
+    /// <summary>
+    /// Event raised when a macro execution is requested.
+    /// </summary>
+    event EventHandler<MacroExecutionRequestedEventArgs>? MacroExecutionRequested;
 
     /// <summary>
     /// Executes content asynchronously.

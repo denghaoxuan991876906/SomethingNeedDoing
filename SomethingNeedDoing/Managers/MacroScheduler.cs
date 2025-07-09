@@ -47,9 +47,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _luaEngine = luaEngine;
         _triggerEventManager = triggerEventManager;
 
-        _nativeEngine.Scheduler = this; // TODO: find a way around this
-        _luaEngine.Scheduler = this;
-
         _nativeEngine.MacroError += OnEngineError;
         _luaEngine.MacroError += OnEngineError;
         _triggerEventManager.TriggerEventOccurred += OnTriggerEventOccurred;
@@ -59,6 +56,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _luaEngine.MacroControlRequested += OnMacroControlRequested;
         _nativeEngine.MacroStepCompleted += OnMacroStepCompleted;
         _luaEngine.MacroStepCompleted += OnMacroStepCompleted;
+
+        // Subscribe to macro execution requests from engines
+        _nativeEngine.MacroExecutionRequested += OnMacroExecutionRequested;
+        _luaEngine.MacroExecutionRequested += OnMacroExecutionRequested;
 
         foreach (var plugin in disableablePlugins)
             _disableablePlugins[plugin.InternalName] = plugin;
@@ -801,6 +802,25 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnMacroStepCompleted(object? sender, MacroStepCompletedEventArgs e)
         => Svc.Log.Verbose($"Macro step completed for {e.MacroId}: {e.StepIndex}/{e.TotalSteps}");
+
+    private void OnMacroExecutionRequested(object? sender, MacroExecutionRequestedEventArgs e)
+    {
+        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Received macro execution request for {e.Macro.Name}");
+
+        // Handle temporary macro registration and execution
+        if (e.Macro is TemporaryMacro tempMacro && tempMacro.Id.Contains('_'))
+        {
+            var parts = tempMacro.Id.Split('_');
+            if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro)
+            {
+                _macroHierarchy.RegisterTemporaryMacro(parentMacro, tempMacro);
+                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Subscribing to state changes for temporary macro {tempMacro.Id}");
+                tempMacro.StateChanged += OnMacroStateChanged;
+            }
+        }
+
+        _ = StartMacro(e.Macro, e.LoopCount, e.TriggerArgs);
+    }
     #endregion
 
     /// <inheritdoc/>
@@ -814,6 +834,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _luaEngine.MacroControlRequested -= OnMacroControlRequested;
         _nativeEngine.MacroStepCompleted -= OnMacroStepCompleted;
         _luaEngine.MacroStepCompleted -= OnMacroStepCompleted;
+
+        // Unsubscribe from macro execution requests
+        _nativeEngine.MacroExecutionRequested -= OnMacroExecutionRequested;
+        _luaEngine.MacroExecutionRequested -= OnMacroExecutionRequested;
 
         _macroStates.Values.Each(s => s.Dispose());
         _macroStates.Clear();

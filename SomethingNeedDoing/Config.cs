@@ -1,10 +1,7 @@
-﻿using Dalamud.Game.Network.Structures;
-using Dalamud.Game.Text;
+﻿using Dalamud.Game.Text;
 using ECommons.Configuration;
-using FFXIVClientStructs.FFXIV.Common.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using SomethingNeedDoing.Core.Interfaces;
 using System.IO;
 using System.Text;
 

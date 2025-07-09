@@ -34,9 +34,9 @@ public interface IMacroEngine : IDisposable
     event EventHandler<MacroStepCompletedEventArgs> MacroStepCompleted;
 
     /// <summary>
-    /// Gets or sets the macro scheduler used by this engine.
+    /// Event raised when a macro execution is requested (for breaking circular dependencies).
     /// </summary>
-    IMacroScheduler? Scheduler { get; set; } // TODO: only doing this because of macro command dependencies. Fix in the future
+    event EventHandler<MacroExecutionRequestedEventArgs> MacroExecutionRequested;
 
     /// <summary>
     /// Gets a temporary macro by its ID.

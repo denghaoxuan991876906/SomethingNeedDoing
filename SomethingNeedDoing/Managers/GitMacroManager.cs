@@ -1,10 +1,8 @@
 ﻿using SomethingNeedDoing.Core.Events;
-using SomethingNeedDoing.Core.Github;
 using SomethingNeedDoing.Core.Interfaces;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
-using SomethingNeedDoing.Core;
 
 namespace SomethingNeedDoing.Managers;
 

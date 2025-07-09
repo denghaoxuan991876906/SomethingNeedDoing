@@ -25,7 +25,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
     public event EventHandler<MacroStepCompletedEventArgs>? MacroStepCompleted;
 
     /// <inheritdoc/>
-    public IMacroScheduler? Scheduler { get; set; }
+    public event EventHandler<MacroExecutionRequestedEventArgs>? MacroExecutionRequested;
 
     private readonly Dictionary<string, TemporaryMacro> _temporaryMacros = [];
     private readonly Dictionary<string, Lua> _activeLuaEnvironments = [];
@@ -100,9 +100,16 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
 
             var engines = new List<IEngine>
             {
-                new NativeEngine(Scheduler!, parser),
+                new NativeEngine(parser),
                 new LuaEngine(this)
             };
+
+            if (engines[0] is NativeEngine nativeEngine)
+            {
+                nativeEngine.MacroExecutionRequested += (sender, e) =>
+                    MacroExecutionRequested?.Invoke(this, e);
+            }
+
             new EnginesModule(engines).Register(lua);
             new ConfigModule(macro.Macro).Register(lua);
 
@@ -146,20 +153,14 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
                                 throw new MacroException($"Lua Macro yielded a non-string value [{valueType}: {valueStr}]");
                             }
 
-                            var tempMacro = new TemporaryMacro(text);
-                            var nativeMacroId = $"{macro.Macro.Id}_native_{Guid.NewGuid()}";
-                            _temporaryMacros[nativeMacroId] = tempMacro;
-                            Svc.Log.Debug($"Created temporary macro {nativeMacroId} with content: {text}");
-
-                            if (Scheduler is { } scheduler)
+                            if (MacroExecutionRequested is { })
                             {
-                                var parentId = nativeMacroId.Split("_")[0];
-                                if (C.GetMacro(parentId) is { } parentMacro)
-                                    macroHierarchy.RegisterTemporaryMacro(parentMacro, tempMacro);
-                                await scheduler.StartMacro(tempMacro);
+                                var tempId = $"{macro.Macro.Id}_native_{Guid.NewGuid()}";
+                                var tempMacro = new TemporaryMacro(macro.Macro, text, macroHierarchy, tempId);
+                                _temporaryMacros[tempId] = tempMacro;
+                                await tempMacro.Run(MacroExecutionRequested);
+                                _temporaryMacros.Remove(tempId);
                             }
-
-                            _temporaryMacros.Remove(nativeMacroId);
 
                             MacroStepCompleted?.Invoke(this, new MacroStepCompletedEventArgs(macro.Macro.Id, 1, 1));
 
@@ -299,19 +300,15 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
                             break;
                         }
 
-                        if (result[0] is string command)
+                        if (result[0] is string command && MacroExecutionRequested is { })
                         {
-                            var tempMacro = new TemporaryMacro(command, $"{macro.Id}_cleanup_cmd_{Guid.NewGuid()}")
+                            var tempMacro = new TemporaryMacro(macro, command, macroHierarchy, $"{macro.Id}_cleanup_cmd_{Guid.NewGuid()}")
                             {
                                 Name = $"{macro.Name} - Cleanup Command",
                                 Type = MacroType.Native
                             };
 
-                            if (Scheduler is { } scheduler)
-                            {
-                                macroHierarchy.RegisterTemporaryMacro(macro, tempMacro);
-                                await scheduler.StartMacro(tempMacro);
-                            }
+                            await tempMacro.Run(MacroExecutionRequested);
                         }
                         else
                         {

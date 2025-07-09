@@ -1,5 +1,4 @@
 ﻿using FFXIVClientStructs.FFXIV.Component.GUI;
-using SomethingNeedDoing.Core;
 using SomethingNeedDoing.NativeMacro.Modifiers;
 using System.Threading;
 using System.Threading.Tasks;

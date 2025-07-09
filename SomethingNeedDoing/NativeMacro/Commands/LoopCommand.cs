@@ -11,10 +11,37 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
     ["loopCount"],
     ["/loop 10", "/loop 10 <echo>", "/loop"]
 )]
-public class LoopCommand(string text, int loopCount, IMacroScheduler scheduler) : MacroCommandBase(text)
+public class LoopCommand : MacroCommandBase
 {
     private const int MaxLoops = int.MaxValue;
-    private int loopsRemaining = loopCount >= 0 ? loopCount : MaxLoops;
+    private readonly int _loopCount;
+    private readonly IMacroScheduler? _scheduler;
+    private int loopsRemaining;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LoopCommand"/> class.
+    /// </summary>
+    /// <param name="text">The command text.</param>
+    /// <param name="loopCount">The number of loops.</param>
+    /// <param name="scheduler">The macro scheduler.</param>
+    public LoopCommand(string text, int loopCount, IMacroScheduler scheduler) : base(text)
+    {
+        _loopCount = loopCount;
+        _scheduler = scheduler;
+        loopsRemaining = loopCount >= 0 ? loopCount : MaxLoops;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LoopCommand"/> class.
+    /// </summary>
+    /// <param name="text">The command text.</param>
+    /// <param name="loopCount">The number of loops.</param>
+    public LoopCommand(string text, int loopCount) : base(text)
+    {
+        _loopCount = loopCount;
+        _scheduler = null;
+        loopsRemaining = loopCount >= 0 ? loopCount : MaxLoops;
+    }
 
     /// <inheritdoc/>
     public override bool RequiresFrameworkThread => false;
@@ -48,8 +75,14 @@ public class LoopCommand(string text, int loopCount, IMacroScheduler scheduler) 
         }
 
         context.Loop();
-        scheduler.CheckLoopPause(context.Macro.Id);
-        scheduler.CheckLoopStop(context.Macro.Id);
+
+        if (_scheduler != null)
+        {
+            _scheduler.CheckLoopPause(context.Macro.Id);
+            _scheduler.CheckLoopStop(context.Macro.Id);
+        }
+        // Note: Loop pause/stop functionality would need to be handled through events
+        // when scheduler is not available
 
         if (loopsRemaining != MaxLoops)
             loopsRemaining--;
