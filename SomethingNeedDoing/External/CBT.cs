@@ -5,7 +5,7 @@ namespace SomethingNeedDoing.External;
 
 public class CBT : IPC
 {
-    public override string Name => "CBT";
+    public override string Name => "Automaton";
     public override string Repo => Repos.Croizat;
 
     [EzIPC]
