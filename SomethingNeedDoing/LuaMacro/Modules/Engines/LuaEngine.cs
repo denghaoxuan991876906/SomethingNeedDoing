@@ -2,7 +2,7 @@ using SomethingNeedDoing.Core.Events;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.LuaMacro.Modules;
+namespace SomethingNeedDoing.LuaMacro.Modules.Engines;
 
 /// <summary>
 /// Engine for executing Lua code.

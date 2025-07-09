@@ -3,7 +3,7 @@ using SomethingNeedDoing.NativeMacro;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SomethingNeedDoing.LuaMacro.Modules;
+namespace SomethingNeedDoing.LuaMacro.Modules.Engines;
 
 /// <summary>
 /// Engine for executing native commands.

@@ -1,4 +1,6 @@
 using NLua;
+using SomethingNeedDoing.Documentation;
+using SomethingNeedDoing.LuaMacro.Modules.Engines;
 using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;
@@ -15,13 +17,120 @@ public class EnginesModule : LuaModuleBase
     public EnginesModule(IEnumerable<IEngine> engines)
     {
         foreach (var engine in engines)
-            _engines[engine.Name.ToLowerInvariant()] = engine;
+            _engines[engine.Name] = engine;
     }
 
     public override void Register(Lua lua)
     {
         base.Register(lua);
         RegisterEngineFunctions(lua);
+    }
+
+    public void RegisterDocumentation(LuaDocumentation docs)
+    {
+        var moduleDocs = new List<LuaFunctionDoc>
+        {
+            // Register global helper functions
+            new(
+            ModuleName,
+            "Run",
+            "Executes content using the best available engine (fire and forget)",
+            LuaTypeConverter.GetLuaType(typeof(void)),
+            [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+            null,
+            true
+        ),
+            new(
+            ModuleName,
+            "RunAsync",
+            "Executes content using the best available engine asynchronously",
+            LuaTypeConverter.GetLuaType(typeof(Task)),
+            [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+            null,
+            true
+        )
+        };
+
+        // Register each engine's functions
+        foreach (var (name, engine) in _engines)
+        {
+            moduleDocs.Add(new LuaFunctionDoc(
+                $"{ModuleName}.{name}",
+                "Run",
+                $"Executes content using the {engine.Name} engine (fire and forget)",
+                LuaTypeConverter.GetLuaType(typeof(void)),
+                [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+                null,
+                true
+            ));
+
+            moduleDocs.Add(new LuaFunctionDoc(
+                $"{ModuleName}.{name}",
+                "RunAsync",
+                $"Executes content using the {engine.Name} engine asynchronously",
+                LuaTypeConverter.GetLuaType(typeof(Task)),
+                [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+                null,
+                true
+            ));
+        }
+
+        docs.RegisterModule(this, moduleDocs);
+    }
+
+    /// <summary>
+    /// Registers documentation for the Engines module at startup (without requiring actual engine instances).
+    /// </summary>
+    /// <param name="docs">The documentation system to register with.</param>
+    public static void RegisterDocumentationStatic(LuaDocumentation docs)
+    {
+        var moduleDocs = new List<LuaFunctionDoc>
+        {
+            new(
+            "Engines",
+            "Run",
+            "Executes content using the best available engine (fire and forget)",
+            LuaTypeConverter.GetLuaType(typeof(void)),
+            [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+            null,
+            true
+        ),
+            new(
+            "Engines",
+            "RunAsync",
+            "Executes content using the best available engine asynchronously",
+            LuaTypeConverter.GetLuaType(typeof(Task)),
+            [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+            null,
+            true
+        )
+        };
+
+        var knownEngines = new[] { "Native", "NLua" };
+        foreach (var engineName in knownEngines)
+        {
+            moduleDocs.Add(new LuaFunctionDoc(
+                $"Engines.{engineName}",
+                "Run",
+                $"Executes content using the {engineName} engine (fire and forget)",
+                LuaTypeConverter.GetLuaType(typeof(void)),
+                [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+                null,
+                true
+            ));
+
+            moduleDocs.Add(new LuaFunctionDoc(
+                $"Engines.{engineName}",
+                "RunAsync",
+                $"Executes content using the {engineName} engine asynchronously",
+                LuaTypeConverter.GetLuaType(typeof(Task)),
+                [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+                null,
+                true
+            ));
+        }
+
+        docs.RegisterModule("Engines", moduleDocs);
     }
 
     private void RegisterEngineFunctions(Lua lua)

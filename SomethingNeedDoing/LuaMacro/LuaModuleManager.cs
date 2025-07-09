@@ -28,6 +28,9 @@ public class LuaModuleManager
         RegisterModule(new PlayerModule());
         RegisterModule(new QuestsModule());
         RegisterModule(new SystemModule());
+
+        // Register Engines module documentation statically
+        EnginesModule.RegisterDocumentationStatic(_documentation);
     }
 
     public void RegisterAll(Lua lua) => _modules.ForEach(m => m.Register(lua));
@@ -49,6 +52,8 @@ public class LuaModuleManager
 
         if (module is IPCModule ipcModule)
             ipcModule.RegisterDocumentation(_documentation);
+        else if (module is EnginesModule enginesModule)
+            enginesModule.RegisterDocumentation(_documentation);
         else
             _documentation.RegisterModule(module);
     }

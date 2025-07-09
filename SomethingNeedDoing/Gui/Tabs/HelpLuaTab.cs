@@ -14,9 +14,9 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
         using var child = ImRaii.Child(nameof(HelpLuaTab));
         ImGuiUtils.Section("Lua Scripting", () => ImGui.TextWrapped($"Below are all of the functions and properties provided by the framework. Click any to copy the full call path to clipboard."));
 
-        foreach (var module in luaDocs.GetModules())
+        foreach (var module in luaDocs.GetModules().OrderBy(m => m.Key))
         {
-            if (module.Key == "IPC")
+            if (module.Key is "IPC" or "Engines")
             {
                 ImGuiUtils.Section(module.Key, () =>
                 {

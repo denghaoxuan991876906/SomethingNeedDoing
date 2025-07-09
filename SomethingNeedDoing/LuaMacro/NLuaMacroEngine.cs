@@ -2,6 +2,7 @@
 using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro.Modules;
+using SomethingNeedDoing.LuaMacro.Modules.Engines;
 using SomethingNeedDoing.Managers;
 using SomethingNeedDoing.NativeMacro;
 using System.Text;
@@ -118,7 +119,8 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
                     LoopControlRequested?.Invoke(this, e);
             }
 
-            new EnginesModule(engines).Register(lua);
+            var enginesModule = new EnginesModule(engines);
+            enginesModule.Register(lua);
             new ConfigModule(macro.Macro).Register(lua);
 
             _activeLuaEnvironments[macro.Macro.Id] = lua; // for function triggers to access the same state
