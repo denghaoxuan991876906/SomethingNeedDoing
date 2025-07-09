@@ -1,5 +1,4 @@
 ﻿using SomethingNeedDoing.Core.Events;
-using SomethingNeedDoing.Core.Interfaces;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,19 +14,6 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
 public class RunMacroCommand : MacroCommandBase
 {
     private readonly string _macroName;
-    private readonly IMacroScheduler? _scheduler;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="RunMacroCommand"/> class.
-    /// </summary>
-    /// <param name="text">The command text.</param>
-    /// <param name="macroName">The name of the macro to run.</param>
-    /// <param name="scheduler">The macro scheduler.</param>
-    public RunMacroCommand(string text, string macroName, IMacroScheduler scheduler) : base(text)
-    {
-        _macroName = macroName;
-        _scheduler = scheduler;
-    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RunMacroCommand"/> class.
@@ -37,7 +23,6 @@ public class RunMacroCommand : MacroCommandBase
     public RunMacroCommand(string text, string macroName) : base(text)
     {
         _macroName = macroName;
-        _scheduler = null;
     }
 
     /// <inheritdoc/>
@@ -48,15 +33,8 @@ public class RunMacroCommand : MacroCommandBase
     {
         if (C.GetMacroByName(_macroName) is { } macro)
         {
-            if (_scheduler != null)
-            {
-                _ = _scheduler.StartMacro(macro);
-            }
-            else
-            {
-                // Raise event for macro execution request
-                context.OnMacroExecutionRequested(this, new MacroExecutionRequestedEventArgs(macro));
-            }
+            // Raise event for macro execution request
+            context.OnMacroExecutionRequested(this, new MacroExecutionRequestedEventArgs(macro));
         }
         else
         {
@@ -65,19 +43,4 @@ public class RunMacroCommand : MacroCommandBase
 
         await PerformWait(token);
     }
-
-    /// <summary>
-    /// Parses a run macro command from text.
-    /// </summary>
-    //public override RunMacroCommand Parse(string text)
-    //{
-    //    _ = WaitModifier.TryParse(ref text, out var waitMod);
-
-    //    var match = Regex.Match(text, @"^/runmacro\s+(?<name>.*?)\s*$", RegexOptions.Compiled);
-    //    if (!match.Success)
-    //        throw new MacroSyntaxError(text);
-
-    //    var macroName = match.Groups["name"].Value.Trim('"');
-    //    return new(text, macroName, waitMod as WaitModifier);
-    //}
 }

@@ -23,6 +23,11 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
     public event EventHandler<MacroExecutionRequestedEventArgs>? MacroExecutionRequested;
 
     /// <summary>
+    /// Event raised when loop control is requested.
+    /// </summary>
+    public event EventHandler<LoopControlEventArgs>? LoopControlRequested;
+
+    /// <summary>
     /// Represents the current execution state of a macro.
     /// </summary>
     private class MacroExecutionState(IMacro macro)
@@ -101,6 +106,12 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
 
                     var command = state.Commands[currentStep];
                     var context = new MacroContext(state.Macro);
+
+                    context.MacroExecutionRequested += (sender, e) =>
+                        MacroExecutionRequested?.Invoke(this, e);
+
+                    context.LoopControlRequested += (sender, e) =>
+                        LoopControlRequested?.Invoke(this, e);
 
                     if (command.RequiresFrameworkThread)
                         await Svc.Framework.RunOnTick(() => command.Execute(context, token), cancellationToken: token);
@@ -188,7 +199,9 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
                 sb.AppendLine(loopStep);
             }
             else if (craftCount == 0)
+            {
                 sb.AppendLine(contents);
+            }
             else if (craftCount == 1)
             {
                 sb.AppendLine(clickSteps);
@@ -196,9 +209,10 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
             }
             else
             {
+                sb.AppendLine(craftGateStep);
                 sb.AppendLine(clickSteps);
                 sb.AppendLine(contents);
-                sb.AppendLine(craftGateStep);
+                sb.AppendLine(loopStep);
             }
         }
         else
@@ -206,16 +220,19 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
             if (craftCount == -1)
             {
                 sb.AppendLine(contents);
+                sb.AppendLine(clickSteps);
                 sb.AppendLine(loopStep);
             }
-            else if (craftCount == 0)
+            else if (craftCount is 0 or 1)
+            {
                 sb.AppendLine(contents);
-            else if (craftCount == 1)
-                sb.AppendLine(contents);
+            }
             else
             {
                 sb.AppendLine(contents);
                 sb.AppendLine(craftGateStep);
+                sb.AppendLine(clickSteps);
+                sb.AppendLine(loopStep);
             }
         }
 

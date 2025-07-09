@@ -27,6 +27,11 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
     /// <inheritdoc/>
     public event EventHandler<MacroExecutionRequestedEventArgs>? MacroExecutionRequested;
 
+    /// <summary>
+    /// Event raised when loop control is requested.
+    /// </summary>
+    public event EventHandler<LoopControlEventArgs>? LoopControlRequested;
+
     private readonly Dictionary<string, TemporaryMacro> _temporaryMacros = [];
     private readonly Dictionary<string, Lua> _activeLuaEnvironments = [];
 
@@ -108,6 +113,9 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
             {
                 nativeEngine.MacroExecutionRequested += (sender, e) =>
                     MacroExecutionRequested?.Invoke(this, e);
+
+                nativeEngine.LoopControlRequested += (sender, e) =>
+                    LoopControlRequested?.Invoke(this, e);
             }
 
             new EnginesModule(engines).Register(lua);

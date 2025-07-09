@@ -57,9 +57,11 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _nativeEngine.MacroStepCompleted += OnMacroStepCompleted;
         _luaEngine.MacroStepCompleted += OnMacroStepCompleted;
 
-        // Subscribe to macro execution requests from engines
         _nativeEngine.MacroExecutionRequested += OnMacroExecutionRequested;
         _luaEngine.MacroExecutionRequested += OnMacroExecutionRequested;
+
+        _nativeEngine.LoopControlRequested += OnLoopControlRequested;
+        _luaEngine.LoopControlRequested += OnLoopControlRequested;
 
         foreach (var plugin in disableablePlugins)
             _disableablePlugins[plugin.InternalName] = plugin;
@@ -803,6 +805,25 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private void OnMacroStepCompleted(object? sender, MacroStepCompletedEventArgs e)
         => Svc.Log.Verbose($"Macro step completed for {e.MacroId}: {e.StepIndex}/{e.TotalSteps}");
 
+    private void OnLoopControlRequested(object? sender, LoopControlEventArgs e)
+    {
+        if (_macroStates.TryGetValue(e.MacroId, out var state))
+        {
+            if (e.ControlType == LoopControlType.Pause && state.PauseAtLoop)
+            {
+                state.PauseAtLoop = false;
+                state.PauseEvent.Reset();
+                state.Macro.State = MacroState.Paused;
+            }
+            else if (e.ControlType == LoopControlType.Stop && state.StopAtLoop)
+            {
+                state.StopAtLoop = false;
+                state.CancellationSource.Cancel();
+                state.Macro.State = MacroState.Completed;
+            }
+        }
+    }
+
     private void OnMacroExecutionRequested(object? sender, MacroExecutionRequestedEventArgs e)
     {
         Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Received macro execution request for {e.Macro.Name}");
@@ -835,9 +856,11 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _nativeEngine.MacroStepCompleted -= OnMacroStepCompleted;
         _luaEngine.MacroStepCompleted -= OnMacroStepCompleted;
 
-        // Unsubscribe from macro execution requests
         _nativeEngine.MacroExecutionRequested -= OnMacroExecutionRequested;
         _luaEngine.MacroExecutionRequested -= OnMacroExecutionRequested;
+
+        _nativeEngine.LoopControlRequested -= OnLoopControlRequested;
+        _luaEngine.LoopControlRequested -= OnLoopControlRequested;
 
         _macroStates.Values.Each(s => s.Dispose());
         _macroStates.Clear();
