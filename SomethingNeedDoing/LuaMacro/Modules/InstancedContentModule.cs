@@ -16,7 +16,7 @@ public unsafe class InstancedContentModule : LuaModuleBase
     public override void Register(Lua lua)
     {
         lua.DoString("DynamicEventState = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.InstanceContent.DynamicEventState')");
-        lua.DoString("OceanFishingStatus = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.InstanceContent.OceanFishingStatus')");
+        lua.DoString("OceanFishingStatus = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.InstanceContent.InstanceContentOceanFishing+OceanFishingStatus')");
         lua.DoString("ContentType = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.Event.ContentType')");
         base.Register(lua);
     }
