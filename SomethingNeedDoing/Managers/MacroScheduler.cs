@@ -515,18 +515,13 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnMacroStateChanged(object? sender, MacroStateChangedEventArgs e)
     {
-        // If this is a temporary macro, find its parent
-        var parts = e.MacroId.Split("_");
-        if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro && e.NewState == MacroState.Error)
-            parentMacro.State = MacroState.Error;
-
         MacroStateChanged?.Invoke(sender, e);
 
         if (e.NewState is MacroState.Completed or MacroState.Error)
         {
             if (sender is IMacro macro)
             {
-                if (macro.Metadata.TriggerEvents.Contains(TriggerEvent.OnAutoRetainerCharacterPostProcess)) // whole macro
+                if (macro.Metadata.TriggerEvents.Contains(TriggerEvent.OnAutoRetainerCharacterPostProcess))
                 {
                     if (_arApis.TryGetValue(macro.Id, out var arApi))
                     {
@@ -534,26 +529,18 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                         arApi.FinishCharacterPostProcess();
                     }
                 }
-                else if (macro is TemporaryMacro && e.MacroId.Contains('_') && parts.Length >= 2) // function-level trigger temp macro
-                {
-                    var parentId = parts[0];
-                    if (C.GetMacro(parentId) is { } parent && parent.Metadata.TriggerEvents.Contains(TriggerEvent.OnAutoRetainerCharacterPostProcess))
-                    {
-                        if (_arApis.TryGetValue(parentId, out var arApi))
-                        {
-                            Svc.Log.Info($"[{nameof(MacroScheduler)}] {macro.Name} character post process finished, calling FinishCharacterPostProcess()");
-                            arApi.FinishCharacterPostProcess();
-                        }
-                    }
-                }
             }
 
-            // If this is a temporary macro, unregister it and clean up
-            if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro2)
+            if (sender is TemporaryMacro temp)
             {
+                if (e.NewState == MacroState.Error)
+                {
+                    var rootParent = _macroHierarchy.GetRootParentMacro(temp.Id);
+                    if (rootParent is { } parentMacro)
+                        parentMacro.State = MacroState.Error;
+                }
                 _macroHierarchy.UnregisterTemporaryMacro(e.MacroId);
-                if (sender is IMacro tempMacro)
-                    tempMacro.StateChanged -= OnMacroStateChanged;
+                temp.StateChanged -= OnMacroStateChanged;
             }
 
             if (_macroStates.Remove(e.MacroId, out var state))
@@ -573,26 +560,15 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     {
         if (sender is IMacro macro)
         {
-            // If this is a temporary macro created from a function trigger, register it with its parent
-            if (macro is TemporaryMacro && macro.Id.Contains('_'))
+            if (macro is TemporaryMacro tempMacro)
             {
-                var parts = macro.Id.Split('_');
-                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Processing temporary macro {macro.Id} with parts: {string.Join(", ", parts)}");
-                if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro)
-                {
-                    Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Found parent macro {parentMacro.Id} for temporary macro {macro.Id}");
-                    _macroHierarchy.RegisterTemporaryMacro(parentMacro, macro);
-
-                    Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Subscribing to state changes for temporary macro {macro.Id}");
-                    macro.StateChanged += OnMacroStateChanged;
-
-                    _ = StartMacro(macro, e);
-                }
-            }
-            else
-            {
+                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Processing temporary macro {macro.Id}");
+                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Subscribing to state changes for temporary macro {macro.Id}");
+                macro.StateChanged += OnMacroStateChanged;
                 _ = StartMacro(macro, e);
             }
+            else
+                _ = StartMacro(macro, e);
         }
     }
 
@@ -783,17 +759,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             else if (sender is IMacroEngine engine && engine.GetTemporaryMacro(e.MacroId) is { } tempMacro)
             {
                 Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Starting temporary macro {e.MacroId}");
-                // Find the parent macro by looking at the ID prefix
-                var parentId = e.MacroId.Split("_")[0];
-                if (C.GetMacro(parentId) is { } parentMacro)
-                {
-                    _macroHierarchy.RegisterTemporaryMacro(parentMacro, tempMacro);
-                    Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Subscribing to state changes for temporary macro {e.MacroId}");
-                    tempMacro.StateChanged += OnMacroStateChanged;
-                    _ = StartMacro(tempMacro);
-                }
-                else
-                    Svc.Log.Warning($"[{nameof(MacroScheduler)}] Could not find parent macro {parentId} for temporary macro {e.MacroId}");
+                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Subscribing to state changes for temporary macro {e.MacroId}");
+                tempMacro.StateChanged += OnMacroStateChanged;
+                _ = StartMacro(tempMacro);
             }
             else
                 Svc.Log.Warning($"[{nameof(MacroScheduler)}] Could not find macro {e.MacroId} to start");
@@ -828,16 +796,10 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     {
         Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Received macro execution request for {e.Macro.Name}");
 
-        // Handle temporary macro registration and execution
-        if (e.Macro is TemporaryMacro tempMacro && tempMacro.Id.Contains('_'))
+        if (e.Macro is TemporaryMacro tempMacro)
         {
-            var parts = tempMacro.Id.Split('_');
-            if (parts.Length >= 2 && C.GetMacro(parts[0]) is { } parentMacro)
-            {
-                _macroHierarchy.RegisterTemporaryMacro(parentMacro, tempMacro);
-                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Subscribing to state changes for temporary macro {tempMacro.Id}");
-                tempMacro.StateChanged += OnMacroStateChanged;
-            }
+            Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Subscribing to state changes for temporary macro {tempMacro.Id}");
+            tempMacro.StateChanged += OnMacroStateChanged;
         }
 
         _ = StartMacro(e.Macro, e.LoopCount, e.TriggerArgs);
