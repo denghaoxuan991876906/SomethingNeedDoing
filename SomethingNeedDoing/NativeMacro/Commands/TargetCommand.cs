@@ -24,7 +24,7 @@ public class TargetCommand(string text, string targetName) : MacroCommandBase(te
     {
         await context.RunOnFramework(() =>
         {
-            Svc.Log.Verbose($"Searching for target [{targetName}] with modifiers: idx:{IndexModifier?.Index.ToString() ?? "null"}, party:{PartyIndexModifier?.Index.ToString() ?? "null"}, list:{ListIndexModifier?.Index.ToString() ?? "null"}");
+            FrameworkLogger.Verbose($"Searching for target [{targetName}] with modifiers: idx:{IndexModifier?.Index.ToString() ?? "null"}, party:{PartyIndexModifier?.Index.ToString() ?? "null"}, list:{ListIndexModifier?.Index.ToString() ?? "null"}");
             IGameObject? target;
             if (PartyIndexModifier is { Index: var index })
                 target = Svc.Party[index - 1]?.GameObject;

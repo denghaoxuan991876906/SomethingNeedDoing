@@ -30,7 +30,7 @@ public class MacroParser
     public IMacroCommand ParseLine(string text)
     {
         var (textWithoutModifiers, modifiers) = ExtractSndModifiers(text); // this is because the index modifier is a native modifier that some non-snd commands use
-        Svc.Log.Verbose($"Extracted modifiers: {string.Join(", ", modifiers)}. Leftover text: [{textWithoutModifiers}]");
+        FrameworkLogger.Verbose($"Extracted modifiers: {string.Join(", ", modifiers)}. Leftover text: [{textWithoutModifiers}]");
         var commandInfo = ParseCommandStructure(textWithoutModifiers) ?? throw new MacroSyntaxError(text);
         var command = CreateCommand(commandInfo with { RemainingText = textWithoutModifiers });
         ApplyModifiers(modifiers, command);
@@ -53,7 +53,7 @@ public class MacroParser
             var modifierDefinition = ModifierDefinitions.FindMatchingModifier(match, ModifierDefinitions.SndModifiers);
             if (modifierDefinition == null)
             {
-                Svc.Log.Warning($"Unknown SND modifier match: {match.Value}");
+                FrameworkLogger.Warning($"Unknown SND modifier match: {match.Value}");
                 continue;
             }
 

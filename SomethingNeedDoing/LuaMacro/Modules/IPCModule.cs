@@ -26,7 +26,7 @@ public class IPCModule : LuaModuleBase
             }
             catch (Exception ex)
             {
-                Svc.Log.Error($"Failed to create instance of {type.Name}: {ex.Message}");
+                FrameworkLogger.Error($"Failed to create instance of {type.Name}: {ex.Message}");
             }
         }
     }

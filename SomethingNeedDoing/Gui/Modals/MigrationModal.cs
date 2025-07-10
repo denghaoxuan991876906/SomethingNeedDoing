@@ -202,7 +202,7 @@ public static class MigrationModal
                 }
                 catch (JsonReaderException)
                 {
-                    Svc.Log.Warning("Failed to parse clipboard content as JSON");
+                    FrameworkLogger.Warning("Failed to parse clipboard content as JSON");
                 }
             }
 
@@ -214,12 +214,12 @@ public static class MigrationModal
                 {
                     try
                     {
-                        Svc.Log.Info($"Reading config from {configPath}");
+                        FrameworkLogger.Info($"Reading config from {configPath}");
                         oldConfig = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(configPath));
                     }
                     catch (JsonReaderException)
                     {
-                        Svc.Log.Warning("Failed to parse config file as JSON");
+                        FrameworkLogger.Warning("Failed to parse config file as JSON");
                     }
                 }
             }
@@ -231,15 +231,15 @@ public static class MigrationModal
                 return;
             }
 
-            Svc.Log.Info($"Old config type: {oldConfig.GetType().Name}");
+            FrameworkLogger.Info($"Old config type: {oldConfig.GetType().Name}");
 
             if (oldConfig.RootFolder != null)
                 PreviewMacrosFromOldStructure(oldConfig.RootFolder);
             else
-                Svc.Log.Warning("No macros found in old config");
+                FrameworkLogger.Warning("No macros found in old config");
 
-            Svc.Log.Info($"Migration preview summary:");
-            Svc.Log.Info($"- New macros: {newMacros.Count}");
+            FrameworkLogger.Info($"Migration preview summary:");
+            FrameworkLogger.Info($"- New macros: {newMacros.Count}");
 
             migrationValid = true;
         }
@@ -247,7 +247,7 @@ public static class MigrationModal
         {
             migrationValid = false;
             errorMessage = $"Error previewing migration: {ex.Message}";
-            Svc.Log.Error(ex, "Failed to preview migration");
+            FrameworkLogger.Error(ex, "Failed to preview migration");
         }
     }
 
@@ -259,17 +259,17 @@ public static class MigrationModal
             if (rootFolder.Name != null)
             {
                 rootFolderName = rootFolder.Name.ToString();
-                Svc.Log.Info($"Root folder name: {rootFolderName}");
+                FrameworkLogger.Info($"Root folder name: {rootFolderName}");
             }
             else
             {
-                Svc.Log.Warning("Root folder has no name, using default");
+                FrameworkLogger.Warning("Root folder has no name, using default");
                 rootFolderName = ConfigMacro.Root;
             }
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, "Error determining root folder name");
+            FrameworkLogger.Error(ex, "Error determining root folder name");
             rootFolderName = ConfigMacro.Root;
         }
 
@@ -277,14 +277,14 @@ public static class MigrationModal
         {
             if (folder == null) return;
 
-            Svc.Log.Info($"Traversing folder: {currentPath}");
+            FrameworkLogger.Info($"Traversing folder: {currentPath}");
 
             try
             {
                 var children = folder.Children;
                 if (children == null)
                 {
-                    Svc.Log.Warning($"No Children property found in folder: {currentPath}");
+                    FrameworkLogger.Warning($"No Children property found in folder: {currentPath}");
                     return;
                 }
 
@@ -310,7 +310,7 @@ public static class MigrationModal
                                 }
                             };
 
-                            Svc.Log.Info($"Adding macro: {macro.Name} in {macro.FolderPath}");
+                            FrameworkLogger.Info($"Adding macro: {macro.Name} in {macro.FolderPath}");
                             newMacros[macro.Name] = (macro, true);
                         }
                         else if (node.Name != null)
@@ -330,13 +330,13 @@ public static class MigrationModal
                     }
                     catch (Exception ex)
                     {
-                        Svc.Log.Error(ex, $"Error processing node in folder {currentPath}");
+                        FrameworkLogger.Error(ex, $"Error processing node in folder {currentPath}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Svc.Log.Error(ex, $"Error traversing folder {currentPath}");
+                FrameworkLogger.Error(ex, $"Error traversing folder {currentPath}");
             }
         }
 
@@ -346,7 +346,7 @@ public static class MigrationModal
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, "Failed to traverse folder structure");
+            FrameworkLogger.Error(ex, "Failed to traverse folder structure");
         }
     }
 

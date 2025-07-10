@@ -77,7 +77,7 @@ public static class RenameFolderModal
             }
             catch (Exception ex)
             {
-                Svc.Log.Error(ex, "Error renaming folder");
+                FrameworkLogger.Error(ex, "Error renaming folder");
             }
         }
 

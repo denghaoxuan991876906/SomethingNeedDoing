@@ -111,7 +111,7 @@ public class CodeEditor : IDisposable
                     }
                     catch (Exception ex)
                     {
-                        Svc.Log.Error(ex, "Failed to auto-parse metadata");
+                        FrameworkLogger.Error(ex, "Failed to auto-parse metadata");
                     }
                 }
 

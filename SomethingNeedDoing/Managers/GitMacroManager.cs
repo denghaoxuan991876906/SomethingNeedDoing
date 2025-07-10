@@ -149,7 +149,7 @@ public class GitMacroManager : IDisposable
         if (!macro.IsGitMacro) return;
         if (DateTime.Now - macro.GitInfo.LastUpdateCheck < _updateCooldown)
         {
-            Svc.Log.Info($"Skipping update check for {macro.Name} (last checked {macro.GitInfo.LastUpdateCheck})");
+            FrameworkLogger.Info($"Skipping update check for {macro.Name} (last checked {macro.GitInfo.LastUpdateCheck})");
             return;
         }
 
@@ -161,17 +161,17 @@ public class GitMacroManager : IDisposable
         repo = repo.EndsWith(".git") ? repo[..^4] : repo;
 
         var filePath = macro.GitInfo.FilePath;
-        Svc.Log.Debug($"Checking for updates for {macro.Name}");
-        Svc.Log.Debug($"File: {filePath}");
+        FrameworkLogger.Debug($"Checking for updates for {macro.Name}");
+        FrameworkLogger.Debug($"File: {filePath}");
 
         var url = $"https://api.github.com/repos/{owner}/{repo}/commits?path={Uri.EscapeDataString(filePath)}&per_page=1";
-        Svc.Log.Debug($"Requesting: {url}");
+        FrameworkLogger.Debug($"Requesting: {url}");
 
         var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            Svc.Log.Error($"Failed to check for updates: {response.StatusCode} - {error}");
+            FrameworkLogger.Error($"Failed to check for updates: {response.StatusCode} - {error}");
             return;
         }
 
@@ -184,12 +184,12 @@ public class GitMacroManager : IDisposable
             if (latestCommit != macro.GitInfo.CommitHash)
             {
                 macro.GitInfo.HasUpdate = true;
-                Svc.Log.Info($"Update available for {macro.Name} ({macro.GitInfo.CommitHash} → {latestCommit})");
+                FrameworkLogger.Info($"Update available for {macro.Name} ({macro.GitInfo.CommitHash} → {latestCommit})");
             }
             else
             {
                 macro.GitInfo.HasUpdate = false;
-                Svc.Log.Info($"No updates available for {macro.Name} ({macro.GitInfo.CommitHash} == {latestCommit})");
+                FrameworkLogger.Info($"No updates available for {macro.Name} ({macro.GitInfo.CommitHash} == {latestCommit})");
             }
         }
 
@@ -232,38 +232,38 @@ public class GitMacroManager : IDisposable
         var (owner, repo) = GetOwnerAndRepo(macro.GitInfo.RepositoryUrl);
         if (string.IsNullOrEmpty(owner) || string.IsNullOrEmpty(repo))
         {
-            Svc.Log.Error($"Invalid repository URL: {macro.GitInfo.RepositoryUrl}");
+            FrameworkLogger.Error($"Invalid repository URL: {macro.GitInfo.RepositoryUrl}");
             return [];
         }
 
-        Svc.Log.Debug($"Getting commit history for {macro.Name}");
-        Svc.Log.Debug($"Repository URL: {macro.GitInfo.RepositoryUrl}");
-        Svc.Log.Debug($"Extracted - Owner: {owner}, Repo: {repo}");
+        FrameworkLogger.Debug($"Getting commit history for {macro.Name}");
+        FrameworkLogger.Debug($"Repository URL: {macro.GitInfo.RepositoryUrl}");
+        FrameworkLogger.Debug($"Extracted - Owner: {owner}, Repo: {repo}");
 
         // Remove .git suffix if present
         repo = repo.EndsWith(".git") ? repo[..^4] : repo;
 
         var filePath = macro.GitInfo.FilePath;
-        Svc.Log.Debug($"File path: {filePath}");
+        FrameworkLogger.Debug($"File path: {filePath}");
 
         var url = $"https://api.github.com/repos/{owner}/{repo}/commits?path={Uri.EscapeDataString(filePath)}";
-        Svc.Log.Debug($"Requesting: {url}");
+        FrameworkLogger.Debug($"Requesting: {url}");
 
         var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            Svc.Log.Error($"Failed to get commit history: {response.StatusCode} - {error}");
-            Svc.Log.Error($"Request URL: {url}");
-            Svc.Log.Error($"Repository URL: {macro.GitInfo.RepositoryUrl}");
-            Svc.Log.Error($"Owner: {owner}, Repo: {repo}, File: {filePath}");
+            FrameworkLogger.Error($"Failed to get commit history: {response.StatusCode} - {error}");
+            FrameworkLogger.Error($"Request URL: {url}");
+            FrameworkLogger.Error($"Repository URL: {macro.GitInfo.RepositoryUrl}");
+            FrameworkLogger.Error($"Owner: {owner}, Repo: {repo}, File: {filePath}");
             throw new Exception($"Failed to get commit history: {response.StatusCode}");
         }
 
         var content = await response.Content.ReadAsStringAsync();
         var commits = JsonSerializer.Deserialize<List<JsonElement>>(content) ?? [];
 
-        Svc.Log.Debug($"Found {commits.Count} commits for file {filePath}");
+        FrameworkLogger.Debug($"Found {commits.Count} commits for file {filePath}");
 
         return [.. commits.Select(c => new GitCommit
         {
@@ -290,7 +290,7 @@ public class GitMacroManager : IDisposable
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, $"Failed to update macro {macro.Name} to commit {commitHash}");
+            FrameworkLogger.Error(ex, $"Failed to update macro {macro.Name} to commit {commitHash}");
         }
     }
 
@@ -317,7 +317,7 @@ public class GitMacroManager : IDisposable
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, $"Failed to parse repository URL: {url}");
+            FrameworkLogger.Error(ex, $"Failed to parse repository URL: {url}");
             return (string.Empty, string.Empty);
         }
     }
@@ -370,8 +370,8 @@ public class GitMacroManager : IDisposable
         repo = repo.EndsWith(".git") ? repo[..^4] : repo;
 
         var filePath = macro.GitInfo.FilePath;
-        Svc.Log.Debug($"Updating macro {macro.Name}");
-        Svc.Log.Debug($"File: {filePath}");
+        FrameworkLogger.Debug($"Updating macro {macro.Name}");
+        FrameworkLogger.Debug($"File: {filePath}");
 
         string commitHash;
         if (specificCommit != null)
@@ -379,13 +379,13 @@ public class GitMacroManager : IDisposable
         else
         {
             var url = $"https://api.github.com/repos/{owner}/{repo}/commits?path={Uri.EscapeDataString(filePath)}&per_page=1";
-            Svc.Log.Debug($"Requesting: {url}");
+            FrameworkLogger.Debug($"Requesting: {url}");
 
             var response = await _httpClient.GetAsync(url);
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                Svc.Log.Error($"Failed to get latest commit: {response.StatusCode} - {error}");
+                FrameworkLogger.Error($"Failed to get latest commit: {response.StatusCode} - {error}");
                 throw new Exception($"Failed to get latest commit: {response.StatusCode}");
             }
 
@@ -393,7 +393,7 @@ public class GitMacroManager : IDisposable
             var commits = JsonSerializer.Deserialize<List<JsonElement>>(content) ?? [];
             if (commits.Count == 0)
             {
-                Svc.Log.Error("No commits found for file");
+                FrameworkLogger.Error("No commits found for file");
                 throw new Exception("No commits found for file");
             }
 
@@ -402,13 +402,13 @@ public class GitMacroManager : IDisposable
 
         // Download the file content
         var fileUrl = $"https://raw.githubusercontent.com/{owner}/{repo}/{macro.GitInfo.Branch}/{filePath}";
-        Svc.Log.Debug($"Downloading file from: {fileUrl}");
+        FrameworkLogger.Debug($"Downloading file from: {fileUrl}");
 
         var fileResponse = await _httpClient.GetAsync(fileUrl);
         if (!fileResponse.IsSuccessStatusCode)
         {
             var error = await fileResponse.Content.ReadAsStringAsync();
-            Svc.Log.Error($"Failed to download file: {fileResponse.StatusCode} - {error} from url [{fileUrl}] for macro [{macro.Name}]");
+            FrameworkLogger.Error($"Failed to download file: {fileResponse.StatusCode} - {error} from url [{fileUrl}] for macro [{macro.Name}]");
             throw new Exception($"Failed to download file: {fileResponse.StatusCode}");
         }
 
@@ -432,7 +432,7 @@ public class GitMacroManager : IDisposable
         currentTriggers.ForEach(t => _scheduler.SubscribeToTriggerEvent(macro, t));
 
         C.Save();
-        Svc.Log.Info($"Successfully updated macro {macro.Name} to commit {commitHash}");
+        FrameworkLogger.Info($"Successfully updated macro {macro.Name} to commit {commitHash}");
     }
 
     /// <summary>

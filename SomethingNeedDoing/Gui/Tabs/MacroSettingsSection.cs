@@ -234,9 +234,9 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
             if (ImGui.Button("Write Metadata to Content"))
             {
                 if (metadataParser.WriteMetadata(selectedMacro, OnContentUpdated))
-                    Svc.Log.Debug($"Wrote metadata to macro {selectedMacro.Name}");
+                    FrameworkLogger.Debug($"Wrote metadata to macro {selectedMacro.Name}");
                 else
-                    Svc.Log.Error($"Failed to write metadata to macro {selectedMacro.Name}");
+                    FrameworkLogger.Error($"Failed to write metadata to macro {selectedMacro.Name}");
             }
             ImGuiEx.Tooltip("Writes the current metadata (author, version, description, dependencies, triggers) to the macro content. If metadata already exists, it will be updated.");
 
@@ -291,7 +291,7 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                             }
                             catch (Exception ex)
                             {
-                                Svc.Log.Error(ex, $"Failed to import macro from {repoUrl}");
+                                FrameworkLogger.Error(ex, $"Failed to import macro from {repoUrl}");
                             }
                         });
                     }

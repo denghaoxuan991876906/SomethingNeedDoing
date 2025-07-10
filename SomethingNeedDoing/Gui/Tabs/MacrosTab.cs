@@ -141,7 +141,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor, GitMa
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, "Error drawing folders");
+            FrameworkLogger.Error(ex, "Error drawing folders");
             ImGui.TextColored(ImGuiColors.DalamudRed, "Error loading folders");
         }
     }
@@ -201,7 +201,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor, GitMa
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, $"Error loading macros in folder {folderPath}");
+            FrameworkLogger.Error(ex, $"Error loading macros in folder {folderPath}");
             ImGui.TextColored(ImGuiColors.DalamudRed, "Error loading macros");
         }
     }
@@ -225,7 +225,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor, GitMa
             }
             catch (Exception ex)
             {
-                Svc.Log.Error(ex, "Error deleting folder");
+                FrameworkLogger.Error(ex, "Error deleting folder");
             }
         }
         ImGuiEx.Tooltip("Delete this folder and move all macros to root folder");

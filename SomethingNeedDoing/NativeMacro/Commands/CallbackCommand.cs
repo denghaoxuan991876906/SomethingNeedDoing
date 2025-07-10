@@ -33,7 +33,7 @@ public class CallbackCommand(string text, string addonName, bool updateState, ob
 
                 if (IsAddonReady(addon))
                 {
-                    Svc.Log.Debug($"Sending callback to {addonName} with args [{string.Join(", ", values)}]");
+                    FrameworkLogger.Debug($"Sending callback to {addonName} with args [{string.Join(", ", values)}]");
                     Callback.Fire(addon, updateState, values);
                 }
             }

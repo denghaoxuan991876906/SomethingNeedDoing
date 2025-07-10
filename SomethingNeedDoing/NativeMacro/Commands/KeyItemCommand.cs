@@ -20,10 +20,10 @@ public class KeyItemCommand(string text, string itemName) : MacroCommandBase(tex
     public override async Task Execute(MacroContext context, CancellationToken token)
     {
         var itemId = SearchItemId(itemName);
-        Svc.Log.Debug($"KeyItem found: {itemId}");
+        FrameworkLogger.Debug($"KeyItem found: {itemId}");
 
         var count = Game.GetInventoryItemCount(itemId, false);
-        Svc.Log.Debug($"Item Count: {count}");
+        FrameworkLogger.Debug($"Item Count: {count}");
 
         if (count == 0)
         {

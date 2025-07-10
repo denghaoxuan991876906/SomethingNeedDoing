@@ -135,7 +135,7 @@ public class CreateMacroModal(GitMacroManager gitManager)
         catch (Exception ex)
         {
             _importError = $"Failed to import from GitHub: {ex.Message}";
-            Svc.Log.Error(ex, "Failed to import macro from GitHub");
+            FrameworkLogger.Error(ex, "Failed to import macro from GitHub");
         }
         finally
         {

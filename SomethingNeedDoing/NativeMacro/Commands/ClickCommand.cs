@@ -40,9 +40,9 @@ public class ClickCommand(string text, string addonName, string methodName, stri
                     if (subElement.EndsWith(']'))
                     {
                         var index = int.Parse(subElement[(subElement.IndexOf('[') + 1)..^1]);
-                        Svc.Log.Verbose($"Index: {index}");
+                        FrameworkLogger.Verbose($"Index: {index}");
                         subElement = subElement[..subElement.IndexOf('[')];
-                        Svc.Log.Verbose($"SubElement: {subElement}");
+                        FrameworkLogger.Verbose($"SubElement: {subElement}");
                         var element = m.GetFoP<System.Collections.IEnumerable>(subElement).GetEnumerator();
                         for (var i = 0; i <= index; i++)
                             element.MoveNext();

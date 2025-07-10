@@ -100,7 +100,7 @@ public class MetadataParser
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, "Failed to parse metadata YAML");
+            FrameworkLogger.Error(ex, "Failed to parse metadata YAML");
         }
 
         return metadata;

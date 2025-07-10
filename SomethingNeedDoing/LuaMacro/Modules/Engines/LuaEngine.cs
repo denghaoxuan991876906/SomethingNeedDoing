@@ -34,7 +34,7 @@ public class LuaEngine : IEngine
         }
         catch (Exception ex)
         {
-            Svc.Log.Error($"Error executing Lua code '{content}': {ex}");
+            FrameworkLogger.Error($"Error executing Lua code '{content}': {ex}");
             throw;
         }
     }

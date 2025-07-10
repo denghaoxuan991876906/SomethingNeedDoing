@@ -171,13 +171,13 @@ public class ConfigModule(IMacro macro) : LuaModuleBase
                             var regex = new System.Text.RegularExpressions.Regex(configItem.ValidationPattern);
                             if (!regex.IsMatch(str))
                             {
-                                Svc.Log.Warning($"Config validation failed for '{configItem.Description}': {configItem.ValidationMessage ?? "Value does not match pattern"}");
+                                FrameworkLogger.Warning($"Config validation failed for '{configItem.Description}': {configItem.ValidationMessage ?? "Value does not match pattern"}");
                                 return configItem.DefaultValue;
                             }
                         }
                         catch (Exception ex)
                         {
-                            Svc.Log.Error(ex, $"Invalid validation pattern for config: {configItem.ValidationPattern}");
+                            FrameworkLogger.Error(ex, $"Invalid validation pattern for config: {configItem.ValidationPattern}");
                         }
                     }
 
@@ -186,7 +186,7 @@ public class ConfigModule(IMacro macro) : LuaModuleBase
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, $"Failed to validate config value for {configItem.Description}");
+            FrameworkLogger.Error(ex, $"Failed to validate config value for {configItem.Description}");
             return configItem.DefaultValue;
         }
     }

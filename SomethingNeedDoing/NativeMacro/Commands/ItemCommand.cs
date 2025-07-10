@@ -19,10 +19,10 @@ public class ItemCommand(string text, string itemName) : MacroCommandBase(text)
     public override async Task Execute(MacroContext context, CancellationToken token)
     {
         var itemId = SearchItemId(itemName);
-        Svc.Log.Debug($"Item found: {itemId}");
+        FrameworkLogger.Debug($"Item found: {itemId}");
 
         var count = Game.GetInventoryItemCount(itemId, ItemQualityModifier?.IsHighQuality ?? false);
-        Svc.Log.Debug($"Item Count: {count}");
+        FrameworkLogger.Debug($"Item Count: {count}");
 
         if (count == 0)
         {

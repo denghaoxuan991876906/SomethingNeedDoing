@@ -40,7 +40,7 @@ public class CleanupManager : IDisposable
                 {
                     var functionName = match.Groups[1].Value;
                     cleanupFunctions.Add(functionName);
-                    Svc.Log.Debug($"[{nameof(CleanupManager)}] Found cleanup function {functionName} in macro {macro.Name}");
+                    FrameworkLogger.Debug($"Found cleanup function {functionName} in macro {macro.Name}");
                 }
             }
         }
@@ -49,7 +49,7 @@ public class CleanupManager : IDisposable
         {
             _cleanupFunctionsByMacroId[macro.Id] = cleanupFunctions;
             _macrosById[macro.Id] = macro;
-            Svc.Log.Debug($"[{nameof(CleanupManager)}] Registered {cleanupFunctions.Count} cleanup functions for macro {macro.Name}");
+            FrameworkLogger.Debug($"Registered {cleanupFunctions.Count} cleanup functions for macro {macro.Name}");
         }
     }
 
@@ -63,7 +63,7 @@ public class CleanupManager : IDisposable
         if (_cleanupFunctionsByMacroId.Remove(macro.Id))
         {
             _macrosById.Remove(macro.Id);
-            Svc.Log.Debug($"[{nameof(CleanupManager)}] Unregistered cleanup functions for macro {macro.Name}");
+            FrameworkLogger.Debug($"Unregistered cleanup functions for macro {macro.Name}");
         }
     }
 
@@ -75,7 +75,7 @@ public class CleanupManager : IDisposable
         if (!_cleanupFunctionsByMacroId.TryGetValue(macroId, out var cleanupFunctions) || !_macrosById.TryGetValue(macroId, out var macro))
             return;
 
-        Svc.Log.Info($"[{nameof(CleanupManager)}] Executing {cleanupFunctions.Count} cleanup functions for macro {macro.Name} (reason: {reason})");
+        FrameworkLogger.Info($"Executing {cleanupFunctions.Count} cleanup functions for macro {macro.Name} (reason: {reason})");
 
         foreach (var functionName in cleanupFunctions)
         {
@@ -83,7 +83,7 @@ public class CleanupManager : IDisposable
             {
                 if (macro.Type == MacroType.Lua)
                 {
-                    Svc.Log.Verbose($"[{nameof(CleanupManager)}] Requesting cleanup function execution for {functionName} in macro {macro.Name}");
+                    FrameworkLogger.Verbose($"Requesting cleanup function execution for {functionName} in macro {macro.Name}");
                     CleanupFunctionRequested?.Invoke(this, new CleanupFunctionEventArgs(macro.Id, functionName, reason));
                 }
                 else
@@ -91,7 +91,7 @@ public class CleanupManager : IDisposable
             }
             catch (Exception ex)
             {
-                Svc.Log.Error(ex, $"[{nameof(CleanupManager)}] Error executing cleanup function {functionName} for macro {macro.Name}");
+                FrameworkLogger.Error(ex, $"Error executing cleanup function {functionName} for macro {macro.Name}");
             }
         }
     }

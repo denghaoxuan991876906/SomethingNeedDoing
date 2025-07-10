@@ -75,15 +75,15 @@ public abstract class CachedDependency : IMacroDependency
             {
                 var age = DateTime.Now - cacheTime;
                 var isValid = age < _cacheExpiration;
-                Svc.Log.Debug($"[{nameof(CachedDependency)}] Cache age: {age.TotalHours:F2} hours, Valid: {isValid}");
+                FrameworkLogger.Debug($"Cache age: {age.TotalHours:F2} hours, Valid: {isValid}");
                 return isValid;
             }
             else
-                Svc.Log.Debug($"[{nameof(CachedDependency)}] Failed to parse metadata for {Name}");
+                FrameworkLogger.Debug($"Failed to parse metadata for {Name}");
         }
         catch (Exception ex)
         {
-            Svc.Log.Warning($"[{nameof(CachedDependency)}] Failed to read cache metadata for {Name}: {ex.Message}");
+            FrameworkLogger.Warning($"Failed to read cache metadata for {Name}: {ex.Message}");
         }
 
         return false;
@@ -103,7 +103,7 @@ public abstract class CachedDependency : IMacroDependency
         }
         catch (Exception ex)
         {
-            Svc.Log.Warning($"[{nameof(CachedDependency)}] Failed to cache dependency {Name}: {ex.Message}");
+            FrameworkLogger.Warning($"Failed to cache dependency {Name}: {ex.Message}");
         }
     }
 
@@ -116,16 +116,16 @@ public abstract class CachedDependency : IMacroDependency
         try
         {
             var cacheKey = GetCacheKey();
-            Svc.Log.Debug($"[{nameof(CachedDependency)}] Attempting to load {Name} with key '{cacheKey}' from {CacheFilePath}");
+            FrameworkLogger.Debug($"Attempting to load {Name} with key '{cacheKey}' from {CacheFilePath}");
 
             if (IsCacheValid())
                 return File.ReadAllText(CacheFilePath);
             else
-                Svc.Log.Debug($"[{nameof(CachedDependency)}] Cache not valid for {Name} (key: {cacheKey})");
+                FrameworkLogger.Debug($"Cache not valid for {Name} (key: {cacheKey})");
         }
         catch (Exception ex)
         {
-            Svc.Log.Warning($"[{nameof(CachedDependency)}] Failed to load cached dependency {Name}: {ex.Message}");
+            FrameworkLogger.Warning($"Failed to load cached dependency {Name}: {ex.Message}");
         }
 
         return null;
@@ -143,13 +143,13 @@ public abstract class CachedDependency : IMacroDependency
         var cachedContent = LoadFromCache();
         if (cachedContent != null)
         {
-            Svc.Log.Debug($"[{nameof(CachedDependency)}] Using cached content for {Name}");
+            FrameworkLogger.Debug($"Using cached content for {Name}");
             return cachedContent;
         }
 
-        Svc.Log.Debug($"[{nameof(CachedDependency)}] Cache miss for {Name}, downloading content");
+        FrameworkLogger.Debug($"Cache miss for {Name}, downloading content");
         var content = await DownloadContentAsync();
-        Svc.Log.Debug($"[{nameof(CachedDependency)}] Downloaded content for {Name}, length: {content.Length} characters");
+        FrameworkLogger.Debug($"Downloaded content for {Name}, length: {content.Length} characters");
         SaveToCache(content);
         return content;
     }

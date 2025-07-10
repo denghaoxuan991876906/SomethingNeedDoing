@@ -166,7 +166,7 @@ public class EnginesModule : LuaModuleBase
             }
             catch (Exception ex)
             {
-                Svc.Log.Error($"Error executing {engine.Name} content: {ex}");
+                FrameworkLogger.Error($"Error executing {engine.Name} content: {ex}");
             }
         });
     }
@@ -188,7 +188,7 @@ public class EnginesModule : LuaModuleBase
         if (FindBestEngine(content) is { } engine)
             ExecuteEngine(engine, content);
         else
-            Svc.Log.Warning($"No suitable engine found for content: {content}");
+            FrameworkLogger.Warning($"No suitable engine found for content: {content}");
     }
 
     /// <summary>
@@ -201,7 +201,7 @@ public class EnginesModule : LuaModuleBase
         if (FindBestEngine(content) is { } engine)
             await ExecuteEngineAsync(engine, content);
         else
-            Svc.Log.Warning($"No suitable engine found for content: {content}");
+            FrameworkLogger.Warning($"No suitable engine found for content: {content}");
     }
 
     /// <summary>

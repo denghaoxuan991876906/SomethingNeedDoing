@@ -52,7 +52,7 @@ public class EquipItemCommand(string text, uint itemId) : MacroCommandBase(text)
 
         if (pos == null)
         {
-            Svc.Log.Error($"Failed to find item {GetRow<Sheets.Item>(itemId)!.Value.Name} (ID: {itemId}) in inventory");
+            FrameworkLogger.Error($"Failed to find item {GetRow<Sheets.Item>(itemId)!.Value.Name} (ID: {itemId}) in inventory");
             return;
         }
 
@@ -71,7 +71,7 @@ public class EquipItemCommand(string text, uint itemId) : MacroCommandBase(text)
                 var firstEntryIsEquip = ctx->EventIds[i] == 25;
                 if (firstEntryIsEquip)
                 {
-                    Svc.Log.Debug($"Equipping item #{itemId} from {pos.Value.inv} @ {pos.Value.slot}, index {i}");
+                    FrameworkLogger.Debug($"Equipping item #{itemId} from {pos.Value.inv} @ {pos.Value.slot}, index {i}");
                     Callback.Fire(contextMenu, true, 0, i - 7, 0, 0, 0);
                 }
             }

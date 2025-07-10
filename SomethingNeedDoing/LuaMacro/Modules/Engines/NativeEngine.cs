@@ -52,7 +52,7 @@ public class NativeEngine(MacroParser parser) : IEngine
         }
         catch (Exception ex)
         {
-            Svc.Log.Error($"Error executing native command '{content}': {ex}");
+            FrameworkLogger.Error($"Error executing native command '{content}': {ex}");
             throw;
         }
     }

@@ -215,13 +215,13 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     {
         if (_macroStates.ContainsKey(macro.Id))
         {
-            Svc.Log.Warning($"Macro {macro.Name} is already running.");
+            FrameworkLogger.Warning($"Macro {macro.Name} is already running.");
             return;
         }
 
         if (MissingRequiredPlugins(macro, out var missingPlugins))
         {
-            Svc.Log.Error($"Cannot run {macro.Name}. The following plugins need to be installed: {string.Join(", ", missingPlugins)}");
+            FrameworkLogger.Error($"Cannot run {macro.Name}. The following plugins need to be installed: {string.Join(", ", missingPlugins)}");
             Svc.Chat.PrintError($"Cannot run {macro.Name}. The following plugins need to be installed: {string.Join(", ", missingPlugins)}");
             return;
         }
@@ -229,14 +229,14 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         var (areAvailable, missingDependencies) = await AreDependenciesAvailableAsync(macro);
         if (!areAvailable)
         {
-            Svc.Log.Error($"Cannot run {macro.Name}. The following dependencies are not available: {string.Join(", ", missingDependencies)}");
+            FrameworkLogger.Error($"Cannot run {macro.Name}. The following dependencies are not available: {string.Join(", ", missingDependencies)}");
             Svc.Chat.PrintError($"Cannot run {macro.Name}. The following dependencies are not available: {string.Join(", ", missingDependencies)}");
             return;
         }
 
         if (!macro.HasValidConfigs())
         {
-            Svc.Log.Error($"Cannot run {macro.Name}. One or more of its configs failed to validate.");
+            FrameworkLogger.Error($"Cannot run {macro.Name}. One or more of its configs failed to validate.");
             Svc.Chat.PrintError($"Cannot run {macro.Name}. One or more of its configs failed to validate.");
             return;
         }
@@ -266,13 +266,13 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 {
                     try
                     {
-                        Svc.Log.Verbose($"Setting macro {macro.Id} state to Running");
+                        FrameworkLogger.Verbose($"Setting macro {macro.Id} state to Running");
                         state.Macro.State = MacroState.Running;
                         await engine.StartMacro(macro, state.CancellationSource.Token, triggerArgs, loopCount);
                     }
                     catch (Exception ex)
                     {
-                        Svc.Log.Error(ex, $"Error executing macro {macro.Name}");
+                        FrameworkLogger.Error(ex, $"Error executing macro {macro.Name}");
                         state.Macro.State = MacroState.Error;
                         await SetPluginStates(macro, true);
                     }
@@ -280,14 +280,14 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             }
             catch (Exception ex)
             {
-                Svc.Log.Error(ex, $"Error setting up macro {macro.Name}");
+                FrameworkLogger.Error(ex, $"Error setting up macro {macro.Name}");
                 state.Macro.State = MacroState.Error;
                 await SetPluginStates(macro, true);
             }
         });
 
         await state.ExecutionTask;
-        Svc.Log.Verbose($"Setting macro {macro.Id} state to Completed");
+        FrameworkLogger.Verbose($"Setting macro {macro.Id} state to Completed");
         state.Macro.State = MacroState.Completed;
         await SetPluginStates(macro, true);
     }
@@ -446,15 +446,15 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             {
                 if (!await dependency.IsAvailableAsync())
                 {
-                    Svc.Log.Info($"Dependency {dependency.Name} is not available, attempting to download...");
+                    FrameworkLogger.Info($"Dependency {dependency.Name} is not available, attempting to download...");
                     try
                     {
                         await dependency.GetContentAsync();
-                        Svc.Log.Info($"Successfully downloaded dependency {dependency.Name}");
+                        FrameworkLogger.Info($"Successfully downloaded dependency {dependency.Name}");
                     }
                     catch (Exception downloadEx)
                     {
-                        Svc.Log.Error(downloadEx, $"Failed to download dependency {dependency.Name}");
+                        FrameworkLogger.Error(downloadEx, $"Failed to download dependency {dependency.Name}");
                         missingDependencies.Add($"{dependency.Name} ({dependency.Source}) - Download failed: {downloadEx.Message}");
                         continue;
                     }
@@ -465,7 +465,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             }
             catch (Exception ex)
             {
-                Svc.Log.Error(ex, $"Error checking availability of dependency {dependency.Name}");
+                FrameworkLogger.Error(ex, $"Error checking availability of dependency {dependency.Name}");
                 missingDependencies.Add($"{dependency.Name} ({dependency.Source}) - Error: {ex.Message}");
             }
         }
@@ -481,17 +481,17 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             {
                 if (state)
                 {
-                    Svc.Log.Info($"[{macro.Name}] Re-enabling plugin {name}");
+                    FrameworkLogger.Info($"[{macro.Name}] Re-enabling plugin {name}");
                     await plugin.EnableAsync();
                 }
                 else
                 {
-                    Svc.Log.Info($"[{macro.Name}] Disabling plugin {name}");
+                    FrameworkLogger.Info($"[{macro.Name}] Disabling plugin {name}");
                     await plugin.DisableAsync();
                 }
             }
             else
-                Svc.Log.Warning($"Plugin {name} is not registered as disableable");
+                FrameworkLogger.Warning($"Plugin {name} is not registered as disableable");
         }
     }
 
@@ -525,7 +525,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 {
                     if (_arApis.TryGetValue(macro.Id, out var arApi))
                     {
-                        Svc.Log.Info($"[{nameof(MacroScheduler)}] {macro.Name} character post process finished, calling FinishCharacterPostProcess()");
+                        FrameworkLogger.Info($"{macro.Name} character post process finished, calling FinishCharacterPostProcess()");
                         arApi.FinishCharacterPostProcess();
                     }
                 }
@@ -562,8 +562,8 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         {
             if (macro is TemporaryMacro tempMacro)
             {
-                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Processing temporary macro {macro.Id}");
-                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Subscribing to state changes for temporary macro {macro.Id}");
+                FrameworkLogger.Verbose($"Processing temporary macro {macro.Id}");
+                FrameworkLogger.Verbose($"Subscribing to state changes for temporary macro {macro.Id}");
                 macro.StateChanged += OnMacroStateChanged;
                 _ = StartMacro(macro, e);
             }
@@ -583,7 +583,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         {
             if (GetEngineForMacro(e.MacroId) is not NLuaMacroEngine nluaEngine || nluaEngine.GetLuaEnvironment(e.MacroId) is not Lua lua)
             {
-                Svc.Log.Debug($"Skipping function {e.FunctionName} for macro {e.MacroId} - Lua environment not available"); // maybe error?
+                FrameworkLogger.Debug($"Skipping function {e.FunctionName} for macro {e.MacroId} - Lua environment not available"); // maybe error?
                 return;
             }
 
@@ -596,25 +596,25 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     var exists = lua.DoString($"return {e.FunctionName} ~= nil")[0] as bool?;
                     if (exists != true)
                     {
-                        Svc.Log.Debug($"Skipping function {e.FunctionName} for macro {e.MacroId} - function not yet defined in Lua environment");
+                        FrameworkLogger.Debug($"Skipping function {e.FunctionName} for macro {e.MacroId} - function not yet defined in Lua environment");
                         return;
                     }
                 }
                 catch
                 {
-                    Svc.Log.Debug($"Skipping function {e.FunctionName} for macro {e.MacroId} - function not yet defined in Lua environment");
+                    FrameworkLogger.Debug($"Skipping function {e.FunctionName} for macro {e.MacroId} - function not yet defined in Lua environment");
                     return;
                 }
 
-                Svc.Log.Verbose($"Executing function {e.FunctionName} in macro {macro.Name}");
+                FrameworkLogger.Verbose($"Executing function {e.FunctionName} in macro {macro.Name}");
                 lua.DoString($"{e.FunctionName}()"); // call in the parent's lua state
             }
             else
-                Svc.Log.Debug($"Skipping function {e.FunctionName} for stopped macro {e.MacroId}");
+                FrameworkLogger.Debug($"Skipping function {e.FunctionName} for stopped macro {e.MacroId}");
         }
         catch (Exception ex)
         {
-            Svc.Log.Error($"Error executing function {e.FunctionName} for macro {e.MacroId}: {ex}");
+            FrameworkLogger.Error($"Error executing function {e.FunctionName} for macro {e.MacroId}: {ex}");
         }
     }
 
@@ -644,7 +644,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 var startTimestamp = _combatStart;
                 var opponents = Svc.Objects.Where(o => o.TargetObjectId == Player.Object.GameObjectId).Select(o => new EntityWrapper(o));
                 _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnCombatStart, new { startTimestamp, opponents });
-                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Combat started against {string.Join(", ", opponents.Select(o => o.Name))} at {startTimestamp}");
+                FrameworkLogger.Verbose($"Combat started against {string.Join(", ", opponents.Select(o => o.Name))} at {startTimestamp}");
             }
         }
         else
@@ -655,7 +655,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 var duration = TimeSpan.FromTicks(endTimestamp - _combatStart).TotalSeconds;
                 _combatStart = 0;
                 _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnCombatEnd, new { endTimestamp, duration });
-                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Combat ended at {endTimestamp} in {duration:F2} seconds");
+                FrameworkLogger.Verbose($"Combat ended at {endTimestamp} in {duration:F2} seconds");
             }
         }
 
@@ -669,7 +669,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             lastActivePlugins.Where(plugin => !currentActivePlugins.Contains(plugin)).ToList().ForEach(plugin => diffs.Add(new PluginWrapper() { Name = plugin, IsLoaded = false }));
             var eventData = new Dictionary<string, object> { { "changedPlugins", diffs } };
             _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnActivePluginsChanged, new { eventData });
-            Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(TriggerEvent.OnActivePluginsChanged)}] fired [{string.Join(", ", diffs)}]");
+            FrameworkLogger.Verbose($"[{nameof(TriggerEvent.OnActivePluginsChanged)}] fired [{string.Join(", ", diffs)}]");
         }
         _activePlugins = currentActivePlugins;
 
@@ -686,48 +686,48 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private void OnAddonEvent(AddonEvent type, AddonArgs args)
     {
         var eventData = new Dictionary<string, object> { { "type", type }, { "args", args } };
-        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnAddonEvent)}] fired [{type}, {args}]");
+        FrameworkLogger.Verbose($"[{nameof(OnAddonEvent)}] fired [{type}, {args}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnAddonEvent, eventData);
     }
 
     private void OnConditionChange(ConditionFlag flag, bool value)
     {
         var eventData = new Dictionary<string, object> { { "flag", flag }, { "value", value } };
-        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnConditionChange)}] fired [{flag}, {value}]");
+        FrameworkLogger.Verbose($"[{nameof(OnConditionChange)}] fired [{flag}, {value}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnConditionChange, eventData);
     }
 
     private void OnTerritoryChanged(ushort territoryType)
     {
         var eventData = new Dictionary<string, object> { { "territoryType", territoryType } };
-        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnTerritoryChanged)}] fired [{territoryType}]");
+        FrameworkLogger.Verbose($"[{nameof(OnTerritoryChanged)}] fired [{territoryType}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnTerritoryChange, eventData);
     }
 
     private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
         var eventData = new Dictionary<string, object> { { "type", type }, { "timestamp", timestamp }, { "sender", sender }, { "message", message }, { "isHandled", isHandled } };
-        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnChatMessage)}] fired [{type}, {timestamp}, {sender}, {message}, {isHandled}]");
+        FrameworkLogger.Verbose($"[{nameof(OnChatMessage)}] fired [{type}, {timestamp}, {sender}, {message}, {isHandled}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnChatMessage, eventData);
     }
 
     private void OnLogin()
     {
-        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnLogin)}] fired");
+        FrameworkLogger.Verbose($"[{nameof(OnLogin)}] fired");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnLogin);
     }
 
     private void OnLogout(int type, int code)
     {
         var eventData = new Dictionary<string, object> { { "type", type }, { "code", code } };
-        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] [{nameof(OnLogout)}] fired [{type}, {code}]");
+        FrameworkLogger.Verbose($"[{nameof(OnLogout)}] fired [{type}, {code}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnLogout, eventData);
     }
 
     private void CheckCharacterPostProcess(IMacro macro)
     {
         if (C.ARCharacterPostProcessExcludedCharacters.Any(x => x == Svc.ClientState.LocalContentId))
-            Svc.Log.Info($"Skipping post process macro {macro.Name} for current character.");
+            FrameworkLogger.Info($"Skipping post process macro {macro.Name} for current character.");
         else
             _arApis[macro.Id].RequestCharacterPostprocess();
     }
@@ -736,42 +736,42 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     {
         if (C.ARCharacterPostProcessExcludedCharacters.Any(x => x == Svc.ClientState.LocalContentId))
         {
-            Svc.Log.Info($"Skipping post process macro {macro.Name} for current character.");
+            FrameworkLogger.Info($"Skipping post process macro {macro.Name} for current character.");
             return;
         }
 
-        Svc.Log.Info($"Executing post process macro {macro.Name} for current character.");
+        FrameworkLogger.Info($"Executing post process macro {macro.Name} for current character.");
         var eventData = new Dictionary<string, object> { { "Id", Svc.ClientState.LocalContentId }, { "Name", Svc.ClientState.LocalPlayer?.Name.TextValue ?? string.Empty } };
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnAutoRetainerCharacterPostProcess, eventData);
     }
 
     private void OnMacroControlRequested(object? sender, MacroControlEventArgs e)
     {
-        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Received MacroControlRequested event for macro {e.MacroId} with control type {e.ControlType}");
+        FrameworkLogger.Verbose($"Received MacroControlRequested event for macro {e.MacroId} with control type {e.ControlType}");
 
         if (e.ControlType == MacroControlType.Start)
         {
             if (C.GetMacro(e.MacroId) is { } macro)
             {
-                Svc.Log.Info($"[{nameof(MacroScheduler)}] Starting macro {e.MacroId}");
+                FrameworkLogger.Info($"Starting macro {e.MacroId}");
                 _ = StartMacro(macro);
             }
             else if (sender is IMacroEngine engine && engine.GetTemporaryMacro(e.MacroId) is { } tempMacro)
             {
-                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Starting temporary macro {e.MacroId}");
-                Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Subscribing to state changes for temporary macro {e.MacroId}");
+                FrameworkLogger.Verbose($"Starting temporary macro {e.MacroId}");
+                FrameworkLogger.Verbose($"Subscribing to state changes for temporary macro {e.MacroId}");
                 tempMacro.StateChanged += OnMacroStateChanged;
                 _ = StartMacro(tempMacro);
             }
             else
-                Svc.Log.Warning($"[{nameof(MacroScheduler)}] Could not find macro {e.MacroId} to start");
+                FrameworkLogger.Warning($"Could not find macro {e.MacroId} to start");
         }
         else if (e.ControlType == MacroControlType.Stop)
             StopMacro(e.MacroId);
     }
 
     private void OnMacroStepCompleted(object? sender, MacroStepCompletedEventArgs e)
-        => Svc.Log.Verbose($"Macro step completed for {e.MacroId}: {e.StepIndex}/{e.TotalSteps}");
+        => FrameworkLogger.Verbose($"Macro step completed for {e.MacroId}: {e.StepIndex}/{e.TotalSteps}");
 
     private void OnLoopControlRequested(object? sender, LoopControlEventArgs e)
     {
@@ -794,11 +794,11 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnMacroExecutionRequested(object? sender, MacroExecutionRequestedEventArgs e)
     {
-        Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Received macro execution request for {e.Macro.Name}");
+        FrameworkLogger.Verbose($"Received macro execution request for {e.Macro.Name}");
 
         if (e.Macro is TemporaryMacro tempMacro)
         {
-            Svc.Log.Verbose($"[{nameof(MacroScheduler)}] Subscribing to state changes for temporary macro {tempMacro.Id}");
+            FrameworkLogger.Verbose($"Subscribing to state changes for temporary macro {tempMacro.Id}");
             tempMacro.StateChanged += OnMacroStateChanged;
         }
 
