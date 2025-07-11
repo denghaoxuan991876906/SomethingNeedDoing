@@ -405,7 +405,7 @@ public class MacroParser
     {
         return info.Name.ToLowerInvariant() switch
         {
-            "wait" => new WaitModifier(info.OriginalText, int.Parse(info.Parameter, CultureInfo.InvariantCulture)),
+            "wait" => new WaitModifier(info.OriginalText, (int)(float.Parse(info.Parameter, CultureInfo.InvariantCulture) * 1000)),
             "echo" => new EchoModifier(info.OriginalText, true),
             "unsafe" => new UnsafeModifier(info.OriginalText, true),
             "condition" => new ConditionModifier(info.OriginalText, [info.Parameter], false),
