@@ -79,7 +79,7 @@ public class CreateMacroModal(GitMacroManager gitManager)
             if (!string.IsNullOrEmpty(_importError))
             {
                 ImGui.Spacing();
-                ImGuiEx.Text(EzColor.RedBright, _importError);
+                ImGuiEx.TextWrapped(EzColor.RedBright.Vector4, _importError);
             }
         });
 
