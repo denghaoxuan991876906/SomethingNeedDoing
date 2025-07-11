@@ -25,7 +25,7 @@ public class Wrath : IPC
     [LuaFunction(
         description: "Sets the auto rotation state",
         parameterDescriptions: ["leaseId", "enabled"])]
-    public readonly Action<Guid, bool> SetAutoRotationState = null!;
+    public readonly Func<Guid, bool, SetResult> SetAutoRotationState = null!;
 
     [EzIPC]
     [LuaFunction(
@@ -36,7 +36,7 @@ public class Wrath : IPC
     [LuaFunction(
         description: "Sets the current job auto rotation ready",
         parameterDescriptions: ["leaseId"])]
-    public readonly Action<Guid> SetCurrentJobAutoRotationReady = null!;
+    public readonly Func<Guid, SetResult> SetCurrentJobAutoRotationReady = null!;
 
     [EzIPC]
     [LuaFunction(
@@ -70,5 +70,18 @@ public class Wrath : IPC
         AutoRezDPSJobs = 10, //bool
         AutoCleanse = 11, //bool
         IncludeNPCs = 12, //bool
+    }
+    public enum SetResult
+    {
+        IGNORED = -1,
+        Okay = 0,
+        OkayWorking = 1,
+        IPCDisabled = 10,
+        InvalidLease = 11,
+        BlacklistedLease = 12,
+        Duplicate = 13,
+        PlayerNotAvailable = 14,
+        InvalidConfiguration = 15,
+        InvalidValue = 16,
     }
 }
