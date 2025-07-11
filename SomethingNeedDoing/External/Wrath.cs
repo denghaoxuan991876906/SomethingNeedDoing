@@ -6,12 +6,15 @@ public class Wrath : IPC
 {
     public override string Name => "WrathCombo";
     public override string Repo => Repos.Punish;
+    private static string InternalName => Svc.PluginInterface.InternalName;
 
-    [EzIPC]
+    [EzIPC("RegisterForLease")]
+    private readonly Func<string, string, Guid?> _registerForLease = null!;
+
     [LuaFunction(
-        description: "Registers for lease with callback",
-        parameterDescriptions: ["jobName", "callbackName", "callbackData"])]
-    public readonly Func<string, string, string, Guid?> RegisterForLeaseWithCallback = null!;
+        description: "Registers for lease",
+        parameterDescriptions: ["scriptName"])]
+    public Guid? RegisterForLease(string scriptName) => _registerForLease(InternalName, scriptName);
 
     [EzIPC]
     [LuaFunction(
