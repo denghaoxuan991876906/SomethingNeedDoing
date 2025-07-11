@@ -16,6 +16,7 @@ public class StatusWindow : Window
     private readonly TitleBarButton _minimiseBtn;
     private bool _minimised;
     private bool _showTriggerEvents;
+    private readonly Dictionary<string, bool> _parentCollapsedStates = [];
 
     public StatusWindow(IMacroScheduler scheduler, MacroHierarchyManager macroHierarchy, TriggerEventManager triggerEventManager) : base($"{P.Name} - Macro Status###{P.Name}_{nameof(StatusWindow)}", ImGuiWindowFlags.NoScrollbar)
     {
@@ -61,14 +62,44 @@ public class StatusWindow : Window
         var macros = _minimised ? _scheduler.GetMacros().Where(m => m.State is MacroState.Running or MacroState.Paused) : _scheduler.GetMacros();
         var parents = macros.Where(m => _macroHierarchy.GetParentMacro(m.Id) == null).ToList();
 
+        var toRemove = _parentCollapsedStates.Keys.Where(k => !parents.Select(p => p.Id).ToHashSet().Contains(k)).ToList();
+        foreach (var key in toRemove)
+            _parentCollapsedStates.Remove(key);
+
         foreach (var parent in parents)
         {
-            DrawMacro(parent);
-
             if (_macroHierarchy.GetChildMacros(parent.Id) is { Count: > 0 } children)
-                foreach (var childMacro in children)
-                    DrawMacro(childMacro, true);
+                DrawCollapsibleMacro(parent, children);
+            else
+                DrawMacro(parent);
         }
+    }
+
+    private void DrawCollapsibleMacro(IMacro parent, IReadOnlyList<IMacro> children)
+    {
+        using var id = ImRaii.PushId(parent.Id);
+
+        if (!_parentCollapsedStates.ContainsKey(parent.Id))
+            _parentCollapsedStates[parent.Id] = true;
+
+        var isCollapsed = _parentCollapsedStates[parent.Id];
+
+        var icon = isCollapsed ? FontAwesomeIcon.ChevronRight : FontAwesomeIcon.ChevronDown;
+        if (ImGuiUtils.IconButton(icon, isCollapsed ? "Expand" : "Collapse"))
+            _parentCollapsedStates[parent.Id] = !isCollapsed;
+
+        ImGui.SameLine();
+        DrawMacro(parent, false);
+
+        if (isCollapsed && children.Count > 0)
+        {
+            ImGui.SameLine();
+            ImGui.TextColored(ImGuiColors.DalamudGrey, $"({children.Count} temp)");
+        }
+
+        if (!isCollapsed)
+            foreach (var child in children)
+                DrawMacro(child, true);
     }
 
     private void DrawMacro(IMacro macro, bool indent = false)
