@@ -286,7 +286,7 @@ public class MacroParser
         if (!match.Success)
             throw new MacroSyntaxError(parameters);
 
-        var count = match.Groups["count"].Success ? int.Parse(match.Groups["count"].Value) : 1;
+        var count = match.Groups["count"].Success ? int.Parse(match.Groups["count"].Value) : -1;
         return new LoopCommand(parameters, count);
     }
 
