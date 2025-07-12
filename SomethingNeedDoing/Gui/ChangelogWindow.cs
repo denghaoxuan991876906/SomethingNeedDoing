@@ -76,6 +76,7 @@ public class ChangelogWindow : Window
         Add("12.35", "Added a config module to provide macros with configurable settings, editable outside of code");
         Add("12.41", "Added import from url for new macros.");
         Add("12.53", "Added OnActivePluginsChanged");
+        Add("12.64", "Changed list index modifier name from listindex to list");
     }
 
     private void Add(string version, string description)
