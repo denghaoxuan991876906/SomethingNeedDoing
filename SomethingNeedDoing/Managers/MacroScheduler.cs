@@ -607,6 +607,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 }
 
                 FrameworkLogger.Verbose($"Executing function {e.FunctionName} in macro {macro.Name}");
+                lua.SetTriggerEventData(e.TriggerArgs);
                 lua.DoString($"{e.FunctionName}()"); // call in the parent's lua state
             }
             else
@@ -706,7 +707,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
     private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
-        var eventData = new Dictionary<string, object> { { "type", type }, { "timestamp", timestamp }, { "sender", sender }, { "message", message }, { "isHandled", isHandled } };
+        var eventData = new Dictionary<string, object> { { "type", type }, { "timestamp", timestamp }, { "sender", sender.TextValue }, { "message", message.TextValue }, { "isHandled", isHandled } };
         FrameworkLogger.Verbose($"[{nameof(OnChatMessage)}] fired [{type}, {timestamp}, {sender}, {message}, {isHandled}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnChatMessage, eventData);
     }

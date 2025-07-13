@@ -411,7 +411,7 @@ public class MacroParser
             "condition" => new ConditionModifier(info.OriginalText, [info.Parameter], false),
             "maxwait" => new MaxWaitModifier(info.OriginalText, (int)(float.Parse(info.Parameter, CultureInfo.InvariantCulture) * 1000)),
             "index" => new IndexModifier(info.OriginalText, int.Parse(info.Parameter)),
-            "listindex" => new ListIndexModifier(info.OriginalText, int.Parse(info.Parameter)),
+            "list" or "listindex" => new ListIndexModifier(info.OriginalText, int.Parse(info.Parameter)),
             "partyindex" => new PartyIndexModifier(info.OriginalText, int.Parse(info.Parameter)),
             "distance" => new DistanceModifier(info.OriginalText, float.Parse(info.Parameter, CultureInfo.InvariantCulture)),
             "quality" => new ItemQualityModifier(info.OriginalText, int.Parse(info.Parameter) > 0),
