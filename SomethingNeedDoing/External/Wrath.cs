@@ -12,7 +12,7 @@ public class Wrath : IPC
     [LuaFunction(
         description: "Registers for lease",
         parameterDescriptions: ["scriptName"])]
-    [Changelog(ChangelogAttribute.Unreleased)]
+    [Changelog("12.67")]
     public Guid? Register(string scriptName) => RegisterForLease(Svc.PluginInterface.InternalName, scriptName);
 
     [EzIPC]
