@@ -7,11 +7,13 @@ public class Wrath : IPC
     public override string Name => "WrathCombo";
     public override string Repo => Repos.Punish;
 
-    [EzIPC]
+    private readonly Func<string, string, Guid?> RegisterForLease = null!;
+
     [LuaFunction(
-        description: "Registers for lease with callback",
-        parameterDescriptions: ["jobName", "callbackName", "callbackData"])]
-    public readonly Func<string, string, string, Guid?> RegisterForLeaseWithCallback = null!;
+        description: "Registers for lease",
+        parameterDescriptions: ["scriptName"])]
+    [Changelog(ChangelogAttribute.Unreleased)]
+    public Guid? Register(string scriptName) => RegisterForLease(Svc.PluginInterface.InternalName, scriptName);
 
     [EzIPC]
     [LuaFunction(
@@ -22,7 +24,7 @@ public class Wrath : IPC
     [LuaFunction(
         description: "Sets the auto rotation state",
         parameterDescriptions: ["leaseId", "enabled"])]
-    public readonly Action<Guid, bool> SetAutoRotationState = null!;
+    public readonly Func<Guid, bool, SetResult> SetAutoRotationState = null!;
 
     [EzIPC]
     [LuaFunction(
@@ -33,7 +35,7 @@ public class Wrath : IPC
     [LuaFunction(
         description: "Sets the current job auto rotation ready",
         parameterDescriptions: ["leaseId"])]
-    public readonly Action<Guid> SetCurrentJobAutoRotationReady = null!;
+    public readonly Func<Guid, SetResult> SetCurrentJobAutoRotationReady = null!;
 
     [EzIPC]
     [LuaFunction(
@@ -43,20 +45,21 @@ public class Wrath : IPC
 
     [EzIPC]
     [LuaFunction(
-        description: "Gets the auto rotation config state")]
-    public readonly Func<AutoRotationConfigOption> GetAutoRotationConfigState = null!;
+        description: $"Gets the auto rotation config state for the given {nameof(AutoRotationConfigOption)}",
+        parameterDescriptions: ["configOption"])]
+    public readonly Func<AutoRotationConfigOption, object?> GetAutoRotationConfigState = null!;
 
     [EzIPC]
     [LuaFunction(
-        description: "Sets the auto rotation config state",
-        parameterDescriptions: ["leaseId", "configOption"])]
-    public readonly Action<Guid, AutoRotationConfigOption> SetAutoRotationConfigState = null!;
+        description: $"Sets the auto rotation config state for the given {nameof(AutoRotationConfigOption)} to the given value (must be of the expected type)",
+        parameterDescriptions: ["leaseId", "configOption", "configValue"])]
+    public readonly Func<Guid, AutoRotationConfigOption, object, SetResult> SetAutoRotationConfigState = null!;
 
     public enum AutoRotationConfigOption
     {
         InCombatOnly = 0, //bool
-        DPSRotationMode = 1,
-        HealerRotationMode = 2,
+        DPSRotationMode = 1, //DPSRotationMode Enum (or int of enum value)
+        HealerRotationMode = 2, //HealerRotationMode Enum (or int of enum value)
         FATEPriority = 3, //bool
         QuestPriority = 4, //bool
         SingleTargetHPP = 5, //int
@@ -67,5 +70,38 @@ public class Wrath : IPC
         AutoRezDPSJobs = 10, //bool
         AutoCleanse = 11, //bool
         IncludeNPCs = 12, //bool
+    }
+
+    public enum SetResult
+    {
+        IGNORED = -1,
+        Okay = 0,
+        OkayWorking = 1,
+        IPCDisabled = 10,
+        InvalidLease = 11,
+        BlacklistedLease = 12,
+        Duplicate = 13,
+        PlayerNotAvailable = 14,
+        InvalidConfiguration = 15,
+        InvalidValue = 16,
+    }
+
+    public enum DPSRotationMode
+    {
+        Manual = 0,
+        Highest_Max = 1,
+        Lowest_Max = 2,
+        Highest_Current = 3,
+        Lowest_Current = 4,
+        Tank_Target = 5,
+        Nearest = 6,
+        Furthest = 7,
+    }
+
+    public enum HealerRotationMode
+    {
+        Manual = 0,
+        Highest_Current = 1,
+        Lowest_Current = 2,
     }
 }
