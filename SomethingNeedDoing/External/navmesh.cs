@@ -43,6 +43,13 @@ public class Navmesh : IPC
     public readonly Func<bool> PathfindInProgress = null!;
 
     [EzIPC("Path.%m")]
+    [LuaFunction(
+        description: "Move through a predetermined set of waypoints",
+        parameterDescriptions: ["waypoints", "fly"])]
+    [Changelog("12.67")]
+    public readonly Action<List<Vector3>, bool> MoveTo = null!;
+
+    [EzIPC("Path.%m")]
     [LuaFunction(description: "Stops the current path")]
     public readonly Action Stop = null!;
 
