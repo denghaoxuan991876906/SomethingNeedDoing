@@ -72,10 +72,10 @@ public class Wrath : IPC
 
     [EzIPC]
     [LuaFunction(
-        description: "Gets the state of a Combo, given its internal name (or ID, as a string) (return key 0 is the Combo's state, key 1 is the Combo's Auto-Mode State)",
+        description: "Gets the state of a Combo, given its internal name (or ID, as a string)\n(this returns a table accessible via ComboStateKeys as keys)",
         parameterDescriptions: ["comboInternalName"])]
     [Changelog(ChangelogAttribute.Unreleased)]
-    public readonly Func<string, Dictionary<int, bool>?> GetComboState = null!;
+    public readonly Func<string, Dictionary<ComboStateKeys, bool>?> GetComboState = null!;
 
     [EzIPC]
     [LuaFunction(
@@ -151,5 +151,11 @@ public class Wrath : IPC
         Manual = 0,
         Highest_Current = 1,
         Lowest_Current = 2,
+    }
+
+    public enum ComboStateKeys
+    {
+        Enabled,
+        AutoMode,
     }
 }

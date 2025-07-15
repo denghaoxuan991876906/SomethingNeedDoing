@@ -38,6 +38,7 @@ public class IPCModule : LuaModuleBase
         lua.RegisterEnum<Wrath.SetResult>();
         lua.RegisterEnum<Wrath.DPSRotationMode>();
         lua.RegisterEnum<Wrath.HealerRotationMode>();
+        lua.RegisterEnum<Wrath.ComboStateKeys>();
         lua.DoString($"{ModuleName} = {{}}");
 
         RegisterHelperFunctions(lua);
