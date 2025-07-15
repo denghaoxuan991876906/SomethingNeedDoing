@@ -1,4 +1,3 @@
-using ECommons.Logging;
 using NLua;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Documentation;
