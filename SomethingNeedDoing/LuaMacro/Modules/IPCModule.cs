@@ -1,3 +1,4 @@
+using ECommons.Logging;
 using NLua;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Documentation;
@@ -183,6 +184,19 @@ public class IPCModule : LuaModuleBase
                         parameters.Add((paramDesc1 ?? "param1", LuaTypeConverter.GetLuaType(genericArgs[1]), paramDesc1));
                         parameters.Add((paramDesc2 ?? "param2", LuaTypeConverter.GetLuaType(genericArgs[2]), paramDesc2));
                         returnType = LuaTypeConverter.GetLuaType(genericArgs[3]);
+                    }
+                    else if (genericType == typeof(Func<,,,,>))
+                    {
+                        // Func<T1, T2, T3, T4, TResult> - four parameters, one return type
+                        var paramDesc0 = attr.ParameterDescriptions?.ElementAtOrDefault(0);
+                        var paramDesc1 = attr.ParameterDescriptions?.ElementAtOrDefault(1);
+                        var paramDesc2 = attr.ParameterDescriptions?.ElementAtOrDefault(2);
+                        var paramDesc3 = attr.ParameterDescriptions?.ElementAtOrDefault(3);
+                        parameters.Add((paramDesc0 ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc0));
+                        parameters.Add((paramDesc1 ?? "param1", LuaTypeConverter.GetLuaType(genericArgs[1]), paramDesc1));
+                        parameters.Add((paramDesc2 ?? "param2", LuaTypeConverter.GetLuaType(genericArgs[2]), paramDesc2));
+                        parameters.Add((paramDesc3 ?? "param3", LuaTypeConverter.GetLuaType(genericArgs[3]), paramDesc3));
+                        returnType = LuaTypeConverter.GetLuaType(genericArgs[4]);
                     }
                     else if (genericType == typeof(Action<,,>))
                     {
