@@ -57,6 +57,9 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
         else
             ImGuiEx.TextCopy(ImGuiColors.DalamudViolet, displaySignature, copySignature);
 
+        if (function.Description != null)
+            ImGuiEx.HelpMarker(function.Description);
+
         if (function.ReturnType.TypeName != "void")
         {
             ImGui.SameLine();
