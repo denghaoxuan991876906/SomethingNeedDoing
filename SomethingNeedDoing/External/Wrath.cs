@@ -1,4 +1,6 @@
 ﻿using ECommons.EzIpcManager;
+using ECommons.Loader;
+using ECommons.Logging;
 using SomethingNeedDoing.Core.Interfaces;
 
 namespace SomethingNeedDoing.External;
@@ -7,6 +9,7 @@ public class Wrath : IPC
     public override string Name => "WrathCombo";
     public override string Repo => Repos.Punish;
 
+    [EzIPC]
     private readonly Func<string, string, Guid?> RegisterForLease = null!;
 
     [LuaFunction(
