@@ -8,6 +8,11 @@ public class Wrath : IPC
     public override string Repo => Repos.Punish;
 
     [EzIPC]
+    [LuaFunction(
+        description: "Checks that Wrath's IPC is completely ready for use")]
+    public readonly Func<bool> IPCReady = null!;
+
+    [EzIPC]
     private readonly Func<string, string, Guid?> RegisterForLease = null!;
 
     [LuaFunction(
