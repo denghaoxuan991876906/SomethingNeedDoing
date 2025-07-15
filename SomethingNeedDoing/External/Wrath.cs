@@ -61,7 +61,7 @@ public class Wrath : IPC
         description: "Lists all internal names of options (in a dictionary, keyed to the parent combo's internal name) for the given job ID",
         parameterDescriptions: ["jobId"])]
     [Changelog(ChangelogAttribute.Unreleased)]
-    public readonly Func<uint, Dictionary<string, List<string>?>> GetComboOptionNamesForJob = null!;
+    public readonly Func<uint, Dictionary<string, List<string>>?> GetComboOptionNamesForJob = null!;
 
     [EzIPC]
     [LuaFunction(
