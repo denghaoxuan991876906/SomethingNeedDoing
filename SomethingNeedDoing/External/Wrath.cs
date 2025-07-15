@@ -23,23 +23,23 @@ public class Wrath : IPC
 
     [EzIPC]
     [LuaFunction(
-        description: "Gets the auto rotation state")]
+        description: "Gets the Auto Rotation state")]
     public readonly Func<bool> GetAutoRotationState = null!;
 
     [EzIPC]
     [LuaFunction(
-        description: "Sets the auto rotation state",
+        description: "Sets the Auto Rotation state",
         parameterDescriptions: ["leaseId", "enabled"])]
     public readonly Func<Guid, bool, SetResult> SetAutoRotationState = null!;
 
     [EzIPC]
     [LuaFunction(
-        description: "Checks if the current job auto rotation is ready")]
+        description: "Checks if the current job is Auto Rotation ready (as in, `SetAutoRotationState` would set no new Combos/Options, it would only Lock them)")]
     public readonly Func<bool> IsCurrentJobAutoRotationReady = null!;
 
     [EzIPC]
     [LuaFunction(
-        description: "Sets the current job auto rotation ready",
+        description: "Sets the current job to be Auto Rotation ready",
         parameterDescriptions: ["leaseId"])]
     public readonly Func<Guid, SetResult> SetCurrentJobAutoRotationReady = null!;
 
