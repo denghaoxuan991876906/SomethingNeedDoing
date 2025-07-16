@@ -12,7 +12,7 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
     public void DrawTab()
     {
         using var child = ImRaii.Child(nameof(HelpLuaTab));
-        ImGuiUtils.Section("Lua Scripting", () => ImGui.TextWrapped($"Below are all of the functions and properties provided by the framework. Click any to copy the full call path to clipboard."));
+        ImGuiUtils.Section("Lua Scripting", () => ImGui.TextWrapped($"Below are all of the functions and properties provided by the framework. Click any to copy the full call path to clipboard. Hover any function to learn more about it."));
 
         foreach (var module in luaDocs.GetModules().OrderBy(m => m.Key))
         {
@@ -53,12 +53,9 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
         var (displaySignature, copySignature) = GetSignatures(function);
 
         if (isMethod)
-            FunctionText(function.FunctionName, function.Parameters, copySignature);
+            FunctionText(function.FunctionName, function.Description, function.Parameters, copySignature);
         else
             ImGuiEx.TextCopy(ImGuiColors.DalamudViolet, displaySignature, copySignature);
-
-        if (function.Description != null)
-            ImGuiEx.HelpMarker(function.Description);
 
         if (function.ReturnType.TypeName != "void")
         {
@@ -115,9 +112,21 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
         }
     }
 
-    private void FunctionText(string functionName, List<(string Name, LuaTypeInfo Type, string? Description)> parameters, string fullChain)
+    private void FunctionText(string functionName, string? functionDescription, List<(string Name, LuaTypeInfo Type, string? Description)> parameters, string fullChain)
     {
         ImGuiEx.TextCopy(ImGuiColors.DalamudViolet, functionName, fullChain);
+
+        if (functionDescription != null &&
+            ImGui.IsItemHovered())
+        {
+            ImGui.BeginTooltip();
+            ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35f);
+            ImGui.TextUnformatted(functionDescription);
+            ImGui.PopTextWrapPos();
+            ImGui.EndTooltip();
+        }
+
+
         ImGui.SameLine(0, 0);
         ImGui.TextUnformatted("(");
         ImGui.SameLine(0, 0);
@@ -212,7 +221,7 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                 var copySignature = parameters.Count > 0 ? $"{method.Name}({string.Join(", ", parameters.Select(p => p.TypeInfo.TypeName))})" : method.Name;
 
                 var fullChain = string.IsNullOrEmpty(parentChain) ? copySignature : $"{parentChain}:{copySignature}";
-                FunctionText(method.Name, parameters, fullChain);
+                FunctionText(method.Name, docs?.Description, parameters, fullChain);
                 ImGui.SameLine();
                 ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {LuaTypeConverter.GetLuaType(method.ReturnType)}");
 
