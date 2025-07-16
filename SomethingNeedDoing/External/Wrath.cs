@@ -7,6 +7,12 @@ public class Wrath : IPC
     public override string Name => "WrathCombo";
     public override string Repo => Repos.Punish;
 
+    [EzIPC]
+    [LuaFunction(
+        description: "Checks that Wrath's IPC is completely ready for use")]
+    public readonly Func<bool> IPCReady = null!;
+
+    [EzIPC]
     private readonly Func<string, string, Guid?> RegisterForLease = null!;
 
     [LuaFunction(
@@ -17,23 +23,23 @@ public class Wrath : IPC
 
     [EzIPC]
     [LuaFunction(
-        description: "Gets the auto rotation state")]
+        description: "Gets the Auto Rotation state")]
     public readonly Func<bool> GetAutoRotationState = null!;
 
     [EzIPC]
     [LuaFunction(
-        description: "Sets the auto rotation state",
+        description: "Sets the Auto Rotation state",
         parameterDescriptions: ["leaseId", "enabled"])]
     public readonly Func<Guid, bool, SetResult> SetAutoRotationState = null!;
 
     [EzIPC]
     [LuaFunction(
-        description: "Checks if the current job auto rotation is ready")]
+        description: "Checks if the current job is Auto Rotation ready (as in, `SetAutoRotationState` would set no new Combos/Options, it would only Lock them)")]
     public readonly Func<bool> IsCurrentJobAutoRotationReady = null!;
 
     [EzIPC]
     [LuaFunction(
-        description: "Sets the current job auto rotation ready",
+        description: "Sets the current job to be Auto Rotation ready",
         parameterDescriptions: ["leaseId"])]
     public readonly Func<Guid, SetResult> SetCurrentJobAutoRotationReady = null!;
 
@@ -42,6 +48,48 @@ public class Wrath : IPC
         description: "Releases control",
         parameterDescriptions: ["leaseId"])]
     public readonly Action<Guid> ReleaseControl = null!;
+
+    [EzIPC]
+    [LuaFunction(
+        description: "Lists all internal names of combos for the given job ID",
+        parameterDescriptions: ["jobId"])]
+    [Changelog(ChangelogAttribute.Unreleased)]
+    public readonly Func<uint, List<string>?> GetComboNamesForJob = null!;
+
+    [EzIPC]
+    [LuaFunction(
+        description: "Lists all internal names of options (in a dictionary, keyed to the parent combo's internal name) for the given job ID",
+        parameterDescriptions: ["jobId"])]
+    [Changelog(ChangelogAttribute.Unreleased)]
+    public readonly Func<uint, Dictionary<string, List<string>>?> GetComboOptionNamesForJob = null!;
+
+    [EzIPC]
+    [LuaFunction(
+        description: "Sets the state of a Combo, given its internal name (or ID, as a string) (both the newComboState and the newComboAutoModeState should be true to enable them)",
+        parameterDescriptions: ["leaseId", "comboInternalName", "newComboState", "newComboAutoModeState"])]
+    [Changelog(ChangelogAttribute.Unreleased)]
+    public readonly Func<Guid, string, bool, bool, SetResult> SetComboState = null!;
+
+    [EzIPC]
+    [LuaFunction(
+        description: "Gets the state of a Combo, given its internal name (or ID, as a string)\n(this returns a table accessible via ComboStateKeys as keys)",
+        parameterDescriptions: ["comboInternalName"])]
+    [Changelog(ChangelogAttribute.Unreleased)]
+    public readonly Func<string, Dictionary<ComboStateKeys, bool>?> GetComboState = null!;
+
+    [EzIPC]
+    [LuaFunction(
+        description: "Sets the state of a Combo's Option, given its internal name (or ID, as a string)",
+        parameterDescriptions: ["leaseId", "optionInternalName", "newOptionState"])]
+    [Changelog(ChangelogAttribute.Unreleased)]
+    public readonly Func<Guid, string, bool, SetResult> SetComboOptionState = null!;
+
+    [EzIPC]
+    [LuaFunction(
+        description: "Gets the state of a Combo's Option, given its internal name (or ID, as a string)",
+        parameterDescriptions: ["optionInternalName"])]
+    [Changelog(ChangelogAttribute.Unreleased)]
+    public readonly Func<string, bool> GetComboOptionState = null!;
 
     [EzIPC]
     [LuaFunction(
@@ -103,5 +151,11 @@ public class Wrath : IPC
         Manual = 0,
         Highest_Current = 1,
         Lowest_Current = 2,
+    }
+
+    public enum ComboStateKeys
+    {
+        Enabled,
+        AutoMode,
     }
 }
