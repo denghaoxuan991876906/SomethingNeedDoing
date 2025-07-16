@@ -188,16 +188,6 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
                         catch (Exception ex)
                         {
                             var errorDetails = "Unknown error";
-                            //try
-                            //{
-                            //    errorDetails = lua.GetLuaErrorDetails();
-                            //    FrameworkLogger.Error($"Lua error details: {errorDetails}");
-                            //}
-                            //catch
-                            //{
-                            //    errorDetails = ex.Message;
-                            //}
-                            // TODO: fix
                             FrameworkLogger.Error(ex, $"Error executing Lua function for macro {macro.Macro.Id}: {errorDetails}");
                             break;
                         }
