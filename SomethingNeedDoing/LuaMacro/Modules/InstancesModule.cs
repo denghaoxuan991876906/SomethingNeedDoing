@@ -71,7 +71,10 @@ public unsafe class InstancesModule : LuaModuleBase
     public MapWrapper Map => new();
     public class MapWrapper : IWrapper
     {
-        [LuaDocs][Changelog("12.8")] public bool IsFlagMarkerSet => AgentMap.Instance()->IsFlagMarkerSet;
+        [LuaDocs]
+        [Changelog("12.8")]
+        [Changelog("12.68", ChangelogType.Changed, "Made settable")]
+        public bool IsFlagMarkerSet { get => AgentMap.Instance()->IsFlagMarkerSet; set => AgentMap.Instance()->IsFlagMarkerSet = value; }
 
         [LuaDocs][Changelog("12.8")] public FlagWrapper Flag => new(AgentMap.Instance()->FlagMapMarker);
     }

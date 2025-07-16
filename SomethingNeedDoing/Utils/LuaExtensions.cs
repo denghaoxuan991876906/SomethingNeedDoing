@@ -20,10 +20,7 @@ public static class LuaExtensions
     /// </summary>
     public static void RegisterClass<T>(this Lua lua)
     {
-        var assembly = typeof(T).Assembly.GetName().Name;
-        if (assembly is null)
-            throw new ArgumentException($"Assembly name for type {typeof(T).FullName} is null.");
-
+        var assembly = typeof(T).Assembly.GetName().Name ?? throw new ArgumentException($"Assembly name for type {typeof(T).FullName} is null.");
         lua.LoadAssembly(assembly);
         lua.DoString(@$"{typeof(T).Name} = luanet.import_type('{typeof(T).FullName}')()");
     }
@@ -62,51 +59,7 @@ public static class LuaExtensions
         => Svc.Log.Information($"{(args.Length == 0 ? string.Empty : string.Join("\t", args))}");
 
     private static string? InternalGetMacroText(string macroName)
-    {
-        var macro = C.GetMacroByName(macroName);
-        return macro?.ContentSansMetadata();
-    }
-
-    /// <summary>
-    /// Gets detailed error information from a Lua error.
-    /// </summary>
-    /// <param name="lua">The Lua state.</param>
-    /// <returns>A string containing detailed error information.</returns>
-    public static string GetLuaErrorDetails(this Lua lua)
-    {
-        try
-        {
-            // Check if there's an error on the stack
-            if (lua.State.Type(-1) == KeraLua.LuaType.String)
-            {
-                var errorMessage = lua.State.ToString(-1);
-                lua.State.Pop(1);
-                return errorMessage;
-            }
-
-            // Try to get debug information
-            lua.DoString(@"
-                local error_info = debug.getinfo(2, ""Sln"")
-                if error_info then
-                    local source = error_info.source
-                    if source:sub(1,1) == ""@"" then
-                        source = source:sub(2)
-                    end
-                    return string.format(""Error at %s:%d in function '%s'"",
-                        source, error_info.currentline, error_info.name or ""(anonymous)"")
-                end
-                return ""Unknown error location""
-            ");
-
-            var result = lua.State.ToString(-1);
-            lua.State.Pop(1);
-            return result;
-        }
-        catch
-        {
-            return "Failed to get Lua error details";
-        }
-    }
+        => C.GetMacroByName(macroName)?.ContentSansMetadata();
 
     public static void SetTriggerEventData(this Lua lua, TriggerEventArgs? args)
     {
