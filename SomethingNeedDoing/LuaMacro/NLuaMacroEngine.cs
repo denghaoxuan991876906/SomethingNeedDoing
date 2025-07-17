@@ -182,13 +182,13 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
                         }
                         catch (LuaException ex)
                         {
-                            FrameworkLogger.Error(ex, $"Lua execution error for macro {macro.Macro.Id}");
+                            OnMacroError(macro.Macro.Id, $"Error executing Lua function for macro {macro.Macro.Id}", ex);
                             break;
                         }
                         catch (Exception ex)
                         {
                             var errorDetails = "Unknown error";
-                            FrameworkLogger.Error(ex, $"Error executing Lua function for macro {macro.Macro.Id}: {errorDetails}");
+                            OnMacroError(macro.Macro.Id, $"Error executing Lua function for macro {macro.Macro.Id}: {errorDetails}", ex);
                             break;
                         }
                     }
@@ -199,7 +199,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
                 }
                 catch (Exception ex)
                 {
-                    FrameworkLogger.Error(ex, $"Error in Lua macro execution for {macro.Macro.Id}");
+                    OnMacroError(macro.Macro.Id, "Error executing macro", ex);
                 }
                 finally
                 {
@@ -213,7 +213,6 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
         }
         catch (Exception ex)
         {
-            FrameworkLogger.Error($"Error executing macro {macro.Macro.Id}: {ex}");
             OnMacroError(macro.Macro.Id, "Error executing macro", ex);
             throw;
         }
@@ -225,7 +224,11 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
     }
 
     protected virtual void OnMacroError(string macroId, string message, Exception? ex = null)
-        => MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
+    {
+        Svc.Chat.PrintError(message);
+        FrameworkLogger.Error($"Error executing macro {macroId}: {ex}");
+        MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
+    }
 
     /// <summary>
     /// Loads all dependencies into the Lua scope.

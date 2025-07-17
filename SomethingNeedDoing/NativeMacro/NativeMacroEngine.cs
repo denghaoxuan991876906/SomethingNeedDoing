@@ -144,7 +144,10 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
     public Task StartMacro(IMacro macro) => StartMacro(macro, CancellationToken.None);
 
     protected virtual void OnMacroError(string macroId, string message, Exception? ex = null)
-        => MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
+    {
+        Svc.Chat.PrintError(message);
+        MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
+    }
 
     /// <inheritdoc/>
     public IMacro? GetTemporaryMacro(string macroId) => null; // Native engine doesn't create temporary macros
