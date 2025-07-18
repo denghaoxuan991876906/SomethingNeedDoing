@@ -31,7 +31,7 @@ public unsafe class InstancesModule : LuaModuleBase
         [Changelog("12.69")]
         public void QueueDuty(uint contentsFinderCondition)
         {
-            if (!FindRows<ContentFinderCondition>(x => x.Unknown47).Select(x => x.RowId).Contains(contentsFinderCondition))
+            if (!FindRows<ContentFinderCondition>(x => x.Unknown47 && x.Unknown48).Select(x => x.RowId).Contains(contentsFinderCondition)) // 47 = IsInUse, 48 = ShownInDf (I think)
             {
                 FrameworkLogger.Error($"Invalid cfcID: {contentsFinderCondition}");
                 return;

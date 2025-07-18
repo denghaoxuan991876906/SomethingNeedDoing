@@ -116,16 +116,8 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
     {
         ImGuiEx.TextCopy(ImGuiColors.DalamudViolet, functionName, fullChain);
 
-        if (functionDescription != null &&
-            ImGui.IsItemHovered())
-        {
-            ImGui.BeginTooltip();
-            ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35f);
-            ImGui.TextUnformatted(functionDescription);
-            ImGui.PopTextWrapPos();
-            ImGui.EndTooltip();
-        }
-
+        if (functionDescription != null)
+            ImGuiEx.Tooltip(functionDescription);
 
         ImGui.SameLine(0, 0);
         ImGui.TextUnformatted("(");
