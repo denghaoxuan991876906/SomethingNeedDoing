@@ -20,6 +20,10 @@ public unsafe class ActionsModule : LuaModuleBase
     [LuaFunction] public void Teleport(uint aetheryteId) => Telepo.Instance()->Teleport(aetheryteId, 0);
     [LuaFunction] public void CancelCast() => UIState.Instance()->Hotbar.CancelCast();
 
+    [LuaFunction(description: "Returns LogMessage id")]
+    [Changelog("12.69")]
+    public uint GetActionStatus(ActionType actionType, uint actionId) => ActionManager.Instance()->GetActionStatus(actionType, actionId);
+
     [LuaFunction] public LimitBreakWrapper LimitBreak => new();
     [LuaFunction] public ActionWrapper GetActionInfo(uint actionId) => new(actionId);
 }

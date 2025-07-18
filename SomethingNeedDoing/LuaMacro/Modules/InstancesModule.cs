@@ -2,6 +2,7 @@
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
+using Lumina.Excel.Sheets;
 using NLua;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro.Wrappers;
@@ -13,9 +14,10 @@ public unsafe class InstancesModule : LuaModuleBase
     public override string ModuleName => "Instances";
     public override void Register(Lua lua)
     {
-        lua.RegisterEnum<OnlineStatus>();
-        lua.RegisterEnum<GrandCompany>();
+        lua.RegisterEnum<InfoProxyCommonList.CharacterData.OnlineStatus>();
+        lua.RegisterEnum<FFXIVClientStructs.FFXIV.Client.UI.Agent.GrandCompany>();
         lua.RegisterEnum<Language>();
+        lua.RegisterEnum<ContentsFinderQueueInfo.QueueStates>();
         base.Register(lua);
     }
 
@@ -25,12 +27,43 @@ public unsafe class InstancesModule : LuaModuleBase
         [LuaDocs] public void OpenRouletteDuty(byte contentRouletteID) => AgentContentsFinder.Instance()->OpenRouletteDuty(contentRouletteID);
         [LuaDocs] public void OpenRegularDuty(uint contentsFinderCondition) => AgentContentsFinder.Instance()->OpenRegularDuty(contentsFinderCondition);
 
+        [LuaDocs]
+        [Changelog("12.69")]
+        public void QueueDuty(uint contentsFinderCondition)
+        {
+            if (!FindRows<ContentFinderCondition>(x => x.Unknown47).Select(x => x.RowId).Contains(contentsFinderCondition))
+            {
+                FrameworkLogger.Error($"Invalid cfcID: {contentsFinderCondition}");
+                return;
+            }
+            var QueueInfo = ContentsFinder.Instance()->GetQueueInfo();
+            if (QueueInfo->QueueState is ContentsFinderQueueInfo.QueueStates.Pending or ContentsFinderQueueInfo.QueueStates.Queued) QueueInfo->CancelQueue();
+            QueueInfo->QueueDuties(&contentsFinderCondition, 1);
+        }
+
+        [LuaDocs]
+        [Changelog("12.69")]
+        public void QueueRoulette(byte contentRouletteId)
+        {
+            if (!FindRows<ContentRoulette>(x => !x.Description.IsEmpty).Select(x => x.RowId).Contains(contentRouletteId))
+            {
+                FrameworkLogger.Error($"Invalid content roulette ID: {contentRouletteId}");
+                return;
+            }
+            var QueueInfo = ContentsFinder.Instance()->GetQueueInfo();
+            if (QueueInfo->QueueState is ContentsFinderQueueInfo.QueueStates.Pending or ContentsFinderQueueInfo.QueueStates.Queued) QueueInfo->CancelQueue();
+            QueueInfo->QueueRoulette(contentRouletteId);
+        }
+
+        [LuaDocs][Changelog("12.69")] public void CancelQueue() => ContentsFinder.Instance()->GetQueueInfo()->CancelQueue();
+
         [LuaDocs] public bool IsUnrestrictedParty { get => ContentsFinder.Instance()->IsUnrestrictedParty; set => ContentsFinder.Instance()->IsUnrestrictedParty = value; }
         [LuaDocs] public bool IsLevelSync { get => ContentsFinder.Instance()->IsLevelSync; set => ContentsFinder.Instance()->IsLevelSync = value; }
         [LuaDocs] public bool IsMinIL { get => ContentsFinder.Instance()->IsMinimalIL; set => ContentsFinder.Instance()->IsMinimalIL = value; }
         [LuaDocs] public bool IsSilenceEcho { get => ContentsFinder.Instance()->IsSilenceEcho; set => ContentsFinder.Instance()->IsSilenceEcho = value; }
         [LuaDocs] public bool IsExplorerMode { get => ContentsFinder.Instance()->IsExplorerMode; set => ContentsFinder.Instance()->IsExplorerMode = value; }
         [LuaDocs] public bool IsLimitedLevelingRoulette { get => ContentsFinder.Instance()->IsLimitedLevelingRoulette; set => ContentsFinder.Instance()->IsLimitedLevelingRoulette = value; }
+        [LuaDocs] public ContentsFinderQueueInfo.QueueStates QueueState => ContentsFinder.Instance()->GetQueueInfo()->QueueState;
     }
 
     [LuaFunction] public FriendsListWrapper FriendsList => new();
@@ -55,12 +88,12 @@ public unsafe class InstancesModule : LuaModuleBase
     {
         [LuaDocs] public string Name => data.NameString;
         [LuaDocs] public ulong ContentId => data.ContentId;
-        [LuaDocs] public OnlineStatus State => data.State;
+        [LuaDocs] public InfoProxyCommonList.CharacterData.OnlineStatus State => data.State;
         [LuaDocs] public bool IsOtherServer => data.IsOtherServer;
         [LuaDocs] public ushort CurrentWorld => data.CurrentWorld;
         [LuaDocs] public ushort HomeWorld => data.HomeWorld;
         [LuaDocs] public ushort Location => data.Location;
-        [LuaDocs] public GrandCompany GrandCompany => data.GrandCompany;
+        [LuaDocs] public FFXIVClientStructs.FFXIV.Client.UI.Agent.GrandCompany GrandCompany => data.GrandCompany;
         [LuaDocs] public Language ClientLanguage => data.ClientLanguage;
         [LuaDocs] public byte Sex => data.Sex;
         [LuaDocs] public JobWrapper Job => new(data.Job);
