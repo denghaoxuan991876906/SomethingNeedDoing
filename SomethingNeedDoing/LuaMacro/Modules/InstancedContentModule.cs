@@ -40,7 +40,8 @@ public unsafe class InstancedContentModule : LuaModuleBase
     [LuaFunction]
     [Changelog("12.47")]
     [Changelog("12.55", ChangelogType.Changed, "Changed name")]
-    public FFXIVClientStructs.FFXIV.Client.Game.Event.ContentType GetCurrentContentType() => EventFramework.GetCurrentContentType();
+    public ContentType GetCurrentContentType() => EventFramework.GetCurrentContentType();
+
     [LuaFunction]
     [Changelog("12.47")]
     [Changelog("12.55", ChangelogType.Changed, "Changed name")]

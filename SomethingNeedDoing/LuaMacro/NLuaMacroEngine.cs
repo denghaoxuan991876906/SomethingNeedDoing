@@ -5,6 +5,7 @@ using SomethingNeedDoing.LuaMacro.Modules;
 using SomethingNeedDoing.LuaMacro.Modules.Engines;
 using SomethingNeedDoing.Managers;
 using SomethingNeedDoing.NativeMacro;
+using System.Collections.Concurrent;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,8 +34,8 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
     /// </summary>
     public event EventHandler<LoopControlEventArgs>? LoopControlRequested;
 
-    private readonly Dictionary<string, TemporaryMacro> _temporaryMacros = [];
-    private readonly Dictionary<string, Lua> _activeLuaEnvironments = [];
+    private readonly ConcurrentDictionary<string, TemporaryMacro> _temporaryMacros = [];
+    private readonly ConcurrentDictionary<string, Lua> _activeLuaEnvironments = [];
 
     /// <inheritdoc/>
     public IMacro? GetTemporaryMacro(string macroId) => _temporaryMacros.TryGetValue(macroId, out var macro) ? macro : null;
@@ -168,7 +169,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
                                 var tempMacro = new TemporaryMacro(macro.Macro, text, macroHierarchy, tempId);
                                 _temporaryMacros[tempId] = tempMacro;
                                 await tempMacro.Run(MacroExecutionRequested);
-                                _temporaryMacros.Remove(tempId);
+                                _temporaryMacros.Remove(tempId, out var _);
                             }
 
                             MacroStepCompleted?.Invoke(this, new MacroStepCompletedEventArgs(macro.Macro.Id, 1, 1));
@@ -218,7 +219,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
         }
         finally
         {
-            _activeLuaEnvironments.Remove(macro.Macro.Id);
+            _activeLuaEnvironments.Remove(macro.Macro.Id, out var _);
             macro.Dispose();
         }
     }

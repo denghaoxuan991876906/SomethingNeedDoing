@@ -2,7 +2,6 @@
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
-using Lumina.Excel.Sheets;
 using NLua;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro.Wrappers;
@@ -14,8 +13,8 @@ public unsafe class InstancesModule : LuaModuleBase
     public override string ModuleName => "Instances";
     public override void Register(Lua lua)
     {
-        lua.RegisterEnum<InfoProxyCommonList.CharacterData.OnlineStatus>();
-        lua.RegisterEnum<FFXIVClientStructs.FFXIV.Client.UI.Agent.GrandCompany>();
+        lua.RegisterEnum<OnlineStatus>();
+        lua.RegisterEnum<GrandCompany>();
         lua.RegisterEnum<Language>();
         lua.RegisterEnum<ContentsFinderQueueInfo.QueueStates>();
         base.Register(lua);
@@ -31,7 +30,7 @@ public unsafe class InstancesModule : LuaModuleBase
         [Changelog("12.69")]
         public void QueueDuty(uint contentsFinderCondition)
         {
-            if (!FindRows<ContentFinderCondition>(x => x.Unknown47 && x.Unknown48).Select(x => x.RowId).Contains(contentsFinderCondition)) // 47 = IsInUse, 48 = ShownInDf (I think)
+            if (!FindRows<Sheets.ContentFinderCondition>(x => x.Unknown47 && x.Unknown48).Select(x => x.RowId).Contains(contentsFinderCondition)) // 47 = IsInUse, 48 = ShownInDf (I think)
             {
                 FrameworkLogger.Error($"Invalid cfcID: {contentsFinderCondition}");
                 return;
@@ -45,7 +44,7 @@ public unsafe class InstancesModule : LuaModuleBase
         [Changelog("12.69")]
         public void QueueRoulette(byte contentRouletteId)
         {
-            if (!FindRows<ContentRoulette>(x => !x.Description.IsEmpty).Select(x => x.RowId).Contains(contentRouletteId))
+            if (!FindRows<Sheets.ContentRoulette>(x => !x.Description.IsEmpty).Select(x => x.RowId).Contains(contentRouletteId))
             {
                 FrameworkLogger.Error($"Invalid content roulette ID: {contentRouletteId}");
                 return;
@@ -88,12 +87,12 @@ public unsafe class InstancesModule : LuaModuleBase
     {
         [LuaDocs] public string Name => data.NameString;
         [LuaDocs] public ulong ContentId => data.ContentId;
-        [LuaDocs] public InfoProxyCommonList.CharacterData.OnlineStatus State => data.State;
+        [LuaDocs] public OnlineStatus State => data.State;
         [LuaDocs] public bool IsOtherServer => data.IsOtherServer;
         [LuaDocs] public ushort CurrentWorld => data.CurrentWorld;
         [LuaDocs] public ushort HomeWorld => data.HomeWorld;
         [LuaDocs] public ushort Location => data.Location;
-        [LuaDocs] public FFXIVClientStructs.FFXIV.Client.UI.Agent.GrandCompany GrandCompany => data.GrandCompany;
+        [LuaDocs] public GrandCompany GrandCompany => data.GrandCompany;
         [LuaDocs] public Language ClientLanguage => data.ClientLanguage;
         [LuaDocs] public byte Sex => data.Sex;
         [LuaDocs] public JobWrapper Job => new(data.Job);
