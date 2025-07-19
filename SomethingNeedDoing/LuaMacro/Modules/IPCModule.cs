@@ -34,11 +34,6 @@ public class IPCModule : LuaModuleBase
 
     public override void Register(Lua lua)
     {
-        lua.RegisterEnum<Wrath.AutoRotationConfigOption>();
-        lua.RegisterEnum<Wrath.SetResult>();
-        lua.RegisterEnum<Wrath.DPSRotationMode>();
-        lua.RegisterEnum<Wrath.HealerRotationMode>();
-        lua.RegisterEnum<Wrath.ComboStateKeys>();
         lua.DoString($"{ModuleName} = {{}}");
 
         RegisterHelperFunctions(lua);

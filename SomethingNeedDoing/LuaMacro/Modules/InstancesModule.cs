@@ -11,14 +11,6 @@ namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class InstancesModule : LuaModuleBase
 {
     public override string ModuleName => "Instances";
-    public override void Register(Lua lua)
-    {
-        lua.RegisterEnum<OnlineStatus>();
-        lua.RegisterEnum<GrandCompany>();
-        lua.RegisterEnum<Language>();
-        lua.RegisterEnum<ContentsFinderQueueInfo.QueueStates>();
-        base.Register(lua);
-    }
 
     [LuaFunction] public DutyFinderWrapper DutyFinder => new();
     public unsafe class DutyFinderWrapper : IWrapper

@@ -14,13 +14,6 @@ namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class InstancedContentModule : LuaModuleBase
 {
     public override string ModuleName => "InstancedContent";
-    public override void Register(Lua lua)
-    {
-        lua.RegisterEnum<DynamicEventState>();
-        lua.RegisterEnum<InstanceContentOceanFishing.OceanFishingStatus>();
-        lua.RegisterEnum<ContentType>();
-        base.Register(lua);
-    }
 
     [LuaFunction]
     public float ContentTimeLeft

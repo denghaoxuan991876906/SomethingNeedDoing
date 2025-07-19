@@ -9,11 +9,6 @@ public unsafe class EntityModule : LuaModuleBase
 {
     public override string ModuleName => "Entity";
     protected override object? MetaIndex(LuaTable table, string key) => Svc.Objects[int.Parse(key)] is { } obj ? new EntityWrapper(obj) : null;
-    public override void Register(Lua lua)
-    {
-        lua.RegisterEnum<ObjectKind>();
-        base.Register(lua);
-    }
 
     [LuaFunction] public EntityWrapper? Player => Svc.ClientState.LocalPlayer is { } player ? new(player) : null;
     [LuaFunction] public EntityWrapper? Target => Svc.Targets.Target is { } target ? new(target) : null;

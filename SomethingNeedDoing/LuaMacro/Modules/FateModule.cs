@@ -6,12 +6,6 @@ namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class FateModule : LuaModuleBase
 {
     public override string ModuleName => "Fates";
-    public override void Register(Lua lua)
-    {
-        lua.RegisterEnum<FateRule>();
-        lua.RegisterEnum<FateState>();
-        base.Register(lua);
-    }
 
     private FateManager* Fm => FateManager.Instance();
 

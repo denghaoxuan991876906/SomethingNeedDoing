@@ -10,11 +10,6 @@ namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class PlayerModule : LuaModuleBase
 {
     public override string ModuleName => "Player";
-    public override void Register(Lua lua)
-    {
-        lua.RegisterEnum<WeeklyBingoTaskStatus>();
-        base.Register(lua);
-    }
 
     private PlayerState* Ps => Instance();
 
