@@ -77,16 +77,34 @@ public abstract class LuaModuleBase : ILuaModule
     private void ScanTypeForEnums(Type type, HashSet<Type> enumTypes)
     {
         foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
-            if (method.GetCustomAttribute<LuaFunctionAttribute>() != null && method.ReturnType.IsEnum)
-                enumTypes.Add(method.ReturnType);
+        {
+            if (method.GetCustomAttribute<LuaFunctionAttribute>() != null)
+            {
+                if (method.ReturnType.IsEnum)
+                    enumTypes.Add(method.ReturnType);
+
+                foreach (var parameter in method.GetParameters())
+                    if (parameter.ParameterType.IsEnum)
+                        enumTypes.Add(parameter.ParameterType);
+            }
+        }
 
         foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
             if (property.GetCustomAttribute<LuaFunctionAttribute>() != null && property.PropertyType.IsEnum)
                 enumTypes.Add(property.PropertyType);
 
         foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
-            if (method.GetCustomAttribute<LuaDocsAttribute>() != null && method.ReturnType.IsEnum)
-                enumTypes.Add(method.ReturnType);
+        {
+            if (method.GetCustomAttribute<LuaDocsAttribute>() != null)
+            {
+                if (method.ReturnType.IsEnum)
+                    enumTypes.Add(method.ReturnType);
+
+                foreach (var parameter in method.GetParameters())
+                    if (parameter.ParameterType.IsEnum)
+                        enumTypes.Add(parameter.ParameterType);
+            }
+        }
 
         foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
             if (property.GetCustomAttribute<LuaDocsAttribute>() != null && property.PropertyType.IsEnum)

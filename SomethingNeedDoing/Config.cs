@@ -287,7 +287,6 @@ public class Config : IEzConfig
             c.Version = 2;
         }
         c.Save();
-        FrameworkLogger.Info("Config migrated");
     }
     #endregion
 }
