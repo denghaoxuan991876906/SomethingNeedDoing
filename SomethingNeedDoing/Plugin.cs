@@ -25,6 +25,7 @@ public sealed class Plugin : IDalamudPlugin
 
         EzConfig.DefaultSerializationFactory = new ConfigFactory();
         C = EzConfig.Init<Config>();
+        Config.Migrate(C);
         Config.InitializeFileWatcher();
 
         _serviceProvider = new ServiceCollection().SetupPluginServices().BuildServiceProvider();
