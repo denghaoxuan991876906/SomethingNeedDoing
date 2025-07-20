@@ -68,6 +68,9 @@ public enum TriggerEvent
     OnChatMessage,
     OnAddonEvent,
     OnActivePluginsChanged,
+    OnDutyStarted,
+    OnDutyWiped,
+    OnDutyCompleted,
 }
 
 /// <summary>

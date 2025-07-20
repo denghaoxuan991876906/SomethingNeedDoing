@@ -631,6 +631,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         Svc.Chat.ChatMessage += OnChatMessage;
         Svc.ClientState.Login += OnLogin;
         Svc.ClientState.Logout += OnLogout;
+        Svc.DutyState.DutyStarted += OnDutyStarted;
+        Svc.DutyState.DutyWiped += OnDutyWiped;
+        Svc.DutyState.DutyCompleted += OnDutyCompleted;
     }
 
     private HashSet<string> _activePlugins = [];
@@ -723,6 +726,24 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         var eventData = new Dictionary<string, object> { { "type", type }, { "code", code } };
         FrameworkLogger.Verbose($"[{nameof(OnLogout)}] fired [{type}, {code}]");
         _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnLogout, eventData);
+    }
+
+    private void OnDutyStarted(object? sender, ushort e)
+    {
+        FrameworkLogger.Verbose($"[{nameof(OnDutyStarted)}] fired [{e}]");
+        _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnDutyStarted);
+    }
+
+    private void OnDutyWiped(object? sender, ushort e)
+    {
+        FrameworkLogger.Verbose($"[{nameof(OnDutyWiped)}] fired [{e}]");
+        _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnDutyWiped);
+    }
+
+    private void OnDutyCompleted(object? sender, ushort e)
+    {
+        FrameworkLogger.Verbose($"[{nameof(OnDutyCompleted)}] fired [{e}]");
+        _ = _triggerEventManager.RaiseTriggerEvent(TriggerEvent.OnDutyCompleted);
     }
 
     private void CheckCharacterPostProcess(IMacro macro)
@@ -835,6 +856,9 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         Svc.Chat.ChatMessage -= OnChatMessage;
         Svc.ClientState.Login -= OnLogin;
         Svc.ClientState.Logout -= OnLogout;
+        Svc.DutyState.DutyStarted -= OnDutyStarted;
+        Svc.DutyState.DutyWiped -= OnDutyWiped;
+        Svc.DutyState.DutyCompleted -= OnDutyCompleted;
         Svc.AddonLifecycle.UnregisterListener(OnAddonEvent);
 
         _nativeEngine.Dispose();
