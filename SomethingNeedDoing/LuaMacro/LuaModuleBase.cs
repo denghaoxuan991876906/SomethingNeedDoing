@@ -142,14 +142,13 @@ public abstract class LuaModuleBase : ILuaModule
         return false;
     }
 
-    protected virtual object? MetaIndex(LuaTable table, string key) => null;
+    protected virtual object? MetaIndex(LuaTable table, object key) => null;
 
-    private object? MetatableOnIndex(LuaTable table, string key)
+    private object? MetatableOnIndex(LuaTable table, object key) => key switch
     {
-        if (_propertyDelegateMap.TryGetValue(key, out var propertyFunc))
-            return propertyFunc.DynamicInvoke();
-        return MetaIndex(table, key);
-    }
+        string stringKey when _propertyDelegateMap.TryGetValue(stringKey, out var propertyFunc) => propertyFunc.DynamicInvoke(),
+        _ => MetaIndex(table, key)
+    };
 
     private void RegisterMetaTable(Lua lua, string modulePath)
     {

@@ -10,7 +10,7 @@ namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class InventoryModule : LuaModuleBase
 {
     public override string ModuleName => "Inventory";
-    protected override object? MetaIndex(LuaTable table, string key) => GetInventoryContainer(Enum.Parse<InventoryType>(key));
+    protected override object? MetaIndex(LuaTable table, object key) => GetInventoryContainer(Enum.Parse<InventoryType>(key.ToString() ?? string.Empty));
 
     [LuaFunction] public InventoryContainerWrapper GetInventoryContainer(InventoryType container) => new(container);
     [LuaFunction] public InventoryItemWrapper GetInventoryItem(InventoryType container, int slot) => new(container, slot);

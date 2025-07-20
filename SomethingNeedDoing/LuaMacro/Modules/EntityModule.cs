@@ -1,6 +1,4 @@
 ﻿using Dalamud.Game.ClientState.Objects.SubKinds;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using Lumina.Excel.Sheets;
 using NLua;
 using SomethingNeedDoing.LuaMacro.Wrappers;
 
@@ -8,7 +6,7 @@ namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class EntityModule : LuaModuleBase
 {
     public override string ModuleName => "Entity";
-    protected override object? MetaIndex(LuaTable table, string key) => Svc.Objects[int.Parse(key)] is { } obj ? new EntityWrapper(obj) : null;
+    protected override object? MetaIndex(LuaTable table, object key) => Svc.Objects[int.Parse(key.ToString() ?? string.Empty)] is { } obj ? new EntityWrapper(obj) : null;
 
     [LuaFunction] public EntityWrapper? Player => Svc.ClientState.LocalPlayer is { } player ? new(player) : null;
     [LuaFunction] public EntityWrapper? Target => Svc.Targets.Target is { } target ? new(target) : null;

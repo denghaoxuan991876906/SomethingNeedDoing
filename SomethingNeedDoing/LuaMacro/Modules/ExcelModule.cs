@@ -12,7 +12,7 @@ public class ExcelModule : LuaModuleBase
 {
     public override string ModuleName => "Excel";
 
-    protected override object? MetaIndex(LuaTable table, string key) => GetSheet(key);
+    protected override object? MetaIndex(LuaTable table, object key) => GetSheet(key.ToString() ?? string.Empty);
 
     [LuaFunction]
     public ExcelSheetWrapper? GetSheet(string sheetName)
