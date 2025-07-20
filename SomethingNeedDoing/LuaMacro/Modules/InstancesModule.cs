@@ -47,6 +47,8 @@ public unsafe class InstancesModule : LuaModuleBase
         }
 
         [LuaDocs][Changelog("12.69")] public void CancelQueue() => ContentsFinder.Instance()->GetQueueInfo()->CancelQueue();
+        [LuaDocs][Changelog("12.73")] public uint GetPenaltyTimeRemainingInMinutes() => UIState.Instance()->InstanceContent.GetPenaltyRemainingInMinutes(0);
+        [LuaDocs][Changelog("12.73")] public bool IsRouletteIncomplete(byte rouletteId) => UIState.Instance()->InstanceContent.IsRouletteIncomplete(rouletteId);
 
         [LuaDocs] public bool IsUnrestrictedParty { get => ContentsFinder.Instance()->IsUnrestrictedParty; set => ContentsFinder.Instance()->IsUnrestrictedParty = value; }
         [LuaDocs] public bool IsLevelSync { get => ContentsFinder.Instance()->IsLevelSync; set => ContentsFinder.Instance()->IsLevelSync = value; }
