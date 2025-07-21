@@ -424,7 +424,7 @@ public class GitMacroManager : IDisposable
         macro.GitInfo.CommitHash = commitHash;
         macro.GitInfo.HasUpdate = false;
         macro.GitInfo.LastUpdateCheck = DateTime.Now;
-        macro.Metadata = _metadataParser.ParseMetadata(fileContent);
+        macro.Metadata = _metadataParser.ParseMetadata(fileContent, macro.Metadata);
 
         // Update dependencies
         await UpdateDependencies(macro);

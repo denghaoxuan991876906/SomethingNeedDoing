@@ -29,8 +29,9 @@ public class MetadataParser
     /// Parses metadata from macro content.
     /// </summary>
     /// <param name="content">The macro content to parse.</param>
+    /// <param name="previousMetadata">Optional: previous MacroMetadata to preserve config values.</param>
     /// <returns>The parsed metadata.</returns>
-    public MacroMetadata ParseMetadata(string content)
+    public MacroMetadata ParseMetadata(string content, MacroMetadata? previousMetadata = null)
     {
         var match = MetadataBlockRegex.Match(content);
         if (!match.Success) return new MacroMetadata();
@@ -102,6 +103,11 @@ public class MetadataParser
         {
             FrameworkLogger.Error(ex, "Failed to parse metadata YAML");
         }
+
+        if (previousMetadata != null)
+            foreach (var kvp in metadata.Configs)
+                if (previousMetadata.Configs.TryGetValue(kvp.Key, out var oldConfig))
+                    kvp.Value.Value = oldConfig.Value;
 
         return metadata;
     }

@@ -62,10 +62,13 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                 ImGuiEx.Text(ImGuiColors.DalamudGrey, configValue.Description);
 
                 ImGui.SameLine(ImGui.GetContentRegionAvail().X - 80);
-                if (ImGui.Button("Reset", new Vector2(70, 0)))
+                using (ImRaii.Disabled(configValue.IsValueDefault()))
                 {
-                    configValue.Value = configValue.DefaultValue;
-                    C.Save();
+                    if (ImGui.Button("Reset", new Vector2(70, 0)))
+                    {
+                        configValue.Value = configValue.DefaultValue;
+                        C.Save();
+                    }
                 }
                 ImGuiEx.Tooltip($"Reset to default value: {configValue.DefaultValue}");
                 ImGui.Spacing();
