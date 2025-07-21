@@ -457,16 +457,30 @@ public class GitMacroManager : IDisposable
         {
             if (dependency.Type == DependencyType.Remote && dependency.Source.StartsWith("git://"))
             {
-                var depMacro = new ConfigMacro
+                var depMacro = new ConfigMacro();
+                var parts = dependency.Source[6..].Split('/');
+                if (parts.Length >= 4)
                 {
-                    GitInfo =
+                    var owner = parts[0];
+                    var repo = parts[1];
+                    var branch = parts[2];
+                    var filePath = string.Join("/", parts.Skip(3));
+                    depMacro.GitInfo = new GitInfo
                     {
-                        RepositoryUrl = dependency.Source[6..], // Remove "git://" prefix
+                        RepositoryUrl = $"https://github.com/{owner}/{repo}",
+                        FilePath = filePath,
+                        Branch = branch
+                    };
+                }
+                else
+                {
+                    depMacro.GitInfo = new GitInfo
+                    {
+                        RepositoryUrl = dependency.Source[6..],
                         FilePath = dependency.Name,
-                        Branch = "main" // Default to main branch
-                    }
-                };
-
+                        Branch = "main"
+                    };
+                }
                 await UpdateMacro(depMacro);
             }
             else
