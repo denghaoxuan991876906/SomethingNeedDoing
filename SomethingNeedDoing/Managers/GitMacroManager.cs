@@ -306,14 +306,25 @@ public class GitMacroManager : IDisposable
 
         try
         {
-            var uri = new Uri(url);
-            var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-            if (segments.Length < 2)
+            if (url.StartsWith("git://"))
+            {
+                // git://owner/repo/branch/path
+                var parts = url.Substring(6).Split('/');
+                if (parts.Length >= 2)
+                    return (parts[0], parts[1]);
                 return (string.Empty, string.Empty);
+            }
+            else
+            {
+                var uri = new Uri(url);
+                var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
-            // Always return the first two segments (owner/repo) regardless of URL type
-            return (segments[0], segments[1]);
+                if (segments.Length < 2)
+                    return (string.Empty, string.Empty);
+
+                // Always return the first two segments (owner/repo) regardless of URL type
+                return (segments[0], segments[1]);
+            }
         }
         catch (Exception ex)
         {
