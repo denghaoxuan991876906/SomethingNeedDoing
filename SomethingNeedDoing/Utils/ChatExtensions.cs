@@ -14,7 +14,7 @@ public static class ChatExtensions
             Message = $"[{P.Prefix}] {message}"
         });
 
-    public static void PrintError(this IChatGui chat, string message)
+    public static void PrintErrorMsg(this IChatGui chat, string message)
         => chat.Print(new XivChatEntry
         {
             Type = C.ErrorChatType,

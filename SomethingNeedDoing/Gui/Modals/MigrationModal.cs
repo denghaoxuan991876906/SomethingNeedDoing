@@ -362,7 +362,7 @@ public static class MigrationModal
         }
         catch (Exception ex)
         {
-            Svc.Chat.PrintError($"Failed to import macros: {ex.Message}");
+            Svc.Chat.PrintErrorMsg($"Failed to import macros: {ex.Message}");
         }
     }
 

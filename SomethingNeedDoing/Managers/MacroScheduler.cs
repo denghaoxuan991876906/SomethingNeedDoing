@@ -222,7 +222,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         if (MissingRequiredPlugins(macro, out var missingPlugins))
         {
             FrameworkLogger.Error($"Cannot run {macro.Name}. The following plugins need to be installed: {string.Join(", ", missingPlugins)}");
-            Svc.Chat.PrintError($"Cannot run {macro.Name}. The following plugins need to be installed: {string.Join(", ", missingPlugins)}");
+            Svc.Chat.PrintErrorMsg($"Cannot run {macro.Name}. The following plugins need to be installed: {string.Join(", ", missingPlugins)}");
             return;
         }
 
@@ -230,14 +230,14 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         if (!areAvailable)
         {
             FrameworkLogger.Error($"Cannot run {macro.Name}. The following dependencies are not available: {string.Join(", ", missingDependencies)}");
-            Svc.Chat.PrintError($"Cannot run {macro.Name}. The following dependencies are not available: {string.Join(", ", missingDependencies)}");
+            Svc.Chat.PrintErrorMsg($"Cannot run {macro.Name}. The following dependencies are not available: {string.Join(", ", missingDependencies)}");
             return;
         }
 
         if (!macro.HasValidConfigs())
         {
             FrameworkLogger.Error($"Cannot run {macro.Name}. One or more of its configs failed to validate.");
-            Svc.Chat.PrintError($"Cannot run {macro.Name}. One or more of its configs failed to validate.");
+            Svc.Chat.PrintErrorMsg($"Cannot run {macro.Name}. One or more of its configs failed to validate.");
             return;
         }
 

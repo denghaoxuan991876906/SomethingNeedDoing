@@ -29,7 +29,7 @@ public class RunMacroCommand(string text, string macroName) : MacroCommandBase(t
         if (C.GetMacroByName(_macroName) is { } macro)
             context.OnMacroExecutionRequested(this, new MacroExecutionRequestedEventArgs(macro));
         else
-            Svc.Chat.PrintError($"No macro found with name: {_macroName}");
+            Svc.Chat.PrintErrorMsg($"No macro found with name: {_macroName}");
 
         await PerformWait(token);
     }

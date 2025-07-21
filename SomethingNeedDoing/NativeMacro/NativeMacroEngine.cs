@@ -145,7 +145,7 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
 
     protected virtual void OnMacroError(string macroId, string message, Exception? ex = null)
     {
-        Svc.Chat.PrintError(message);
+        Svc.Chat.PrintErrorMsg(message);
         MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
     }
 

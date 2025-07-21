@@ -226,7 +226,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
 
     protected virtual void OnMacroError(string macroId, string message, Exception? ex = null)
     {
-        Svc.Chat.PrintError(message);
+        Svc.Chat.PrintErrorMsg(message);
         FrameworkLogger.Error($"Error executing macro {macroId}: {ex}");
         MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
     }

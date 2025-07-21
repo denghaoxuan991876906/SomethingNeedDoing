@@ -133,7 +133,7 @@ public class CommandService
         var parts = arguments.Split(' ', 2);
         if (parts.Length != 2 || !int.TryParse(parts[0], out var loopCount))
         {
-            Svc.Chat.PrintError("Invalid loop command format. Usage: /snd run loop <count> \"<macro name>\"");
+            Svc.Chat.PrintErrorMsg("Invalid loop command format. Usage: /snd run loop <count> \"<macro name>\"");
             return;
         }
 
@@ -148,7 +148,7 @@ public class CommandService
         if (C.GetMacroByName(macroName) is { } macro)
             _macroScheduler.PauseMacro(macro.Id);
         else
-            Svc.Chat.PrintError($"Macro '{macroName}' not found.");
+            Svc.Chat.PrintErrorMsg($"Macro '{macroName}' not found.");
     }
 
     private void HandlePauseLoopCommand(string arguments)
@@ -157,7 +157,7 @@ public class CommandService
         if (C.GetMacroByName(macroName) is { } macro)
             _macroScheduler.PauseAtNextLoop(macro.Id);
         else
-            Svc.Chat.PrintError($"Macro '{macroName}' not found.");
+            Svc.Chat.PrintErrorMsg($"Macro '{macroName}' not found.");
     }
 
     private void HandlePauseAllCommand()
@@ -173,7 +173,7 @@ public class CommandService
         if (C.GetMacroByName(macroName) is { } macro)
             _macroScheduler.ResumeMacro(macro.Id);
         else
-            Svc.Chat.PrintError($"Macro '{macroName}' not found.");
+            Svc.Chat.PrintErrorMsg($"Macro '{macroName}' not found.");
     }
 
     private void HandleResumeAllCommand()
@@ -189,7 +189,7 @@ public class CommandService
         if (C.GetMacroByName(macroName) is { } macro)
             _macroScheduler.StopMacro(macro.Id);
         else
-            Svc.Chat.PrintError($"Macro '{macroName}' not found.");
+            Svc.Chat.PrintErrorMsg($"Macro '{macroName}' not found.");
     }
 
     private void HandleStopLoopCommand(string arguments)
@@ -198,7 +198,7 @@ public class CommandService
         if (C.GetMacroByName(macroName) is { } macro)
             _macroScheduler.StopAtNextLoop(macro.Id);
         else
-            Svc.Chat.PrintError($"Macro '{macroName}' not found.");
+            Svc.Chat.PrintErrorMsg($"Macro '{macroName}' not found.");
     }
 
     //private void HandleConfigCommand(string arguments)
@@ -206,7 +206,7 @@ public class CommandService
     //    var args = arguments.Split(" ");
     //    if (args.Length != 2)
     //    {
-    //        Svc.Chat.PrintError("Invalid config command format. Usage: /snd cfg <setting> <value>");
+    //        Svc.Chat.PrintErrorMsg("Invalid config command format. Usage: /snd cfg <setting> <value>");
     //        return;
     //    }
     //    C.SetProperty(args[0], args[1]);
