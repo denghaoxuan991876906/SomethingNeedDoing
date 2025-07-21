@@ -35,6 +35,7 @@ public class DependencyFactory(IGitService gitService)
                 var gitDep = new GitDependency
                 {
                     Name = repo,
+                    Source = normalizedSource,
                     GitInfo = new GitInfo
                     {
                         RepositoryUrl = $"https://github.com/{owner}/{repo}",
