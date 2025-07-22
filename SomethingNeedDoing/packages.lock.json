@@ -16,9 +16,9 @@
       },
       "ImGuiColorTextEditNetDalamud": {
         "type": "Direct",
-        "requested": "[0.9.0, )",
-        "resolved": "0.9.0",
-        "contentHash": "ZAcDnutt3p/A/GHpwjGj8+gGYV3+PB779SI10tOM8zw5NKurbXQWveAwcxZkkTTNTl1+/spLpFw3t/O7BLhUsg=="
+        "requested": "[0.10.0, )",
+        "resolved": "0.10.0",
+        "contentHash": "xnXgG5FAtbsp2TUUOydY5bUynVqkCQSZJ7h55glvPe5d6u2QWS5/Gq6m9veVmc2G3HbBEJtFQwtOkjX0aYQsVQ=="
       },
       "Microsoft.Extensions.DependencyInjection": {
         "type": "Direct",
