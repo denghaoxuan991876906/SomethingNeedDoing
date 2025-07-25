@@ -36,7 +36,7 @@ public class EnginesModule : LuaModuleBase
             "Run",
             "Executes content using the best available engine (fire and forget)",
             LuaTypeConverter.GetLuaType(typeof(void)),
-            [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+            [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
             null,
             true
         ),
@@ -45,7 +45,7 @@ public class EnginesModule : LuaModuleBase
             "RunAsync",
             "Executes content using the best available engine asynchronously",
             LuaTypeConverter.GetLuaType(typeof(Task)),
-            [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+            [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
             null,
             true
         )
@@ -59,7 +59,7 @@ public class EnginesModule : LuaModuleBase
                 "Run",
                 $"Executes content using the {engine.Name} engine (fire and forget)",
                 LuaTypeConverter.GetLuaType(typeof(void)),
-                [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+                [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
                 null,
                 true
             ));
@@ -69,7 +69,7 @@ public class EnginesModule : LuaModuleBase
                 "RunAsync",
                 $"Executes content using the {engine.Name} engine asynchronously",
                 LuaTypeConverter.GetLuaType(typeof(Task)),
-                [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+                [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
                 null,
                 true
             ));
@@ -91,7 +91,7 @@ public class EnginesModule : LuaModuleBase
             "Run",
             "Executes content using the best available engine (fire and forget)",
             LuaTypeConverter.GetLuaType(typeof(void)),
-            [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+            [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
             null,
             true
         ),
@@ -100,7 +100,7 @@ public class EnginesModule : LuaModuleBase
             "RunAsync",
             "Executes content using the best available engine asynchronously",
             LuaTypeConverter.GetLuaType(typeof(Task)),
-            [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+            [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
             null,
             true
         )
@@ -114,7 +114,7 @@ public class EnginesModule : LuaModuleBase
                 "Run",
                 $"Executes content using the {engineName} engine (fire and forget)",
                 LuaTypeConverter.GetLuaType(typeof(void)),
-                [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+                [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
                 null,
                 true
             ));
@@ -124,7 +124,7 @@ public class EnginesModule : LuaModuleBase
                 "RunAsync",
                 $"Executes content using the {engineName} engine asynchronously",
                 LuaTypeConverter.GetLuaType(typeof(Task)),
-                [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute")],
+                [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
                 null,
                 true
             ));

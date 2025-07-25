@@ -86,7 +86,7 @@ public class IPCModule : LuaModuleBase
                 "IsInstalled",
                 "Checks if an IPC plugin is installed",
                 LuaTypeConverter.GetLuaType(isInstalledMethod.ReturnType),
-                [(isInstalledMethod.GetParameters()[0].Name ?? "name", LuaTypeConverter.GetLuaType(isInstalledMethod.GetParameters()[0].ParameterType), "The name of the plugin to check")],
+                [(isInstalledMethod.GetParameters()[0].Name ?? "name", LuaTypeConverter.GetLuaType(isInstalledMethod.GetParameters()[0].ParameterType), "The name of the plugin to check", isInstalledMethod.GetParameters()[0].HasDefaultValue ? isInstalledMethod.GetParameters()[0].DefaultValue : null)],
                 null,
                 true
             ));
@@ -119,7 +119,7 @@ public class IPCModule : LuaModuleBase
 
                 var fieldName = attr.Name ?? field.Name;
                 var fieldType = field.FieldType;
-                var parameters = new List<(string Name, LuaTypeInfo Type, string? Description)>();
+                var parameters = new List<(string Name, LuaTypeInfo Type, string? Description, object? DefaultValue)>();
                 var returnType = LuaTypeConverter.GetLuaType(typeof(void));
 
                 if (fieldType.IsGenericType)
@@ -141,14 +141,14 @@ public class IPCModule : LuaModuleBase
                     {
                         // Func<T, TResult> - one parameter, one return type
                         var paramDesc = attr.ParameterDescriptions?.FirstOrDefault();
-                        parameters.Add((paramDesc ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc));
+                        parameters.Add((paramDesc ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc, null));
                         returnType = LuaTypeConverter.GetLuaType(genericArgs[1]);
                     }
                     else if (genericType == typeof(Action<>))
                     {
                         // Action<T> - one parameter, no return type
                         var paramDesc = attr.ParameterDescriptions?.FirstOrDefault();
-                        parameters.Add((paramDesc ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc));
+                        parameters.Add((paramDesc ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc, null));
                         returnType = LuaTypeConverter.GetLuaType(typeof(void));
                     }
                     else if (genericType == typeof(Func<,,>))
@@ -156,8 +156,8 @@ public class IPCModule : LuaModuleBase
                         // Func<T1, T2, TResult> - two parameters, one return type
                         var paramDesc0 = attr.ParameterDescriptions?.ElementAtOrDefault(0);
                         var paramDesc1 = attr.ParameterDescriptions?.ElementAtOrDefault(1);
-                        parameters.Add((paramDesc0 ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc0));
-                        parameters.Add((paramDesc1 ?? "param1", LuaTypeConverter.GetLuaType(genericArgs[1]), paramDesc1));
+                        parameters.Add((paramDesc0 ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc0, null));
+                        parameters.Add((paramDesc1 ?? "param1", LuaTypeConverter.GetLuaType(genericArgs[1]), paramDesc1, null));
                         returnType = LuaTypeConverter.GetLuaType(genericArgs[2]);
                     }
                     else if (genericType == typeof(Action<,>))
@@ -165,8 +165,8 @@ public class IPCModule : LuaModuleBase
                         // Action<T1, T2> - two parameters, no return type
                         var paramDesc0 = attr.ParameterDescriptions?.ElementAtOrDefault(0);
                         var paramDesc1 = attr.ParameterDescriptions?.ElementAtOrDefault(1);
-                        parameters.Add((paramDesc0 ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc0));
-                        parameters.Add((paramDesc1 ?? "param1", LuaTypeConverter.GetLuaType(genericArgs[1]), paramDesc1));
+                        parameters.Add((paramDesc0 ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc0, null));
+                        parameters.Add((paramDesc1 ?? "param1", LuaTypeConverter.GetLuaType(genericArgs[1]), paramDesc1, null));
                         returnType = LuaTypeConverter.GetLuaType(typeof(void));
                     }
                     else if (genericType == typeof(Func<,,,>))
@@ -175,9 +175,9 @@ public class IPCModule : LuaModuleBase
                         var paramDesc0 = attr.ParameterDescriptions?.ElementAtOrDefault(0);
                         var paramDesc1 = attr.ParameterDescriptions?.ElementAtOrDefault(1);
                         var paramDesc2 = attr.ParameterDescriptions?.ElementAtOrDefault(2);
-                        parameters.Add((paramDesc0 ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc0));
-                        parameters.Add((paramDesc1 ?? "param1", LuaTypeConverter.GetLuaType(genericArgs[1]), paramDesc1));
-                        parameters.Add((paramDesc2 ?? "param2", LuaTypeConverter.GetLuaType(genericArgs[2]), paramDesc2));
+                        parameters.Add((paramDesc0 ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc0, null));
+                        parameters.Add((paramDesc1 ?? "param1", LuaTypeConverter.GetLuaType(genericArgs[1]), paramDesc1, null));
+                        parameters.Add((paramDesc2 ?? "param2", LuaTypeConverter.GetLuaType(genericArgs[2]), paramDesc2, null));
                         returnType = LuaTypeConverter.GetLuaType(genericArgs[3]);
                     }
                     else if (genericType == typeof(Func<,,,,>))
@@ -187,10 +187,10 @@ public class IPCModule : LuaModuleBase
                         var paramDesc1 = attr.ParameterDescriptions?.ElementAtOrDefault(1);
                         var paramDesc2 = attr.ParameterDescriptions?.ElementAtOrDefault(2);
                         var paramDesc3 = attr.ParameterDescriptions?.ElementAtOrDefault(3);
-                        parameters.Add((paramDesc0 ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc0));
-                        parameters.Add((paramDesc1 ?? "param1", LuaTypeConverter.GetLuaType(genericArgs[1]), paramDesc1));
-                        parameters.Add((paramDesc2 ?? "param2", LuaTypeConverter.GetLuaType(genericArgs[2]), paramDesc2));
-                        parameters.Add((paramDesc3 ?? "param3", LuaTypeConverter.GetLuaType(genericArgs[3]), paramDesc3));
+                        parameters.Add((paramDesc0 ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc0, null));
+                        parameters.Add((paramDesc1 ?? "param1", LuaTypeConverter.GetLuaType(genericArgs[1]), paramDesc1, null));
+                        parameters.Add((paramDesc2 ?? "param2", LuaTypeConverter.GetLuaType(genericArgs[2]), paramDesc2, null));
+                        parameters.Add((paramDesc3 ?? "param3", LuaTypeConverter.GetLuaType(genericArgs[3]), paramDesc3, null));
                         returnType = LuaTypeConverter.GetLuaType(genericArgs[4]);
                     }
                     else if (genericType == typeof(Action<,,>))
@@ -199,9 +199,9 @@ public class IPCModule : LuaModuleBase
                         var paramDesc0 = attr.ParameterDescriptions?.ElementAtOrDefault(0);
                         var paramDesc1 = attr.ParameterDescriptions?.ElementAtOrDefault(1);
                         var paramDesc2 = attr.ParameterDescriptions?.ElementAtOrDefault(2);
-                        parameters.Add((paramDesc0 ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc0));
-                        parameters.Add((paramDesc1 ?? "param1", LuaTypeConverter.GetLuaType(genericArgs[1]), paramDesc1));
-                        parameters.Add((paramDesc2 ?? "param2", LuaTypeConverter.GetLuaType(genericArgs[2]), paramDesc2));
+                        parameters.Add((paramDesc0 ?? "param0", LuaTypeConverter.GetLuaType(genericArgs[0]), paramDesc0, null));
+                        parameters.Add((paramDesc1 ?? "param1", LuaTypeConverter.GetLuaType(genericArgs[1]), paramDesc1, null));
+                        parameters.Add((paramDesc2 ?? "param2", LuaTypeConverter.GetLuaType(genericArgs[2]), paramDesc2, null));
                         returnType = LuaTypeConverter.GetLuaType(typeof(void));
                     }
                 }
@@ -228,7 +228,7 @@ public class IPCModule : LuaModuleBase
                 var parameters = method.GetParameters().Select((p, i) =>
                 {
                     var paramDesc = attr.ParameterDescriptions?.ElementAtOrDefault(i);
-                    return (paramDesc ?? p.Name ?? $"param{i}", LuaTypeConverter.GetLuaType(p.ParameterType), paramDesc);
+                    return (paramDesc ?? p.Name ?? $"param{i}", LuaTypeConverter.GetLuaType(p.ParameterType), paramDesc, p.HasDefaultValue ? p.DefaultValue : null);
                 }).ToList();
                 var returnType = LuaTypeConverter.GetLuaType(method.ReturnType);
 

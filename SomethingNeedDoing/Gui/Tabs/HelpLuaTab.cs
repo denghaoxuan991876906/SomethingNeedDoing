@@ -4,6 +4,7 @@ using Dalamud.Interface.Utility.Raii;
 using ECommons.ImGuiMethods;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Documentation;
+using SomethingNeedDoing.LuaMacro;
 using System.Reflection;
 
 namespace SomethingNeedDoing.Gui.Tabs;
@@ -20,9 +21,7 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
             {
                 ImGuiUtils.Section(module.Key, () =>
                 {
-                    var groupedFunctions = module.Value
-                        .GroupBy(f => f.ModuleName.Contains('.') ? f.ModuleName.Split('.')[1] : "Root");
-
+                    var groupedFunctions = module.Value.GroupBy(f => f.ModuleName.Contains('.') ? f.ModuleName.Split('.')[1] : "Root");
                     if (groupedFunctions.FirstOrDefault(g => g.Key == "Root") is { } rootFunctions)
                         rootFunctions.Each(f => DrawFunction(f));
 
@@ -61,6 +60,18 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
         {
             ImGui.SameLine();
             ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {function.ReturnType}");
+        }
+
+        if (!isMethod && function.Parameters.Count == 0)
+        {
+            if (typeof(HelpLuaTab).Assembly.GetTypes().FirstOrDefault(t => t.Name == function.ModuleName.Split('.').Last() + "Module" && typeof(LuaModuleBase).IsAssignableFrom(t)) is { } modType)
+            {
+                if (modType.GetProperty(function.FunctionName, BindingFlags.Public | BindingFlags.Instance) is { CanWrite: true })
+                {
+                    ImGui.SameLine();
+                    ImGui.TextColored(ImGuiColors.DalamudGrey, "[rw]");
+                }
+            }
         }
 
         if (function.ReturnType.Type?.IsEnum == true || function.ReturnType.Type?.IsWrapper() == true ||
@@ -112,7 +123,7 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
         }
     }
 
-    private void FunctionText(string functionName, string? functionDescription, List<(string Name, LuaTypeInfo Type, string? Description)> parameters, string fullChain)
+    private void FunctionText(string functionName, string? functionDescription, List<(string Name, LuaTypeInfo Type, string? Description, object? DefaultValue)> parameters, string fullChain)
     {
         ImGuiEx.TextCopy(ImGuiColors.DalamudViolet, functionName, fullChain);
 
@@ -125,10 +136,16 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
 
         for (var i = 0; i < parameters.Count; i++)
         {
-            var (name, type, _) = parameters[i];
+            var (name, type, _, defaultValue) = parameters[i];
             ImGui.TextColored(ImGuiColors.DalamudOrange, type.ToString());
             ImGui.SameLine();
             ImGui.TextUnformatted(name);
+
+            if (defaultValue != null)
+            {
+                ImGui.SameLine();
+                ImGui.TextColored(ImGuiColors.DalamudGrey, $"= {defaultValue}");
+            }
 
             if (i < parameters.Count - 1)
             {
@@ -174,6 +191,12 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                 ImGui.SameLine();
                 ImGui.TextColored(ImGuiColors.DalamudGrey, $"→ {LuaTypeConverter.GetLuaType(prop.PropertyType)}");
 
+                if (prop.CanWrite)
+                {
+                    ImGui.SameLine();
+                    ImGui.TextColored(ImGuiColors.DalamudGrey, "[rw]");
+                }
+
                 if (prop.PropertyType.IsWrapper() || prop.PropertyType.IsList() || prop.PropertyType.IsEnum)
                 {
                     ImGuiUtils.CollapsibleSection($"{id}_prop_{index}", () =>
@@ -208,7 +231,8 @@ public class HelpLuaTab(LuaDocumentation luaDocs)
                 var parameters = method.GetParameters().Select(p => (
                     Name: p.Name ?? "unk",
                     TypeInfo: LuaTypeConverter.GetLuaType(p.ParameterType),
-                    Description: (string?)null
+                    Description: (string?)null,
+                    DefaultValue: p.HasDefaultValue ? p.DefaultValue : null
                 )).ToList();
                 var copySignature = parameters.Count > 0 ? $"{method.Name}({string.Join(", ", parameters.Select(p => p.TypeInfo.TypeName))})" : method.Name;
 
