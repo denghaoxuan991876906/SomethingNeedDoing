@@ -10,6 +10,7 @@ using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro;
 using SomethingNeedDoing.LuaMacro.Wrappers;
 using SomethingNeedDoing.NativeMacro;
+using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,16 +21,16 @@ namespace SomethingNeedDoing.Managers;
 /// </summary>
 public class MacroScheduler : IMacroScheduler, IDisposable
 {
-    private readonly Dictionary<string, MacroExecutionState> _macroStates = [];
-    private readonly Dictionary<string, IMacroEngine> _enginesByMacroId = [];
-    private readonly Dictionary<string, AutoRetainerApi> _arApis = [];
-    private readonly Dictionary<string, AddonEventConfig> _addonEvents = [];
-    private readonly MacroHierarchyManager _macroHierarchy = new();
-    private readonly Dictionary<string, IDisableable> _disableablePlugins = [];
+    private readonly ConcurrentDictionary<string, MacroExecutionState> _macroStates = [];
+    private readonly ConcurrentDictionary<string, IMacroEngine> _enginesByMacroId = [];
+    private readonly ConcurrentDictionary<string, AutoRetainerApi> _arApis = [];
+    private readonly ConcurrentDictionary<string, AddonEventConfig> _addonEvents = [];
+    private readonly ConcurrentDictionary<string, IDisableable> _disableablePlugins = [];
 
     private readonly NativeMacroEngine _nativeEngine;
     private readonly NLuaMacroEngine _luaEngine;
     private readonly TriggerEventManager _triggerEventManager;
+    private readonly MacroHierarchyManager _hierarchyManager;
 
     private readonly HashSet<string> _functionTriggersRegistered = [];
 
@@ -41,11 +42,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// </summary>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
 
-    public MacroScheduler(NativeMacroEngine nativeEngine, NLuaMacroEngine luaEngine, TriggerEventManager triggerEventManager, IEnumerable<IDisableable> disableablePlugins)
+    public MacroScheduler(NativeMacroEngine nativeEngine, NLuaMacroEngine luaEngine, TriggerEventManager triggerEventManager, MacroHierarchyManager hierarchyManager, IEnumerable<IDisableable> disableablePlugins)
     {
         _nativeEngine = nativeEngine;
         _luaEngine = luaEngine;
         _triggerEventManager = triggerEventManager;
+        _hierarchyManager = hierarchyManager;
 
         _nativeEngine.MacroError += OnEngineError;
         _luaEngine.MacroError += OnEngineError;
@@ -303,7 +305,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
             if (C.PropagateControlsToChildren)
             {
-                foreach (var child in _macroHierarchy.GetChildMacros(macroId))
+                foreach (var child in _hierarchyManager.GetChildMacros(macroId))
                 {
                     if (_macroStates.TryGetValue(child.Id, out var childState))
                     {
@@ -326,7 +328,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
             if (C.PropagateControlsToChildren)
             {
-                foreach (var child in _macroHierarchy.GetChildMacros(macroId))
+                foreach (var child in _hierarchyManager.GetChildMacros(macroId))
                 {
                     if (_macroStates.TryGetValue(child.Id, out var childState))
                     {
@@ -351,7 +353,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             await SetPluginStates(state.Macro, true);
 
             if (C.PropagateControlsToChildren)
-                foreach (var child in _macroHierarchy.GetChildMacros(macroId).ToList())
+                foreach (var child in _hierarchyManager.GetChildMacros(macroId).ToList())
                     StopMacro(child.Id);
         }
     }
@@ -535,11 +537,11 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             {
                 if (e.NewState == MacroState.Error)
                 {
-                    var rootParent = _macroHierarchy.GetRootParentMacro(temp.Id);
+                    var rootParent = _hierarchyManager.GetRootParentMacro(temp.Id);
                     if (rootParent is { } parentMacro)
                         parentMacro.State = MacroState.Error;
                 }
-                _macroHierarchy.UnregisterTemporaryMacro(e.MacroId);
+                _hierarchyManager.UnregisterTemporaryMacro(e.MacroId);
                 temp.StateChanged -= OnMacroStateChanged;
             }
 
