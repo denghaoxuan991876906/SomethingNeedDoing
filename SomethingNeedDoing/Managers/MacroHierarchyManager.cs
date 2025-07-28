@@ -46,7 +46,7 @@ public class MacroHierarchyManager
             }
         };
 
-        Svc.Log.Verbose($"[{nameof(MacroHierarchyManager)}] Registered temporary macro {temporaryMacro.Id} with parent {parentMacro.Id}");
+        FrameworkLogger.Verbose($"Registered temporary macro {temporaryMacro.Id} with parent {parentMacro.Id}");
         return temporaryMacro;
     }
 
@@ -57,6 +57,29 @@ public class MacroHierarchyManager
     /// <returns>The parent macro, or null if not found.</returns>
     public IMacro? GetParentMacro(string temporaryMacroId)
         => _parentLookup.TryGetValue(temporaryMacroId, out var parentId) && _macroNodes.TryGetValue(parentId, out var parentNode) ? parentNode.Macro : null;
+
+    /// <summary>
+    /// Gets the root parent macro (the original macro that started the chain).
+    /// This traverses up the hierarchy until it finds a non-temporary macro.
+    /// </summary>
+    /// <param name="temporaryMacroId">The ID of the temporary macro.</param>
+    /// <returns>The root parent macro, or null if not found.</returns>
+    public IMacro? GetRootParentMacro(string temporaryMacroId)
+    {
+        var currentId = temporaryMacroId;
+        while (_parentLookup.TryGetValue(currentId, out var parentId))
+        {
+            if (_macroNodes.TryGetValue(parentId, out var parentNode))
+            {
+                if (parentNode.Macro is not TemporaryMacro)
+                    return parentNode.Macro;
+                currentId = parentId;
+            }
+            else
+                break;
+        }
+        return null;
+    }
 
     /// <summary>
     /// Gets all child macros of a parent macro.

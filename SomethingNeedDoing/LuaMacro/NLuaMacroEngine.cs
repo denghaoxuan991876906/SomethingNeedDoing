@@ -2,7 +2,10 @@
 using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro.Modules;
+using SomethingNeedDoing.LuaMacro.Modules.Engines;
 using SomethingNeedDoing.Managers;
+using SomethingNeedDoing.NativeMacro;
+using System.Collections.Concurrent;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +15,7 @@ namespace SomethingNeedDoing.LuaMacro;
 /// <summary>
 /// Executes Lua script macros using NLua.
 /// </summary>
-public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager cleanupManager, MacroHierarchyManager macroHierarchy) : IMacroEngine
+public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager cleanupManager, MacroHierarchyManager macroHierarchy, MacroParser parser) : IMacroEngine
 {
     /// <inheritdoc/>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
@@ -24,10 +27,15 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
     public event EventHandler<MacroStepCompletedEventArgs>? MacroStepCompleted;
 
     /// <inheritdoc/>
-    public IMacroScheduler? Scheduler { get; set; }
+    public event EventHandler<MacroExecutionRequestedEventArgs>? MacroExecutionRequested;
 
-    private readonly Dictionary<string, TemporaryMacro> _temporaryMacros = [];
-    private readonly Dictionary<string, Lua> _activeLuaEnvironments = [];
+    /// <summary>
+    /// Event raised when loop control is requested.
+    /// </summary>
+    public event EventHandler<LoopControlEventArgs>? LoopControlRequested;
+
+    private readonly ConcurrentDictionary<string, TemporaryMacro> _temporaryMacros = [];
+    private readonly ConcurrentDictionary<string, Lua> _activeLuaEnvironments = [];
 
     /// <inheritdoc/>
     public IMacro? GetTemporaryMacro(string macroId) => _temporaryMacros.TryGetValue(macroId, out var macro) ? macro : null;
@@ -81,7 +89,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
 
         try
         {
-            Svc.Log.Debug($"Starting Lua macro execution for macro {macro.Macro.Id}");
+            FrameworkLogger.Debug($"Starting Lua macro execution for macro {macro.Macro.Id}");
             using var lua = new Lua();
             lua.State.Encoding = Encoding.UTF8;
 
@@ -94,8 +102,25 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
             lua.RegisterInternalFunctions();
             lua.SetTriggerEventData(triggerArgs);
             lua.RegisterClass<Svc>();
-            lua.DoString("luanet.load_assembly('FFXIVClientStructs')");
             moduleManager.RegisterAll(lua);
+
+            var engines = new List<IEngine>
+            {
+                new NativeEngine(parser),
+                new LuaEngine(this)
+            };
+
+            if (engines[0] is NativeEngine nativeEngine)
+            {
+                nativeEngine.MacroExecutionRequested += (sender, e) =>
+                    MacroExecutionRequested?.Invoke(this, e);
+
+                nativeEngine.LoopControlRequested += (sender, e) =>
+                    LoopControlRequested?.Invoke(this, e);
+            }
+
+            var enginesModule = new EnginesModule(engines);
+            enginesModule.Register(lua);
             new ConfigModule(macro.Macro).Register(lua);
 
             _activeLuaEnvironments[macro.Macro.Id] = lua; // for function triggers to access the same state
@@ -138,20 +163,14 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
                                 throw new MacroException($"Lua Macro yielded a non-string value [{valueType}: {valueStr}]");
                             }
 
-                            var tempMacro = new TemporaryMacro(text);
-                            var nativeMacroId = $"{macro.Macro.Id}_native_{Guid.NewGuid()}";
-                            _temporaryMacros[nativeMacroId] = tempMacro;
-                            Svc.Log.Debug($"Created temporary macro {nativeMacroId} with content: {text}");
-
-                            if (Scheduler is { } scheduler)
+                            if (MacroExecutionRequested is { })
                             {
-                                var parentId = nativeMacroId.Split("_")[0];
-                                if (C.GetMacro(parentId) is { } parentMacro)
-                                    macroHierarchy.RegisterTemporaryMacro(parentMacro, tempMacro);
-                                await scheduler.StartMacro(tempMacro);
+                                var tempId = $"{macro.Macro.Id}_native_{Guid.NewGuid()}";
+                                var tempMacro = new TemporaryMacro(macro.Macro, text, macroHierarchy, tempId);
+                                _temporaryMacros[tempId] = tempMacro;
+                                await tempMacro.Run(MacroExecutionRequested);
+                                _temporaryMacros.Remove(tempId, out var _);
                             }
-
-                            _temporaryMacros.Remove(nativeMacroId);
 
                             MacroStepCompleted?.Invoke(this, new MacroStepCompletedEventArgs(macro.Macro.Id, 1, 1));
 
@@ -159,39 +178,29 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
                         }
                         catch (OperationCanceledException)
                         {
-                            Svc.Log.Debug($"Operation cancelled for macro {macro.Macro.Id}");
+                            FrameworkLogger.Debug($"Operation cancelled for macro {macro.Macro.Id}");
                             break;
                         }
                         catch (LuaException ex)
                         {
-                            Svc.Log.Error(ex, $"Lua execution error for macro {macro.Macro.Id}");
+                            OnMacroError(macro.Macro.Id, $"Error executing Lua function for macro {macro.Macro.Id}", ex);
                             break;
                         }
                         catch (Exception ex)
                         {
                             var errorDetails = "Unknown error";
-                            //try
-                            //{
-                            //    errorDetails = lua.GetLuaErrorDetails();
-                            //    Svc.Log.Error($"Lua error details: {errorDetails}");
-                            //}
-                            //catch
-                            //{
-                            //    errorDetails = ex.Message;
-                            //}
-                            // TODO: fix
-                            Svc.Log.Error(ex, $"Error executing Lua function for macro {macro.Macro.Id}: {errorDetails}");
+                            OnMacroError(macro.Macro.Id, $"Error executing Lua function for macro {macro.Macro.Id}: {errorDetails}", ex);
                             break;
                         }
                     }
                 }
                 catch (OperationCanceledException)
                 {
-                    Svc.Log.Debug($"Operation cancelled for macro {macro.Macro.Id}");
+                    FrameworkLogger.Debug($"Operation cancelled for macro {macro.Macro.Id}");
                 }
                 catch (Exception ex)
                 {
-                    Svc.Log.Error(ex, $"Error in Lua macro execution for {macro.Macro.Id}");
+                    OnMacroError(macro.Macro.Id, "Error executing macro", ex);
                 }
                 finally
                 {
@@ -201,23 +210,26 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
         }
         catch (OperationCanceledException)
         {
-            Svc.Log.Info($"Operation cancelled for macro {macro.Macro.Id}");
+            FrameworkLogger.Info($"Operation cancelled for macro {macro.Macro.Id}");
         }
         catch (Exception ex)
         {
-            Svc.Log.Error($"Error executing macro {macro.Macro.Id}: {ex}");
             OnMacroError(macro.Macro.Id, "Error executing macro", ex);
             throw;
         }
         finally
         {
-            _activeLuaEnvironments.Remove(macro.Macro.Id);
+            _activeLuaEnvironments.Remove(macro.Macro.Id, out var _);
             macro.Dispose();
         }
     }
 
     protected virtual void OnMacroError(string macroId, string message, Exception? ex = null)
-        => MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
+    {
+        Svc.Chat.PrintErrorMsg(message);
+        FrameworkLogger.Error($"Error executing macro {macroId}: {ex}");
+        MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
+    }
 
     /// <summary>
     /// Loads all dependencies into the Lua scope.
@@ -229,7 +241,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
         if (macro.Metadata.Dependencies.Count == 0)
             return;
 
-        Svc.Log.Debug($"Loading {macro.Metadata.Dependencies.Count} dependencies for macro {macro.Name}");
+        FrameworkLogger.Debug($"Loading {macro.Metadata.Dependencies.Count} dependencies for macro {macro.Name}");
 
         foreach (var dependency in macro.Metadata.Dependencies)
         {
@@ -237,11 +249,11 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
             {
                 var content = await dependency.GetContentAsync();
                 lua.DoString(content);
-                Svc.Log.Debug($"Loaded dependency {dependency.Name} into Lua scope for macro {macro.Name}");
+                FrameworkLogger.Debug($"Loaded dependency {dependency.Name} into Lua scope for macro {macro.Name}");
             }
             catch (Exception ex)
             {
-                Svc.Log.Error(ex, $"Failed to load dependency {dependency.Name} for macro {macro.Name}");
+                FrameworkLogger.Error(ex, $"Failed to load dependency {dependency.Name} for macro {macro.Name}");
                 throw new MacroException($"Failed to load dependency {dependency.Name}: {ex.Message}", ex);
             }
         }
@@ -269,7 +281,7 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
                 var results = lua.LoadEntryPointWrappedScript($@"{functionName}()");
                 if (results.Length == 0 || results[0] is not LuaFunction func)
                 {
-                    Svc.Log.Error($"Failed to load cleanup function {functionName}");
+                    FrameworkLogger.Error($"Failed to load cleanup function {functionName}");
                     continue;
                 }
 
@@ -280,53 +292,49 @@ public class NLuaMacroEngine(LuaModuleManager moduleManager, CleanupManager clea
                     {
                         if (func == null)
                         {
-                            Svc.Log.Debug($"Cleanup function {functionName} completed (func is null)");
+                            FrameworkLogger.Debug($"Cleanup function {functionName} completed (func is null)");
                             break;
                         }
 
                         var result = func.Call();
                         if (result.Length == 0)
                         {
-                            Svc.Log.Debug($"Cleanup function {functionName} completed");
+                            FrameworkLogger.Debug($"Cleanup function {functionName} completed");
                             break;
                         }
 
-                        if (result[0] is string command)
+                        if (result[0] is string command && MacroExecutionRequested is { })
                         {
-                            var tempMacro = new TemporaryMacro(command, $"{macro.Id}_cleanup_cmd_{Guid.NewGuid()}")
+                            var tempMacro = new TemporaryMacro(macro, command, macroHierarchy, $"{macro.Id}_cleanup_cmd_{Guid.NewGuid()}")
                             {
                                 Name = $"{macro.Name} - Cleanup Command",
                                 Type = MacroType.Native
                             };
 
-                            if (Scheduler is { } scheduler)
-                            {
-                                macroHierarchy.RegisterTemporaryMacro(macro, tempMacro);
-                                await scheduler.StartMacro(tempMacro);
-                            }
+                            await tempMacro.Run(MacroExecutionRequested);
                         }
                         else
                         {
-                            Svc.Log.Warning($"Cleanup function {functionName} completed with non-string result");
+                            FrameworkLogger.Warning($"Cleanup function {functionName} completed with non-string result");
                             break;
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Svc.Log.Error($"Error during cleanup function {functionName} execution: {ex}");
+                    FrameworkLogger.Error($"Error during cleanup function {functionName} execution: {ex}");
                 }
             }
             catch (Exception ex)
             {
-                Svc.Log.Error($"Error executing cleanup function {functionName} for macro {macro.Name}: {ex}");
+                FrameworkLogger.Error($"Error executing cleanup function {functionName} for macro {macro.Name}: {ex}");
             }
         }
 
         if (macro is not TemporaryMacro)
         {
             cleanupManager.UnregisterCleanupFunctions(macro);
-            Svc.Log.Debug($"Unregistered cleanup functions for macro {macro.Name} after execution");
+            FrameworkLogger.Debug($"Unregistered cleanup functions for macro {macro.Name} after execution");
         }
     }
 

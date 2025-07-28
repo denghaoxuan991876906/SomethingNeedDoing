@@ -13,4 +13,8 @@ public unsafe class ActionWrapper(uint actionId) : IWrapper
     [LuaDocs] public float RealRecastTime => Am->GetRecastTime(ActionType.Action, actionId);
     [LuaDocs] public float SpellCooldown => Math.Abs(RecastTime - RecastTimeElapsed);
     [LuaDocs] public float RealSpellCooldown => Math.Abs(RealRecastTime - RealRecastTimeElapsed);
+
+    [LuaDocs(description: "Returns LogMessage id")]
+    [Changelog("12.69")]
+    public uint GetActionStatus() => Am->GetActionStatus(ActionType.Action, actionId);
 }

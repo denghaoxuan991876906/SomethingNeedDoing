@@ -1,10 +1,7 @@
-﻿using Dalamud.Game.Network.Structures;
-using Dalamud.Game.Text;
+﻿using Dalamud.Game.Text;
 using ECommons.Configuration;
-using FFXIVClientStructs.FFXIV.Common.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using SomethingNeedDoing.Core.Interfaces;
 using System.IO;
 using System.Text;
 
@@ -14,7 +11,7 @@ namespace SomethingNeedDoing;
 /// </summary>
 public class Config : IEzConfig
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
 
     public static event Action? ConfigFileChanged;
 
@@ -104,10 +101,10 @@ public class Config : IEzConfig
     /// </summary>
     public string CraftLoopTemplate { get; set; } =
         "/craft {{count}}\n" +
-        "/waitaddon \"RecipeNote\" <maxwait.5>" +
-        "/click \"RecipeNote Synthesize\"" +
-        "/waitaddon \"Synthesis\" <maxwait.5>" +
-        "{{macro}}" +
+        "/waitaddon \"RecipeNote\" <maxwait.5>\n" +
+        "/click RecipeNote Synthesize\n" +
+        "/waitaddon \"Synthesis\" <maxwait.5>\n" +
+        "{{macro}}\n" +
         "/loop";
 
     /// <summary>
@@ -184,16 +181,6 @@ public class Config : IEzConfig
     /// </summary>
     public IEnumerable<string> GetFolderPaths() => Macros.Select(m => m.FolderPath).Distinct();
 
-    /// <summary>
-    /// Moves a macro to a different folder.
-    /// </summary>
-    public void MoveMacro(string macroId, string newFolderPath) => Macros.FirstOrDefault(m => m.Id == macroId)?.FolderPath = newFolderPath;
-
-    /// <summary>
-    /// Deletes a macro.
-    /// </summary>
-    public void DeleteMacro(string macroId) => Macros.RemoveAll(m => m.Id == macroId);
-
     #region Helper Methods
 
     /// <summary>
@@ -211,53 +198,6 @@ public class Config : IEzConfig
             (folderPath == null || m.FolderPath == folderPath));
 
     /// <summary>
-    /// Gets all macros of a specific type.
-    /// </summary>
-    public IEnumerable<ConfigMacro> GetMacrosByType(MacroType type)
-        => Macros.Where(m => m.Type == type);
-
-    /// <summary>
-    /// Gets all macros in a folder and its subfolders.
-    /// </summary>
-    public IEnumerable<ConfigMacro> GetMacrosInFolderRecursive(string folderPath)
-        => Macros.Where(m => m.FolderPath.StartsWith(folderPath));
-
-    /// <summary>
-    /// Gets the immediate subfolders of a folder.
-    /// </summary>
-    public IEnumerable<string> GetSubfolders(string folderPath)
-    {
-        var prefix = folderPath == "/" ? "" : folderPath + "/";
-        return Macros
-            .Select(m => m.FolderPath)
-            .Where(p => p.StartsWith(prefix))
-            .Select(p => p.Split('/', StringSplitOptions.RemoveEmptyEntries)[0])
-            .Distinct()
-            .Select(f => prefix + f);
-    }
-
-    /// <summary>
-    /// Gets the full path of a macro.
-    /// </summary>
-    public string GetMacroPath(string macroId)
-    {
-        var macro = GetMacro(macroId);
-        return macro == null ? string.Empty : Path.Combine(macro.FolderPath, macro.Name);
-    }
-
-    /// <summary>
-    /// Gets the parent folder path of a macro.
-    /// </summary>
-    public string GetMacroParentFolder(string macroId)
-    {
-        var macro = GetMacro(macroId);
-        if (macro == null) return string.Empty;
-
-        var lastSlash = macro.FolderPath.LastIndexOf('/');
-        return lastSlash <= 0 ? "/" : macro.FolderPath[..lastSlash];
-    }
-
-    /// <summary>
     /// Validates if a macro name is valid for the given folder.
     /// </summary>
     public bool IsValidMacroName(string name, string folderPath, string? excludeMacroId = null)
@@ -273,12 +213,6 @@ public class Config : IEzConfig
         => GetMacrosInFolder(folderPath).Count();
 
     /// <summary>
-    /// Gets the total number of macros in a folder and its subfolders.
-    /// </summary>
-    public int GetTotalMacroCount(string folderPath)
-        => GetMacrosInFolderRecursive(folderPath).Count();
-
-    /// <summary>
     /// Gets all macros that contain a specific text in their content.
     /// </summary>
     public IEnumerable<ConfigMacro> SearchMacros(string searchText, bool caseSensitive = false)
@@ -288,87 +222,6 @@ public class Config : IEzConfig
             m.Name.Contains(searchText, comparison) ||
             m.Content.Contains(searchText, comparison));
     }
-
-    /// <summary>
-    /// Gets all folder paths and their depths in the tree.
-    /// </summary>
-    public IEnumerable<(string Path, int Depth)> GetFolderTree()
-    {
-        // Get all unique folder paths from macros
-        var paths = Macros
-            .Select(m => m.FolderPath)
-            .Distinct()
-            .OrderBy(p => p);
-
-        // Track processed paths to avoid duplicates
-        var processedPaths = new HashSet<string>();
-
-        foreach (var path in paths)
-        {
-            // Skip the root folder itself - we don't want to display it
-            if (path == "/")
-                continue;
-
-            // Split path into parts and calculate depth
-            var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-            // If this is a direct child of root (depth 1), yield it with depth 0
-            if (parts.Length == 1)
-            {
-                yield return (path, 0);
-                processedPaths.Add(path);
-                continue;
-            }
-
-            // For deeper paths, build each part of the path
-            var currentPath = "";
-            for (var i = 0; i < parts.Length; i++)
-            {
-                currentPath = i == 0 ? "/" + parts[i] : currentPath + "/" + parts[i];
-                if (!currentPath.StartsWith("/"))
-                    currentPath = "/" + currentPath;
-
-                // Only yield if we haven't processed this path yet
-                if (!processedPaths.Contains(currentPath))
-                {
-                    // For paths with depth > 1, adjust the depth to be relative to the first level
-                    var adjustedDepth = i;
-                    yield return (currentPath, adjustedDepth);
-                    processedPaths.Add(currentPath);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets the folder structure as a tree with macro counts.
-    /// </summary>
-    public IEnumerable<(string Path, int Depth, int Count)> GetFolderTreeWithCounts()
-    {
-        var allFolders = GetFolderTree().ToList();
-        var folderCounts = new Dictionary<string, int>();
-
-        // First calculate counts for all folders
-        foreach (var macro in Macros)
-        {
-            var path = macro.FolderPath;
-            if (!folderCounts.ContainsKey(path))
-                folderCounts[path] = 0;
-            folderCounts[path]++;
-        }
-
-        // Return folder info with counts
-        foreach (var (path, depth) in allFolders)
-        {
-            var count = folderCounts.TryGetValue(path, out var c) ? c : 0;
-            yield return (path, depth, count);
-        }
-    }
-
-    /// <summary>
-    /// Gets all nodes in the configuration.
-    /// </summary>
-    public IEnumerable<ConfigMacro> GetAllNodes() => Macros;
 
     /// <summary>
     /// Gets a unique macro name by appending a number if the base name already exists.
@@ -404,24 +257,36 @@ public class Config : IEzConfig
 
         Save();
     }
+    #endregion
 
-    /// <summary>
-    /// Sets a property value by name.
-    /// </summary>
-    public void SetProperty(string name, string value)
+    #region Migrations
+    public static void Migrate(Config c)
     {
-        var property = GetType().GetProperty(name);
-        if (property == null) return;
+        if (c.Version is 1)
+        {
+            FrameworkLogger.Info("Migration config v1 -> v2");
+            var oldTemplate =
+                "/craft {{count}}\n" +
+                "/waitaddon \"RecipeNote\" <maxwait.5>" +
+                "/click \"RecipeNote Synthesize\"" +
+                "/waitaddon \"Synthesis\" <maxwait.5>" +
+                "{{macro}}" +
+                "/loop";
 
-        try
-        {
-            var convertedValue = Convert.ChangeType(value, property.PropertyType);
-            property.SetValue(this, convertedValue);
+            if (string.Join("", oldTemplate.Where(c => !char.IsWhiteSpace(c))) == string.Join("", c.CraftLoopTemplate.Where(c => !char.IsWhiteSpace(c))))
+            {
+                c.CraftLoopTemplate =
+                    "/craft {{count}}\n" +
+                    "/waitaddon \"RecipeNote\" <maxwait.5>\n" +
+                    "/click RecipeNote Synthesize\n" +
+                    "/waitaddon \"Synthesis\" <maxwait.5>\n" +
+                    "{{macro}}\n" +
+                    "/loop";
+                FrameworkLogger.Info("Migrated broken craft loop template");
+            }
+            c.Version = 2;
         }
-        catch (Exception ex)
-        {
-            Svc.Log.Error(ex, $"Failed to set property {name} to {value}");
-        }
+        c.Save();
     }
     #endregion
 }

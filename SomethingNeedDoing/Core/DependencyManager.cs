@@ -48,7 +48,7 @@ public class DependencyManager(DependencyFactory factory) : IDependencyManager
             }
             catch (Exception ex)
             {
-                Svc.Log.Error(ex, $"Failed to update dependency {dependency.Name}");
+                FrameworkLogger.Error(ex, $"Failed to update dependency {dependency.Name}");
                 return false;
             }
         }

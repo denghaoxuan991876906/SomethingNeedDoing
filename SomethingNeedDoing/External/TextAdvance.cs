@@ -121,7 +121,7 @@ public class TextAdvance : IPC, IDisableable
         }
         catch
         {
-            Svc.Log.Error("Failed to enable plugin");
+            FrameworkLogger.Error("Failed to enable plugin");
             return Task.FromResult(false);
         }
     }
@@ -134,7 +134,7 @@ public class TextAdvance : IPC, IDisableable
         }
         catch
         {
-            Svc.Log.Error("Failed to disable plugin");
+            FrameworkLogger.Error("Failed to disable plugin");
             return Task.FromResult(false);
         }
     }

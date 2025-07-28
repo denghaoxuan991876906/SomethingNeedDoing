@@ -202,7 +202,7 @@ public static class MigrationModal
                 }
                 catch (JsonReaderException)
                 {
-                    Svc.Log.Warning("无法解析剪贴板内容为JSON");
+                    FrameworkLogger.Warning("无法解析剪贴板内容为JSON");
                 }
             }
 
@@ -214,12 +214,12 @@ public static class MigrationModal
                 {
                     try
                     {
-                        Svc.Log.Info($"从 {configPath} 读取配置");
+                        FrameworkLogger.Info($"从 {configPath} 读取配置");
                         oldConfig = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(configPath));
                     }
                     catch (JsonReaderException)
                     {
-                        Svc.Log.Warning("无法解析配置文件为JSON");
+                        FrameworkLogger.Warning("无法解析配置文件为JSON");
                     }
                 }
             }
@@ -231,15 +231,15 @@ public static class MigrationModal
                 return;
             }
 
-            Svc.Log.Info($"旧配置类型: {oldConfig.GetType().Name}");
+            FrameworkLogger.Info($"旧配置类型: {oldConfig.GetType().Name}");
 
             if (oldConfig.RootFolder != null)
                 PreviewMacrosFromOldStructure(oldConfig.RootFolder);
             else
-                Svc.Log.Warning("旧配置中未找到宏");
+                FrameworkLogger.Warning("旧配置中未找到宏");
 
-            Svc.Log.Info($"迁移预览摘要:");
-            Svc.Log.Info($"- 新宏数量: {newMacros.Count}");
+            FrameworkLogger.Info($"迁移预览摘要:");
+            FrameworkLogger.Info($"- 新宏数量: {newMacros.Count}");
 
             migrationValid = true;
         }
@@ -247,7 +247,7 @@ public static class MigrationModal
         {
             migrationValid = false;
             errorMessage = $"预览迁移时出错: {ex.Message}";
-            Svc.Log.Error(ex, "预览迁移失败");
+            FrameworkLogger.Error(ex, "预览迁移失败");
         }
     }
 
@@ -259,17 +259,17 @@ public static class MigrationModal
             if (rootFolder.Name != null)
             {
                 rootFolderName = rootFolder.Name.ToString();
-                Svc.Log.Info($"根文件夹名称: {rootFolderName}");
+                FrameworkLogger.Info($"根文件夹名称: {rootFolderName}");
             }
             else
             {
-                Svc.Log.Warning("根文件夹无名称，使用默认值");
+                FrameworkLogger.Warning("根文件夹无名称，使用默认值");
                 rootFolderName = ConfigMacro.Root;
             }
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, "确定根文件夹名称时出错");
+            FrameworkLogger.Error(ex, "确定根文件夹名称时出错");
             rootFolderName = ConfigMacro.Root;
         }
 
@@ -277,14 +277,14 @@ public static class MigrationModal
         {
             if (folder == null) return;
 
-            Svc.Log.Info($"遍历文件夹: {currentPath}");
+            FrameworkLogger.Info($"遍历文件夹: {currentPath}");
 
             try
             {
                 var children = folder.Children;
                 if (children == null)
                 {
-                    Svc.Log.Warning($"文件夹中未找到子项属性: {currentPath}");
+                    FrameworkLogger.Warning($"文件夹中未找到子项属性: {currentPath}");
                     return;
                 }
 
@@ -310,7 +310,7 @@ public static class MigrationModal
                                 }
                             };
 
-                            Svc.Log.Info($"添加宏: {macro.Name} 位于 {macro.FolderPath}");
+                            FrameworkLogger.Info($"添加宏: {macro.Name} 位于 {macro.FolderPath}");
                             newMacros[macro.Name] = (macro, true);
                         }
                         else if (node.Name != null)
@@ -330,13 +330,13 @@ public static class MigrationModal
                     }
                     catch (Exception ex)
                     {
-                        Svc.Log.Error(ex, $"处理文件夹 {currentPath} 中的节点时出错");
+                        FrameworkLogger.Error(ex, $"处理文件夹 {currentPath} 中的节点时出错");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Svc.Log.Error(ex, $"遍历文件夹 {currentPath} 时出错");
+                FrameworkLogger.Error(ex, $"遍历文件夹 {currentPath} 时出错");
             }
         }
 
@@ -346,7 +346,7 @@ public static class MigrationModal
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, "遍历文件夹结构失败");
+            FrameworkLogger.Error(ex, "遍历文件夹结构失败");
         }
     }
 
@@ -362,7 +362,7 @@ public static class MigrationModal
         }
         catch (Exception ex)
         {
-            Svc.Chat.PrintError($"导入宏失败: {ex.Message}");
+            Svc.Chat.PrintErrorMsg($"导入宏失败: {ex.Message}");
         }
     }
 

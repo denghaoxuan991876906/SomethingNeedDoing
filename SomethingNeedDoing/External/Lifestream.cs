@@ -91,6 +91,11 @@ public class Lifestream : IPC
     public Func<uint> GetActiveAetheryte = null!;
 
     [EzIPC]
+    [LuaFunction(description: "Retrieves active custom aetheryte/aetheryte shard ID if present.")]
+    [Changelog("12.61")]
+    public Func<uint> GetActiveCustomAetheryte = null!;
+
+    [EzIPC]
     [LuaFunction(description: "Retrieves active housing aetheryte shard ID if present")]
     [Changelog("12.12")]
     public Func<uint> GetActiveResidentialAetheryte = null!;
@@ -141,7 +146,8 @@ public class Lifestream : IPC
     [EzIPC]
     [LuaFunction]
     [Changelog("12.12")]
-    public Func<bool> GetNumberOfInstances = null!;
+    [Changelog("12.58", ChangelogType.Fixed)]
+    public Func<int> GetNumberOfInstances = null!;
 
     [EzIPC]
     [LuaFunction(parameterDescriptions: ["number"])]

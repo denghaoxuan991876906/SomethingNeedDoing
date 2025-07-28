@@ -62,10 +62,13 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                 ImGuiEx.Text(ImGuiColors.DalamudGrey, configValue.Description);
 
                 ImGui.SameLine(ImGui.GetContentRegionAvail().X - 80);
-                if (ImGui.Button("重置", new Vector2(70, 0)))
+                using (ImRaii.Disabled(configValue.IsValueDefault()))
                 {
-                    configValue.Value = configValue.DefaultValue;
-                    C.Save();
+                    if (ImGui.Button("重置", new Vector2(70, 0)))
+                    {
+                        configValue.Value = configValue.DefaultValue;
+                        C.Save();
+                    }
                 }
                 ImGuiEx.Tooltip($"重置为默认值: {configValue.DefaultValue}");
                 ImGui.Spacing();
@@ -234,9 +237,9 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
             if (ImGui.Button("将元数据写入宏"))
             {
                 if (metadataParser.WriteMetadata(selectedMacro, OnContentUpdated))
-                    Svc.Log.Debug($"已将元数据写入宏 {selectedMacro.Name}");
+                    FrameworkLogger.Debug($"已将元数据写入宏 {selectedMacro.Name}");
                 else
-                    Svc.Log.Error($"写入宏 {selectedMacro.Name} 的元数据失败");
+                    FrameworkLogger.Error($"写入宏 {selectedMacro.Name} 的元数据失败");
             }
             ImGuiEx.Tooltip("将当前元数据（作者、版本、描述、依赖项、触发器）写入宏内容。如果元数据已存在，将被更新。");
 
@@ -291,7 +294,7 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                             }
                             catch (Exception ex)
                             {
-                                Svc.Log.Error(ex, $"从 {repoUrl} 导入宏失败");
+                                FrameworkLogger.Error(ex, $"从 {repoUrl} 导入宏失败");
                             }
                         });
                     }

@@ -24,15 +24,16 @@ public class LuaDocumentation
             {
                 case MethodInfo method:
                     var methodParams = method.GetParameters();
-                    var parameters = new List<(string Name, LuaTypeInfo Type, string? Description)>();
+                    var parameters = new List<(string Name, LuaTypeInfo Type, string? Description, object? DefaultValue)>();
 
                     for (var i = 0; i < methodParams.Length; i++)
                     {
                         var param = methodParams[i];
                         var paramType = LuaTypeConverter.GetLuaType(param.ParameterType);
                         var paramDesc = attr.ParameterDescriptions?.Length > i ? attr.ParameterDescriptions[i] : null;
+                        var defaultValue = param.HasDefaultValue ? param.DefaultValue : null;
 
-                        parameters.Add((param.Name ?? $"param{i}", paramType, paramDesc));
+                        parameters.Add((param.Name ?? $"param{i}", paramType, paramDesc, defaultValue));
                     }
 
                     var returnType = LuaTypeConverter.GetLuaType(method.ReturnType);
@@ -85,6 +86,8 @@ public class LuaDocumentation
     }
 
     public void RegisterModule(ILuaModule module, List<LuaFunctionDoc> docs) => _documentation[module.ModuleName] = docs;
+
+    public void RegisterModule(string moduleName, List<LuaFunctionDoc> docs) => _documentation[moduleName] = docs;
 
     public Dictionary<string, List<LuaFunctionDoc>> GetModules() => _documentation;
 }

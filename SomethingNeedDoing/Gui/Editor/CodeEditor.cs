@@ -101,17 +101,24 @@ public class CodeEditor : IDisposable
                         if (macro?.Id == configMacro.Id)
                         {
                             var content = GetContent();
-                            var newMetadata = _metadataParser.ParseMetadata(content);
-                            if (!MetadataEquals(configMacro.Metadata, newMetadata))
+                            if (MetadataParser.MetadataBlockRegex.IsMatch(content))
                             {
-                                configMacro.Metadata = newMetadata;
-                                C.Save();
+                                var newMetadata = _metadataParser.ParseMetadata(content);
+
+                                if (configMacro.Metadata.TriggerEvents is { Count: > 0 } existingEvents)
+                                    newMetadata.TriggerEvents = existingEvents;
+
+                                if (!MetadataEquals(configMacro.Metadata, newMetadata))
+                                {
+                                    configMacro.Metadata = newMetadata;
+                                    C.Save();
+                                }
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        Svc.Log.Error(ex, "Failed to auto-parse metadata");
+                        FrameworkLogger.Error(ex, "Failed to auto-parse metadata");
                     }
                 }
 

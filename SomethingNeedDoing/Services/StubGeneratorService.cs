@@ -12,17 +12,17 @@ public class StubGeneratorService
     {
         CleanUp();
 
-        Svc.Log.Debug("Generating stubs");
+        FrameworkLogger.Debug("Generating stubs");
 
-        Svc.Log.Debug("Getting refernced types from lua documentation");
+        FrameworkLogger.Debug("Getting refernced types from lua documentation");
         var registry = GetAllReferencedTypes(luaDocs);
 
         // Global stubs
-        Svc.Log.Debug("Adding global helper stub");
+        FrameworkLogger.Debug("Adding global helper stub");
         new GlobalStubGenerator().GetStubFile().Write();
 
         // Generate enum stubs
-        Svc.Log.Debug("Adding referenced enum stubs");
+        FrameworkLogger.Debug("Adding referenced enum stubs");
         foreach (var enumType in registry.Where(t => t.IsEnum))
         {
             if (enumType == null)
@@ -34,7 +34,7 @@ public class StubGeneratorService
         }
 
         // Generate wrapper stubs
-        Svc.Log.Debug("Adding referenced wrapper stubs");
+        FrameworkLogger.Debug("Adding referenced wrapper stubs");
         foreach (var wrapperType in registry.Where(t => t.IsWrapper()))
         {
             if (wrapperType == null)
@@ -46,7 +46,7 @@ public class StubGeneratorService
         }
 
         // Generate module stubs
-        Svc.Log.Debug("Adding module stubs");
+        FrameworkLogger.Debug("Adding module stubs");
         foreach (var module in luaDocs.GetModules())
         {
             if (module.Key == "IPC")
@@ -56,17 +56,17 @@ public class StubGeneratorService
         }
 
         // Generate IPC module stubs
-        Svc.Log.Debug("Adding IPC module stubs");
+        FrameworkLogger.Debug("Adding IPC module stubs");
         new IpcStubGenerator(luaDocs).GetStubFile().Write();
 
         // Expose Vector type stubs
-        Svc.Log.Debug("Adding vector stubs");
+        FrameworkLogger.Debug("Adding vector stubs");
         new ClassStubGenerator(typeof(Vector2)).WithDocumentationLine("requires the import of \"System.Numerics\"").GetStubFile().Write();
         new ClassStubGenerator(typeof(Vector3)).WithDocumentationLine("requires the import of \"System.Numerics\"").GetStubFile().Write();
         new ClassStubGenerator(typeof(Vector4)).WithDocumentationLine("requires the import of \"System.Numerics\"").GetStubFile().Write();
 
         // Complex but well used class stubs
-        Svc.Log.Debug("Adding Svc stubs");
+        FrameworkLogger.Debug("Adding Svc stubs");
         new ComplexTypeStubGenerator(typeof(Svc)).GetStubFile().Write();
     }
 
@@ -82,11 +82,11 @@ public class StubGeneratorService
             try
             {
                 Directory.Delete(stubsDir, recursive: true);
-                Svc.Log.Debug($"Deleted stub directory: {stubsDir}");
+                FrameworkLogger.Debug($"Deleted stub directory: {stubsDir}");
             }
             catch (Exception ex)
             {
-                Svc.Log.Error($"Failed to delete stub directory '{stubsDir}': {ex}");
+                FrameworkLogger.Error($"Failed to delete stub directory '{stubsDir}': {ex}");
             }
         }
 
@@ -95,11 +95,11 @@ public class StubGeneratorService
             try
             {
                 File.Delete(legacyFile);
-                Svc.Log.Debug($"Deleted legacy stub file: {legacyFile}");
+                FrameworkLogger.Debug($"Deleted legacy stub file: {legacyFile}");
             }
             catch (Exception ex)
             {
-                Svc.Log.Error($"Failed to delete legacy stub file '{legacyFile}': {ex}");
+                FrameworkLogger.Error($"Failed to delete legacy stub file '{legacyFile}': {ex}");
             }
         }
     }

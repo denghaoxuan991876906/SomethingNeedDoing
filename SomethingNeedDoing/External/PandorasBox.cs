@@ -18,21 +18,21 @@ public class PandorasBoxIPC : IPC
     [EzIPC]
     [LuaFunction(
         description: "Gets whether a configuration is enabled",
-        parameterDescriptions: ["configName", "configValue"]
+        parameterDescriptions: ["featureName", "configPropName"]
     )]
     public readonly Func<string, string, bool?> GetConfigEnabled = null!;
 
     [EzIPC]
     [LuaFunction(
         description: "Sets whether a feature is enabled",
-        parameterDescriptions: ["featureName", "enabled"]
+        parameterDescriptions: ["featureName", "state"]
     )]
     public readonly Action<string, bool> SetFeatureEnabled = null!;
 
     [EzIPC]
     [LuaFunction(
         description: "Sets whether a configuration is enabled",
-        parameterDescriptions: ["configName", "configValue", "enabled"]
+        parameterDescriptions: ["featureName", "configPropName", "state"]
     )]
     public readonly Action<string, string, bool> SetConfigEnabled = null!;
 

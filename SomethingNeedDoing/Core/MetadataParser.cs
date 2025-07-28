@@ -10,7 +10,7 @@ namespace SomethingNeedDoing.Core;
 /// <summary>
 /// Parser for macro metadata using YAML format.
 /// </summary>
-public class MetadataParser
+public class MetadataParser(DependencyFactory dependencyFactory)
 {
     public static readonly Regex MetadataBlockRegex = new(
         @"(?:--\[=====\[|/\*).*?\[\[SND\s*Metadata\]\](.*?)\[\[End\s*Metadata\]\].*?(?:\]=====\]|\*/)",
@@ -29,8 +29,9 @@ public class MetadataParser
     /// Parses metadata from macro content.
     /// </summary>
     /// <param name="content">The macro content to parse.</param>
+    /// <param name="previousMetadata">Optional: previous MacroMetadata to preserve config values.</param>
     /// <returns>The parsed metadata.</returns>
-    public MacroMetadata ParseMetadata(string content)
+    public MacroMetadata ParseMetadata(string content, MacroMetadata? previousMetadata = null)
     {
         var match = MetadataBlockRegex.Match(content);
         if (!match.Success) return new MacroMetadata();
@@ -100,8 +101,13 @@ public class MetadataParser
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, "Failed to parse metadata YAML");
+            FrameworkLogger.Error(ex, "Failed to parse metadata YAML");
         }
+
+        if (previousMetadata != null)
+            foreach (var kvp in metadata.Configs)
+                if (previousMetadata.Configs.TryGetValue(kvp.Key, out var oldConfig))
+                    kvp.Value.Value = oldConfig.Value;
 
         return metadata;
     }
@@ -248,55 +254,12 @@ public class MetadataParser
             {
                 if (dep is Dictionary<object, object> depDict)
                 {
-                    var repo = depDict.TryGetValue("repo", out var r) ? r?.ToString() : string.Empty;
-                    var path = depDict.TryGetValue("path", out var p) ? p?.ToString() : string.Empty;
-                    var name = depDict.TryGetValue("name", out var n) ? n?.ToString() : string.Empty;
-                    var branch = depDict.TryGetValue("branch", out var b) ? b?.ToString() : "main";
                     var source = depDict.TryGetValue("source", out var s) ? s?.ToString() : string.Empty;
-                    var type = depDict.TryGetValue("type", out var t) ? t?.ToString() : string.Empty;
-
-                    if (!string.IsNullOrEmpty(repo) && !string.IsNullOrEmpty(path))
-                    {
-                        result.Add(new GitDependency
-                        {
-                            GitInfo = new GitInfo
-                            {
-                                RepositoryUrl = repo,
-                                FilePath = path,
-                                Branch = branch ?? string.Empty
-                            },
-                            Source = repo,
-                            Name = string.IsNullOrEmpty(name) ? Path.GetFileNameWithoutExtension(path) : name
-                        });
-                    }
-                    else if (!string.IsNullOrEmpty(source))
-                    {
-                        if (type == "macro" && Guid.TryParse(source, out _))
-                        {
-                            var macro = C.GetMacro(source);
-                            if (macro != null)
-                            {
-                                result.Add(new LocalMacroDependency
-                                {
-                                    Source = source,
-                                    Name = string.IsNullOrEmpty(name) ? macro.Name : name
-                                });
-                            }
-                        }
-                        else if (File.Exists(source.NormalizeFilePath()))
-                        {
-                            var normalizedPath = source.NormalizeFilePath();
-                            result.Add(new LocalDependency
-                            {
-                                Source = normalizedPath,
-                                Name = string.IsNullOrEmpty(name) ? Path.GetFileNameWithoutExtension(normalizedPath) : name
-                            });
-                        }
-                    }
+                    if (!string.IsNullOrEmpty(source))
+                        result.Add(dependencyFactory.CreateDependency(source));
                 }
             }
         }
-
         return result;
     }
 

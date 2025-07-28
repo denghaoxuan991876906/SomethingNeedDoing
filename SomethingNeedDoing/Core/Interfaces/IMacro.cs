@@ -92,7 +92,7 @@ public abstract class MacroBase : IMacro
             {
                 var oldState = field;
                 field = value;
-                Svc.Log.Verbose(string.Format("Macro state changed for {0}: {1} -> {2}", Id, oldState, value));
+                FrameworkLogger.Verbose(string.Format("Macro state changed for {0}: {1} -> {2}", Id, oldState, value));
                 StateChanged?.Invoke(this, new MacroStateChangedEventArgs(Id, value, oldState));
             }
         }

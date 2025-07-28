@@ -5,6 +5,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using NLua;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro.Wrappers;
+using ContentType = FFXIVClientStructs.FFXIV.Client.Game.Event.ContentType;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;
 /// <summary>
@@ -13,13 +14,6 @@ namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class InstancedContentModule : LuaModuleBase
 {
     public override string ModuleName => "InstancedContent";
-    public override void Register(Lua lua)
-    {
-        lua.DoString("DynamicEventState = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.InstanceContent.DynamicEventState')");
-        lua.DoString("OceanFishingStatus = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.InstanceContent.OceanFishingStatus')");
-        lua.DoString("ContentType = luanet.import_type('FFXIVClientStructs.FFXIV.Client.Game.Event.ContentType')");
-        base.Register(lua);
-    }
 
     [LuaFunction]
     public float ContentTimeLeft
@@ -31,9 +25,21 @@ public unsafe class InstancedContentModule : LuaModuleBase
         }
     }
 
-    [LuaFunction][Changelog("12.47")] public uint GetCurrentContentId => EventFramework.GetCurrentContentId();
-    [LuaFunction][Changelog("12.47")] public FFXIVClientStructs.FFXIV.Client.Game.Event.ContentType GetCurrentContentType => EventFramework.GetCurrentContentType();
-    [LuaFunction][Changelog("12.47")] public bool CanLeaveCurrentContent => EventFramework.CanLeaveCurrentContent();
+    [LuaFunction]
+    [Changelog("12.47")]
+    [Changelog("12.55", ChangelogType.Changed, "Changed name")]
+    public uint GetCurrentContentId() => EventFramework.GetCurrentContentId();
+
+    [LuaFunction]
+    [Changelog("12.47")]
+    [Changelog("12.55", ChangelogType.Changed, "Changed name")]
+    public ContentType GetCurrentContentType() => EventFramework.GetCurrentContentType();
+
+    [LuaFunction]
+    [Changelog("12.47")]
+    [Changelog("12.55", ChangelogType.Changed, "Changed name")]
+    public bool CanLeaveCurrentContent() => EventFramework.CanLeaveCurrentContent();
+
     [LuaFunction][Changelog("12.47")] public void LeaveCurrentContent() => EventFramework.LeaveCurrentContent(true);
 
     [LuaFunction] public OceanFishingWrapper OceanFishing => new();

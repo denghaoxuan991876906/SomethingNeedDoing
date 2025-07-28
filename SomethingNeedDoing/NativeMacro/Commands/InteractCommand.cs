@@ -21,9 +21,9 @@ public class InteractCommand(string text) : MacroCommandBase(text)
         await context.RunOnFramework(() =>
         {
             if (Game.Interact(Svc.Targets.Target))
-                Svc.Log.Debug($"Interacting with [{Svc.Targets.Target?.Address:X}] {Svc.Targets.Target?.Name}");
+                FrameworkLogger.Debug($"Interacting with [{Svc.Targets.Target?.Address:X}] {Svc.Targets.Target?.Name}");
             else
-                Svc.Log.Warning($"Failed to interact with target.");
+                FrameworkLogger.Warning($"Failed to interact with target.");
         });
 
         await PerformWait(token);

@@ -49,4 +49,19 @@ public class MacroConfigItem
     /// Gets or sets the validation error message.
     /// </summary>
     public string? ValidationMessage { get; set; }
+
+    public bool IsValueDefault()
+    {
+        if (Value == null && DefaultValue == null)
+            return true;
+        if (Value == null || DefaultValue == null)
+            return false;
+        return Type.ToLower() switch
+        {
+            "int" => Convert.ToInt32(Value) == Convert.ToInt32(DefaultValue),
+            "float" or "double" => Math.Abs(Convert.ToSingle(Value) - Convert.ToSingle(DefaultValue)) < 0.0001f,
+            "bool" or "boolean" => Convert.ToBoolean(Value) == Convert.ToBoolean(DefaultValue),
+            _ => string.Equals(Value.ToString() ?? "", DefaultValue.ToString() ?? "", StringComparison.Ordinal),
+        };
+    }
 }

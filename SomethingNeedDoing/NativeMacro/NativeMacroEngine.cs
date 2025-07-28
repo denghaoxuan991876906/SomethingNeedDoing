@@ -1,5 +1,4 @@
-﻿using ECommons.Schedulers;
-using SomethingNeedDoing.Core.Events;
+﻿using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.Core.Interfaces;
 using System.Text;
 using System.Threading;
@@ -21,7 +20,12 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
     public event EventHandler<MacroStepCompletedEventArgs>? MacroStepCompleted;
 
     /// <inheritdoc/>
-    public IMacroScheduler? Scheduler { get; set; }
+    public event EventHandler<MacroExecutionRequestedEventArgs>? MacroExecutionRequested;
+
+    /// <summary>
+    /// Event raised when loop control is requested.
+    /// </summary>
+    public event EventHandler<LoopControlEventArgs>? LoopControlRequested;
 
     /// <summary>
     /// Represents the current execution state of a macro.
@@ -48,12 +52,9 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
     /// <inheritdoc/>
     public async Task StartMacro(IMacro macro, CancellationToken token, TriggerEventArgs? triggerArgs = null, int loopCount = 0)
     {
-        if (Scheduler == null)
-            throw new InvalidOperationException("Scheduler must be set before starting a macro");
-
         var state = new MacroExecutionState(macro)
         {
-            Commands = ModifyMacroForCraftLoop(macro, Scheduler),
+            Commands = ModifyMacroForCraftLoop(macro),
             CurrentLoop = 0,
             LoopCount = loopCount == 0 ? 1 : loopCount
         };
@@ -106,6 +107,12 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
                     var command = state.Commands[currentStep];
                     var context = new MacroContext(state.Macro);
 
+                    context.MacroExecutionRequested += (sender, e) =>
+                        MacroExecutionRequested?.Invoke(this, e);
+
+                    context.LoopControlRequested += (sender, e) =>
+                        LoopControlRequested?.Invoke(this, e);
+
                     if (command.RequiresFrameworkThread)
                         await Svc.Framework.RunOnTick(() => command.Execute(context, token), cancellationToken: token);
                     else
@@ -137,15 +144,18 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
     public Task StartMacro(IMacro macro) => StartMacro(macro, CancellationToken.None);
 
     protected virtual void OnMacroError(string macroId, string message, Exception? ex = null)
-        => MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
+    {
+        Svc.Chat.PrintErrorMsg(message);
+        MacroError?.Invoke(this, new MacroErrorEventArgs(macroId, message, ex));
+    }
 
     /// <inheritdoc/>
     public IMacro? GetTemporaryMacro(string macroId) => null; // Native engine doesn't create temporary macros
 
-    private List<IMacroCommand> ModifyMacroForCraftLoop(IMacro macro, IMacroScheduler scheduler)
+    private List<IMacroCommand> ModifyMacroForCraftLoop(IMacro macro)
     {
         if (!macro.Metadata.CraftingLoop)
-            return parser.Parse(macro.ContentSansMetadata(), scheduler);
+            return parser.Parse(macro.ContentSansMetadata());
 
         var craftCount = macro.Metadata.CraftLoopCount;
         var contents = macro.ContentSansMetadata();
@@ -155,14 +165,14 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
             var template = C.CraftLoopTemplate;
 
             if (craftCount == 0)
-                return parser.Parse(contents, scheduler);
+                return parser.Parse(contents);
 
             if (craftCount == -1)
                 craftCount = 999_999;
 
             return !template.Contains("{{macro}}")
                 ? throw new MacroSyntaxError("CraftLoop template does not contain the {{macro}} placeholder")
-                : parser.Parse(template.Replace("{{macro}}", contents).Replace("{{count}}", craftCount.ToString()), scheduler);
+                : parser.Parse(template.Replace("{{macro}}", contents).Replace("{{count}}", craftCount.ToString()));
         }
 
         var maxwait = C.CraftLoopMaxWait;
@@ -229,8 +239,9 @@ public class NativeMacroEngine(MacroParser parser) : IMacroEngine
             }
         }
 
-        return parser.Parse(sb.ToString().Trim(), scheduler);
+        return parser.Parse(sb.ToString());
     }
 
+    /// <inheritdoc/>
     public void Dispose() { }
 }

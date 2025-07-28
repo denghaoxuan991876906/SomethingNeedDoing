@@ -34,7 +34,7 @@ public class GitDependency : CachedDependency
         if (_gitService == null)
             throw new InvalidOperationException("GitService not set. Call SetGitService() before using this dependency.");
 
-        Svc.Log.Debug($"GitDependency.DownloadContentAsync - RepositoryUrl: '{GitInfo.RepositoryUrl}', Branch: '{GitInfo.Branch}', FilePath: '{GitInfo.FilePath}'");
+        FrameworkLogger.Debug($"Downloading content from repo: [{GitInfo.RepositoryUrl}], branch: [{GitInfo.Branch}], path: [{GitInfo.FilePath}]");
 
         if (string.IsNullOrEmpty(GitInfo.FilePath))
             throw new InvalidOperationException("No file path specified for Git dependency");

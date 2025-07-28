@@ -100,7 +100,7 @@ public static class ModifierDefinitions
     /// <returns>The combined regex pattern.</returns>
     public static string BuildRegexPattern(IEnumerable<ModifierDefinition> modifiers)
     {
-        var patterns = modifiers.Select(m => $"(?<{m.Name}>{m.RegexPattern})");
+        var patterns = modifiers.Select(m => $"(?<mod_{m.Name}>{m.RegexPattern})");
         return string.Join("|", patterns);
     }
 
@@ -113,7 +113,7 @@ public static class ModifierDefinitions
     public static ModifierDefinition? FindMatchingModifier(Match match, IEnumerable<ModifierDefinition> modifiers)
     {
         foreach (var modifier in modifiers)
-            if (match.Groups[modifier.Name].Success)
+            if (match.Groups[$"mod_{modifier.Name}"].Success)
                 return modifier;
         return null;
     }

@@ -11,6 +11,7 @@ public enum ChangelogType
 [AttributeUsage(AttributeTargets.All, AllowMultiple = true)]
 public class ChangelogAttribute : Attribute
 {
+    public const string Unreleased = "99.99";
     public string Version { get; }
     public ChangelogType ChangeType { get; }
     public string? Description { get; }

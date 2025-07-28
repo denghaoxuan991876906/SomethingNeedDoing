@@ -79,7 +79,7 @@ public class CreateMacroModal(GitMacroManager gitManager)
             if (!string.IsNullOrEmpty(_importError))
             {
                 ImGui.Spacing();
-                ImGuiEx.Text(EzColor.RedBright, _importError);
+                ImGuiEx.TextWrapped(EzColor.RedBright.Vector4, _importError);
             }
         });
 
@@ -135,7 +135,7 @@ public class CreateMacroModal(GitMacroManager gitManager)
         catch (Exception ex)
         {
             _importError = $"从 GitHub 导入失败: {ex.Message}";
-            Svc.Log.Error(ex, "Failed to import macro from GitHub");
+            FrameworkLogger.Error(ex, "Failed to import macro from GitHub");
         }
         finally
         {

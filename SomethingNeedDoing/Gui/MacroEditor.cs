@@ -121,7 +121,7 @@ public class MacroEditor(IMacroScheduler scheduler, GitMacroManager gitManager, 
             editor.IsShowingLineNumbers ^= true;
 
         ImGui.SameLine();
-        if (ImGuiUtils.IconButton(editor.IsShowingWhitespace ? FontAwesomeHelper.IconInvisible : FontAwesomeHelper.IconVisible, "切换行号显示"))
+        if (ImGuiUtils.IconButton(editor.IsShowingWhitespace ? FontAwesomeHelper.IconInvisible : FontAwesomeHelper.IconVisible, "显示空白字符"))
             editor.IsShowingWhitespace ^= true;
 
         ImGui.SameLine();

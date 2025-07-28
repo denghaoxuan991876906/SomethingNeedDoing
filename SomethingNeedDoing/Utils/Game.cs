@@ -89,7 +89,7 @@ public static unsafe class Game
 
         // Continue if next highest is within threshold, otherwise pause
         var shouldPause = maxPartialSpiritbond < within;
-        Svc.Log.Debug($"Highest partial spiritbond: {maxPartialSpiritbond:F1}%, threshold: {within:F1}%, pausing: {shouldPause}");
+        FrameworkLogger.Debug($"Highest partial spiritbond: {maxPartialSpiritbond:F1}%, threshold: {within:F1}%, pausing: {shouldPause}");
         return shouldPause;
     }
 

@@ -11,13 +11,6 @@ namespace SomethingNeedDoing.LuaMacro.Modules;
 public unsafe class InstancesModule : LuaModuleBase
 {
     public override string ModuleName => "Instances";
-    public override void Register(Lua lua)
-    {
-        lua.DoString("OnlineStatus = luanet.import_type('FFXIVClientStructs.FFXIV.Client.UI.Info.OnlineStatus')");
-        lua.DoString("GrandCompany = luanet.import_type('FFXIVClientStructs.FFXIV.Client.UI.Agent.GrandCompany')");
-        lua.DoString("Language = luanet.import_type('FFXIVClientStructs.FFXIV.Client.UI.Info.Language')");
-        base.Register(lua);
-    }
 
     [LuaFunction] public DutyFinderWrapper DutyFinder => new();
     public unsafe class DutyFinderWrapper : IWrapper
@@ -25,12 +18,45 @@ public unsafe class InstancesModule : LuaModuleBase
         [LuaDocs] public void OpenRouletteDuty(byte contentRouletteID) => AgentContentsFinder.Instance()->OpenRouletteDuty(contentRouletteID);
         [LuaDocs] public void OpenRegularDuty(uint contentsFinderCondition) => AgentContentsFinder.Instance()->OpenRegularDuty(contentsFinderCondition);
 
+        [LuaDocs]
+        [Changelog("12.69")]
+        public void QueueDuty(uint contentsFinderCondition)
+        {
+            if (!FindRows<Sheets.ContentFinderCondition>(x => x.Unknown47 && x.Unknown48).Select(x => x.RowId).Contains(contentsFinderCondition)) // 47 = IsInUse, 48 = ShownInDf (I think)
+            {
+                FrameworkLogger.Error($"Invalid cfcID: {contentsFinderCondition}");
+                return;
+            }
+            var QueueInfo = ContentsFinder.Instance()->GetQueueInfo();
+            if (QueueInfo->QueueState is ContentsFinderQueueInfo.QueueStates.Pending or ContentsFinderQueueInfo.QueueStates.Queued) QueueInfo->CancelQueue();
+            QueueInfo->QueueDuties(&contentsFinderCondition, 1);
+        }
+
+        [LuaDocs]
+        [Changelog("12.69")]
+        public void QueueRoulette(byte contentRouletteId)
+        {
+            if (!FindRows<Sheets.ContentRoulette>(x => !x.Description.IsEmpty).Select(x => x.RowId).Contains(contentRouletteId))
+            {
+                FrameworkLogger.Error($"Invalid content roulette ID: {contentRouletteId}");
+                return;
+            }
+            var QueueInfo = ContentsFinder.Instance()->GetQueueInfo();
+            if (QueueInfo->QueueState is ContentsFinderQueueInfo.QueueStates.Pending or ContentsFinderQueueInfo.QueueStates.Queued) QueueInfo->CancelQueue();
+            QueueInfo->QueueRoulette(contentRouletteId);
+        }
+
+        [LuaDocs][Changelog("12.69")] public void CancelQueue() => ContentsFinder.Instance()->GetQueueInfo()->CancelQueue();
+        [LuaDocs][Changelog("12.73")] public uint GetPenaltyTimeRemainingInMinutes() => UIState.Instance()->InstanceContent.GetPenaltyRemainingInMinutes(0);
+        [LuaDocs][Changelog("12.73")] public bool IsRouletteIncomplete(byte rouletteId) => UIState.Instance()->InstanceContent.IsRouletteIncomplete(rouletteId);
+
         [LuaDocs] public bool IsUnrestrictedParty { get => ContentsFinder.Instance()->IsUnrestrictedParty; set => ContentsFinder.Instance()->IsUnrestrictedParty = value; }
         [LuaDocs] public bool IsLevelSync { get => ContentsFinder.Instance()->IsLevelSync; set => ContentsFinder.Instance()->IsLevelSync = value; }
         [LuaDocs] public bool IsMinIL { get => ContentsFinder.Instance()->IsMinimalIL; set => ContentsFinder.Instance()->IsMinimalIL = value; }
         [LuaDocs] public bool IsSilenceEcho { get => ContentsFinder.Instance()->IsSilenceEcho; set => ContentsFinder.Instance()->IsSilenceEcho = value; }
         [LuaDocs] public bool IsExplorerMode { get => ContentsFinder.Instance()->IsExplorerMode; set => ContentsFinder.Instance()->IsExplorerMode = value; }
         [LuaDocs] public bool IsLimitedLevelingRoulette { get => ContentsFinder.Instance()->IsLimitedLevelingRoulette; set => ContentsFinder.Instance()->IsLimitedLevelingRoulette = value; }
+        [LuaDocs] public ContentsFinderQueueInfo.QueueStates QueueState => ContentsFinder.Instance()->GetQueueInfo()->QueueState;
     }
 
     [LuaFunction] public FriendsListWrapper FriendsList => new();
@@ -71,7 +97,10 @@ public unsafe class InstancesModule : LuaModuleBase
     public MapWrapper Map => new();
     public class MapWrapper : IWrapper
     {
-        [LuaDocs][Changelog("12.8")] public bool IsFlagMarkerSet => AgentMap.Instance()->IsFlagMarkerSet;
+        [LuaDocs]
+        [Changelog("12.8")]
+        [Changelog("12.68", ChangelogType.Changed, "Made settable")]
+        public bool IsFlagMarkerSet { get => AgentMap.Instance()->IsFlagMarkerSet; set => AgentMap.Instance()->IsFlagMarkerSet = value; }
 
         [LuaDocs][Changelog("12.8")] public FlagWrapper Flag => new(AgentMap.Instance()->FlagMapMarker);
     }

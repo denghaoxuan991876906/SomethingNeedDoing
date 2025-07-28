@@ -1,5 +1,4 @@
 ﻿using FFXIVClientStructs.FFXIV.Component.GUI;
-using SomethingNeedDoing.Core;
 using SomethingNeedDoing.NativeMacro.Modifiers;
 using System.Threading;
 using System.Threading.Tasks;
@@ -50,7 +49,7 @@ public class WaitAddonCommand(string text, string addonName) : MacroCommandBase(
         {
             if (C.StopOnError || ErrorIfModifier?.Condition == ErrorCondition.ActionTimeout)
                 throw new MacroTimeoutException($"Addon '{addonName}' did not appear within the timeout period");
-            Svc.Log.Warning($"Addon '{addonName}' did not appear within the timeout period, continuing...");
+            FrameworkLogger.Warning($"Addon '{addonName}' did not appear within the timeout period, continuing...");
         }
 
         await PerformWait(token);

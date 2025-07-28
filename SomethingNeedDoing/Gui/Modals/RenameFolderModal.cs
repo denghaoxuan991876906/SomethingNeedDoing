@@ -77,7 +77,7 @@ public static class RenameFolderModal
             }
             catch (Exception ex)
             {
-                Svc.Log.Error(ex, "重命名文件夹时出错");
+                FrameworkLogger.Error(ex, "重命名文件夹时出错");
             }
         }
 

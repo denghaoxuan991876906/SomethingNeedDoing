@@ -24,7 +24,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
     public override async Task Execute(MacroContext context, CancellationToken token)
     {
         awaitCraftAction = false;
-        Svc.Log.Debug($"ActionCommand.Execute: Starting {actionName}, UnsafeModifier: {UnsafeModifier != null}, WaitDuration: {WaitDuration}");
+        FrameworkLogger.Debug($"ActionCommand.Execute: Starting {actionName}, UnsafeModifier: {UnsafeModifier != null}, WaitDuration: {WaitDuration}");
 
         var craftingComplete = new TaskCompletionSource<bool>();
         var actionExecuted = false;
@@ -41,7 +41,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
             {
                 if (!Game.Crafting.GetCondition().ToString().EqualsIgnoreCase(cnd))
                 {
-                    Svc.Log.Debug($"Condition skip: condition is {Game.Crafting.GetCondition()}, required condition is {cnd}");
+                    FrameworkLogger.Debug($"Condition skip: condition is {Game.Crafting.GetCondition()}, required condition is {cnd}");
                     return;
                 }
             }
@@ -52,20 +52,20 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
                 {
                     if (!Game.Crafting.IsCrafting())
                     {
-                        Svc.Log.Debug($"Not crafting skip: {CommandText}");
+                        FrameworkLogger.Debug($"Not crafting skip: {CommandText}");
                         return;
                     }
 
                     if (Game.Crafting.IsMaxProgress())
                     {
-                        Svc.Log.Debug($"Max progress skip: {CommandText}");
+                        FrameworkLogger.Debug($"Max progress skip: {CommandText}");
                         return;
                     }
                 }
 
                 if (C.QualitySkip && Game.Crafting.IsMaxQuality() && craftAction.IncreasesQuality)
                 {
-                    Svc.Log.Debug($"Max quality skip: {CommandText}");
+                    FrameworkLogger.Debug($"Max quality skip: {CommandText}");
                     return;
                 }
 

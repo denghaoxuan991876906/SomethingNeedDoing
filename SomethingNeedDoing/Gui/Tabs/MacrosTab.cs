@@ -141,7 +141,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor, GitMa
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, "绘制文件夹时出错");
+            FrameworkLogger.Error(ex, "绘制文件夹时出错");
             ImGui.TextColored(ImGuiColors.DalamudRed, "加载文件夹时出错");
         }
     }
@@ -201,7 +201,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor, GitMa
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex, $"加载文件夹 {folderPath} 中的宏时出错");
+            FrameworkLogger.Error(ex, $"加载文件夹 {folderPath} 中的宏时出错");
             ImGui.TextColored(ImGuiColors.DalamudRed, "加载宏时出错");
         }
     }
@@ -225,7 +225,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor, GitMa
             }
             catch (Exception ex)
             {
-                Svc.Log.Error(ex, "删除文件夹时出错");
+                FrameworkLogger.Error(ex, "删除文件夹时出错");
             }
         }
         ImGuiEx.Tooltip("删除此文件夹并将所有宏移至根文件夹");

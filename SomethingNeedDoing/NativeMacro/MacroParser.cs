@@ -17,23 +17,22 @@ public class MacroParser
         RegexOptions.Compiled | RegexOptions.IgnoreCase
     );
 
-    public List<IMacroCommand> Parse(string text, IMacroScheduler scheduler) => [.. text.Split('\n')
+    public List<IMacroCommand> Parse(string text) => [.. text.Split('\n')
         .Where(line => !string.IsNullOrWhiteSpace(line))
-        .Select(line => ParseLine(line, scheduler))];
+        .Select(ParseLine)];
 
     /// <summary>
     /// Parses a command line and returns the appropriate command.
     /// </summary>
     /// <param name="text">The command line to parse.</param>
-    /// <param name="scheduler">The macro scheduler to use for commands that need it.</param>
     /// <returns>The parsed command.</returns>
     /// <exception cref="MacroSyntaxError">Thrown when the command line cannot be parsed.</exception>
-    public IMacroCommand ParseLine(string text, IMacroScheduler scheduler)
+    public IMacroCommand ParseLine(string text)
     {
         var (textWithoutModifiers, modifiers) = ExtractSndModifiers(text); // this is because the index modifier is a native modifier that some non-snd commands use
-        Svc.Log.Verbose($"Extracted modifiers: {string.Join(", ", modifiers)}. Leftover text: [{textWithoutModifiers}]");
+        FrameworkLogger.Verbose($"Extracted modifiers: {string.Join(", ", modifiers)}. Leftover text: [{textWithoutModifiers}]");
         var commandInfo = ParseCommandStructure(textWithoutModifiers) ?? throw new MacroSyntaxError(text);
-        var command = CreateCommand(commandInfo with { RemainingText = textWithoutModifiers }, scheduler);
+        var command = CreateCommand(commandInfo with { RemainingText = textWithoutModifiers });
         ApplyModifiers(modifiers, command);
         return command;
     }
@@ -54,7 +53,7 @@ public class MacroParser
             var modifierDefinition = ModifierDefinitions.FindMatchingModifier(match, ModifierDefinitions.SndModifiers);
             if (modifierDefinition == null)
             {
-                Svc.Log.Warning($"Unknown SND modifier match: {match.Value}");
+                FrameworkLogger.Warning($"Unknown SND modifier match: {match.Value}");
                 continue;
             }
 
@@ -89,10 +88,9 @@ public class MacroParser
     /// Creates a command based on the command parse info.
     /// </summary>
     /// <param name="info">The command parse info.</param>
-    /// <param name="scheduler">The macro scheduler to use for commands that need it.</param>
     /// <returns>The created command.</returns>
     /// <exception cref="MacroSyntaxError">Thrown when the command cannot be created.</exception>
-    private IMacroCommand CreateCommand(CommandParseInfo info, IMacroScheduler scheduler)
+    private IMacroCommand CreateCommand(CommandParseInfo info)
     {
         return info.CommandName switch
         {
@@ -102,7 +100,7 @@ public class MacroParser
             "click" => ParseClickCommand(info.Parameters),
             "craft" => ParseGateCommand(info.Parameters),
             "wait" => ParseWaitCommand(info.Parameters),
-            "loop" => ParseLoopCommand(info.Parameters, scheduler),
+            "loop" => ParseLoopCommand(info.Parameters),
             "gate" => ParseGateCommand(info.Parameters),
             "item" => ParseItemCommand(info.Parameters),
             "keyitem" => ParseKeyItemCommand(info.Parameters),
@@ -110,7 +108,7 @@ public class MacroParser
             "require" => ParseRequireCommand(info.Parameters),
             "requirerepair" => ParseRequireRepairCommand(info.Parameters),
             "requirespiritbond" => ParseRequireSpiritbondCommand(info.Parameters),
-            "runmacro" => ParseRunMacroCommand(info.Parameters, scheduler),
+            "runmacro" => ParseRunMacroCommand(info.Parameters),
             "send" => ParseKeyCommand<SendCommand>(info.Parameters),
             "hold" => ParseKeyCommand<HoldCommand>(info.Parameters),
             "release" => ParseKeyCommand<ReleaseCommand>(info.Parameters),
@@ -282,21 +280,23 @@ public class MacroParser
         throw new MacroSyntaxError($"Invalid wait command: {parameters}");
     }
 
-    private LoopCommand ParseLoopCommand(string parameters, IMacroScheduler scheduler)
+    private LoopCommand ParseLoopCommand(string parameters)
     {
-        if (string.IsNullOrEmpty(parameters))
-            return new LoopCommand(parameters, int.MaxValue, scheduler);
+        var match = Regex.Match(parameters, @"^(?<count>\d+)?\s*$", RegexOptions.Compiled);
+        if (!match.Success)
+            throw new MacroSyntaxError(parameters);
 
-        var count = int.Parse(parameters);
-        return new LoopCommand(parameters, count, scheduler);
+        var count = match.Groups["count"].Success ? int.Parse(match.Groups["count"].Value) : -1;
+        return new LoopCommand(parameters, count);
     }
 
     private GateCommand ParseGateCommand(string parameters)
     {
-        if (string.IsNullOrEmpty(parameters))
-            return new GateCommand(parameters, int.MaxValue);
+        var match = Regex.Match(parameters, @"^(?<count>\d+)?\s*$", RegexOptions.Compiled);
+        if (!match.Success)
+            throw new MacroSyntaxError(parameters);
 
-        var count = int.Parse(parameters);
+        var count = match.Groups["count"].Success ? int.Parse(match.Groups["count"].Value) : 1;
         return new GateCommand(parameters, count);
     }
 
@@ -346,10 +346,14 @@ public class MacroParser
         throw new MacroSyntaxError($"Invalid within percentage: {parameters}");
     }
 
-    private RunMacroCommand ParseRunMacroCommand(string parameters, IMacroScheduler scheduler)
+    private RunMacroCommand ParseRunMacroCommand(string parameters)
     {
-        var macroName = parameters.Trim('"');
-        return new RunMacroCommand(parameters, macroName, scheduler);
+        var match = Regex.Match(parameters, @"^(?<name>.*?)\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        if (!match.Success)
+            throw new MacroSyntaxError(parameters);
+
+        var nameValue = match.ExtractAndUnquote("name");
+        return new RunMacroCommand(parameters, nameValue);
     }
 
     private IMacroCommand ParseKeyCommand<T>(string parameters) where T : class, IMacroCommand
@@ -359,6 +363,7 @@ public class MacroParser
         var keyStrings = parameters.Split('+');
         var keys = new[] { ParseVirtualKey(keyStrings[^1]) };
         var modifiers = keyStrings.Length > 1 ? keyStrings[..^1].Select(ParseVirtualKey).ToArray() : [];
+
         return typeof(T) switch
         {
             Type type when type == typeof(SendCommand) => new SendCommand(parameters, keys, modifiers),
@@ -386,35 +391,32 @@ public class MacroParser
 
     private WaitAddonCommand ParseWaitAddonCommand(string parameters)
     {
-        var addonName = parameters.Trim('"');
-        return new WaitAddonCommand(parameters, addonName);
+        var match = Regex.Match(parameters, @"^(?<name>.*?)\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        if (!match.Success)
+            throw new MacroSyntaxError(parameters);
+
+        var nameValue = match.ExtractAndUnquote("name");
+        return new WaitAddonCommand(parameters, nameValue);
     }
     #endregion
 
     #region Modifier Parsing
-    /// <summary>
-    /// Creates a modifier instance based on the modifier info.
-    /// </summary>
-    /// <param name="info">The modifier info.</param>
-    /// <param name="commandInfo">The command parse info.</param>
-    /// <returns>The created modifier.</returns>
     private IMacroModifier CreateModifier(ModifierInfo info, CommandParseInfo commandInfo)
     {
-        var text = info.OriginalText;
         return info.Name.ToLowerInvariant() switch
         {
-            "wait" => WaitModifier.TryParse(ref text, out var waitModifier) ? waitModifier : throw new MacroSyntaxError($"Invalid wait modifier: {info.Parameter}"),
+            "wait" => new WaitModifier(info.OriginalText, (int)(float.Parse(info.Parameter, CultureInfo.InvariantCulture) * 1000)),
             "echo" => new EchoModifier(info.OriginalText, true),
             "unsafe" => new UnsafeModifier(info.OriginalText, true),
-            "condition" => ConditionModifier.TryParse(ref text, out var conditionModifier) ? conditionModifier : throw new MacroSyntaxError($"Invalid condition modifier: {info.Parameter}"),
-            "maxwait" => MaxWaitModifier.TryParse(ref text, out var maxWaitModifier) ? maxWaitModifier : throw new MacroSyntaxError($"Invalid maxwait modifier: {info.Parameter}"),
-            "index" => IndexModifier.TryParse(ref text, out var indexModifier) ? indexModifier : throw new MacroSyntaxError($"Invalid index modifier: {info.Parameter}"),
-            "list" => ListIndexModifier.TryParse(ref text, out var listIndexModifier) ? listIndexModifier : throw new MacroSyntaxError($"Invalid list index modifier: {info.Parameter}"),
-            "party" => PartyIndexModifier.TryParse(ref text, out var partyIndexModifier) ? partyIndexModifier : throw new MacroSyntaxError($"Invalid party index modifier: {info.Parameter}"),
-            "distance" => DistanceModifier.TryParse(ref text, out var distanceModifier) ? distanceModifier : throw new MacroSyntaxError($"Invalid distance modifier: {info.Parameter}"),
-            "hq" => new ItemQualityModifier(info.OriginalText, true),
-            "errorif" => ErrorIfModifier.TryParse(ref text, out var errorIfModifier) ? errorIfModifier : throw new MacroSyntaxError($"Invalid error condition: {info.Parameter}"),
-            _ => throw new ArgumentException($"Unknown modifier type: {info.Name}")
+            "condition" => new ConditionModifier(info.OriginalText, [info.Parameter], false),
+            "maxwait" => new MaxWaitModifier(info.OriginalText, (int)(float.Parse(info.Parameter, CultureInfo.InvariantCulture) * 1000)),
+            "index" => new IndexModifier(info.OriginalText, int.Parse(info.Parameter)),
+            "list" or "listindex" => new ListIndexModifier(info.OriginalText, int.Parse(info.Parameter)),
+            "partyindex" => new PartyIndexModifier(info.OriginalText, int.Parse(info.Parameter)),
+            "distance" => new DistanceModifier(info.OriginalText, float.Parse(info.Parameter, CultureInfo.InvariantCulture)),
+            "quality" => new ItemQualityModifier(info.OriginalText, int.Parse(info.Parameter) > 0),
+            "errorif" => new ErrorIfModifier(info.OriginalText, Enum.Parse<ErrorCondition>(info.Parameter, true)),
+            _ => throw new MacroSyntaxError($"Unknown modifier: {info.Name}"),
         };
     }
     #endregion

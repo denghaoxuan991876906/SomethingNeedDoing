@@ -27,7 +27,7 @@ public class RecipeCommand(string text, string recipeName) : MacroCommandBase(te
                     throw new MacroException("/recipe cannot be used while the Synthesis window is open.");
 
                 var recipeId = Game.Crafting.GetRecipeIdByName(recipeName);
-                Svc.Log.Debug($"Recipe found: {recipeId}");
+                FrameworkLogger.Debug($"Recipe found: {recipeId}");
 
                 Game.Crafting.OpenRecipe(recipeId);
             }
