@@ -123,7 +123,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     arApi.OnCharacterPostprocessStep -= () => CheckCharacterPostProcess(macro);
                     arApi.OnCharacterReadyToPostProcess -= () => DoCharacterPostProcess(macro);
                     arApi.Dispose();
-                    _arApis.Remove(macro.Id);
+                    _arApis.Remove(macro.Id, out _);
                 }
                 _triggerEventManager.UnregisterTrigger(macro, triggerEvent);
                 break;
@@ -131,7 +131,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 if (_addonEvents.TryGetValue(macro.Id, out var cfg))
                 {
                     Svc.AddonLifecycle.UnregisterListener(cfg.EventType, cfg.AddonName, OnAddonEvent);
-                    _addonEvents.Remove(macro.Id);
+                    _addonEvents.Remove(macro.Id, out _);
                 }
                 break;
             default:
@@ -375,7 +375,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             state.Macro.StateChanged -= OnMacroStateChanged;
         }
 
-        _enginesByMacroId.Remove(macroId);
+        _enginesByMacroId.Remove(macroId, out _);
     }
 
     /// <inheritdoc/>
@@ -553,7 +553,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 state.Macro.StateChanged -= OnMacroStateChanged;
             }
 
-            _enginesByMacroId.Remove(e.MacroId);
+            _enginesByMacroId.Remove(e.MacroId, out _);
         }
     }
 
