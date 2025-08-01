@@ -1,4 +1,5 @@
-﻿using SomethingNeedDoing.Core.Interfaces;
+﻿using SomethingNeedDoing.Core.Events;
+using SomethingNeedDoing.Core.Interfaces;
 
 namespace SomethingNeedDoing.Core;
 /// <summary>
@@ -16,9 +17,6 @@ public class ConfigMacro : MacroBase
 
     /// <inheritdoc/>
     public override MacroType Type { get; set; }
-
-    /// <inheritdoc/>
-    public override string Content { get; set; } = string.Empty;
 
     /// <inheritdoc/>
     public override MacroMetadata Metadata { get; set; } = new();

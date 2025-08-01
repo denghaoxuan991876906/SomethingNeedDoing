@@ -39,6 +39,11 @@ public interface IMacro
     event EventHandler<MacroStateChangedEventArgs>? StateChanged;
 
     /// <summary>
+    /// Event raised when the macro's content changes.
+    /// </summary>
+    event EventHandler<MacroContentChangedEventArgs>? ContentChanged;
+
+    /// <summary>
     /// Gets the metadata for the macro.
     /// </summary>
     MacroMetadata Metadata { get; }
@@ -80,7 +85,36 @@ public abstract class MacroBase : IMacro
     public abstract MacroType Type { get; set; }
 
     /// <inheritdoc/>
-    public abstract string Content { get; set; }
+    public string Content
+    {
+        get;
+        set
+        {
+            if (field != value)
+            {
+                var oldContent = field;
+                field = value;
+                ContentChanged?.Invoke(this, new MacroContentChangedEventArgs(Id, value, oldContent));
+            }
+        }
+    } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the content with change notification.
+    /// </summary>
+    protected string ContentWithChangeNotification
+    {
+        get => Content;
+        set
+        {
+            if (Content != value)
+            {
+                var oldContent = Content;
+                Content = value;
+                ContentChanged?.Invoke(this, new MacroContentChangedEventArgs(Id, value, oldContent));
+            }
+        }
+    }
 
     /// <inheritdoc/>
     public MacroState State
@@ -100,6 +134,9 @@ public abstract class MacroBase : IMacro
 
     /// <inheritdoc/>
     public event EventHandler<MacroStateChangedEventArgs>? StateChanged;
+
+    /// <inheritdoc/>
+    public event EventHandler<MacroContentChangedEventArgs>? ContentChanged;
 
     /// <inheritdoc/>
     public abstract MacroMetadata Metadata { get; set; }
