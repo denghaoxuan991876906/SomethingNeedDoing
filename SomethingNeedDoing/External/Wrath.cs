@@ -122,6 +122,7 @@ public class Wrath : IPC
         OrbwalkerIntegration = 14, // bool
         AutoRezOutOfParty = 15, // bool
         DPSAoETargets = 16, // int? (can be set to null to disable aoe'ing)
+        SingleTargetExcogHPP = 17, // int
     }
 
     public enum SetResult
