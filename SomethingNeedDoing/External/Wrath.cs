@@ -121,7 +121,7 @@ public class Wrath : IPC
         OnlyAttackInCombat = 13, // bool
         OrbwalkerIntegration = 14, // bool
         AutoRezOutOfParty = 15, // bool
-        DPSAoETargets = 16, // int? (can be set to null to disable aoe'ing)
+        DPSAoETargets = 16, // int
         SingleTargetExcogHPP = 17, // int
     }
 
