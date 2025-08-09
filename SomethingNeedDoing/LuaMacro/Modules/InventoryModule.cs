@@ -97,7 +97,7 @@ public unsafe class InventoryModule : LuaModuleBase
     public unsafe class InventoryContainerWrapper(InventoryType container) : IWrapper
     {
         private readonly InventoryContainer* _container = InventoryManager.Instance()->GetInventoryContainer(container);
-        [LuaDocs] public uint Count => _container->Size;
+        [LuaDocs] public int Count => _container->Size;
 
         [LuaDocs]
         public int FreeSlots

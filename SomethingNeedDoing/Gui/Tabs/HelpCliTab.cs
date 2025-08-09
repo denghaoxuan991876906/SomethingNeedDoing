@@ -13,7 +13,7 @@ public class HelpCliTab(CommandService cmds)
 
         ImGuiUtils.Section("Main Command", () => ImGui.TextUnformatted(cmds.MainCommand), contentFont: UiBuilder.MonoFont);
 
-        ImGuiUtils.Section("Aliases", () => cmds.Aliases.Each(ImGui.TextUnformatted), contentFont: UiBuilder.MonoFont);
+        ImGuiUtils.Section("Aliases", () => cmds.Aliases.Each(a => ImGui.TextUnformatted(a)), contentFont: UiBuilder.MonoFont);
 
         ImGuiUtils.Section("Commands", () =>
         {

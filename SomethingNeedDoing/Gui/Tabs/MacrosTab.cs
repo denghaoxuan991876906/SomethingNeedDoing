@@ -346,13 +346,13 @@ public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor, GitMa
                 var isNative = macro.Type == MacroType.Native;
                 var isLua = macro.Type == MacroType.Lua;
 
-                if (ImGui.MenuItem("Native", null, isNative))
+                if (ImGui.MenuItem("Native", isNative))
                 {
                     configMacro.Type = MacroType.Native;
                     C.Save();
                 }
 
-                if (ImGui.MenuItem("Lua", null, isLua))
+                if (ImGui.MenuItem("Lua", isLua))
                 {
                     configMacro.Type = MacroType.Lua;
                     C.Save();
@@ -368,7 +368,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor, GitMa
             ImGui.Separator();
 
             var isInRoot = string.IsNullOrEmpty(macro.FolderPath);
-            if (ImGui.MenuItem("Root", null, isInRoot))
+            if (ImGui.MenuItem("Root", isInRoot))
             {
                 if (!isInRoot)
                 {
@@ -392,7 +392,7 @@ public class MacrosTab(IMacroScheduler scheduler, MacroEditor macroEditor, GitMa
                 foreach (var folder in folders)
                 {
                     var isCurrentFolder = macro.FolderPath == folder;
-                    if (ImGui.MenuItem($"{folder}{(isCurrentFolder ? " (current)" : "")}", null, isCurrentFolder))
+                    if (ImGui.MenuItem($"{folder}{(isCurrentFolder ? " (current)" : "")}", isCurrentFolder))
                     {
                         if (!isCurrentFolder)
                         {
