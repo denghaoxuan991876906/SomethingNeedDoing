@@ -1,7 +1,9 @@
 ﻿using Dalamud.Game.Text;
 using ECommons.Configuration;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
+using SomethingNeedDoing.Core.Interfaces;
 using System.IO;
 
 namespace SomethingNeedDoing;
@@ -315,6 +317,7 @@ public class ConfigFactory : DefaultSerializationFactory, ISerializationFactory
         TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
         SerializationBinder = new CustomSerializationBinder(),
         Formatting = Formatting.Indented,
+        Converters = [new IMacroDependencyConverter()]
     };
 
     public class CustomSerializationBinder : DefaultSerializationBinder
@@ -333,5 +336,32 @@ public class ConfigFactory : DefaultSerializationFactory, ISerializationFactory
             }
         }
     }
-}
 
+    public class IMacroDependencyConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType) => objectType == typeof(IMacroDependency);
+
+        public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null)
+                return null!;
+
+            var jObject = JObject.Load(reader);
+            var source = jObject["Source"]?.ToString() ?? string.Empty;
+
+            Type concreteType = source switch
+            {
+                var s when s.StartsWith("git://") || s.Contains("github.com") => typeof(GitDependency),
+                var s when Guid.TryParse(s, out _) => typeof(LocalMacroDependency),
+                var s when s.StartsWith("http://") || s.StartsWith("https://") => typeof(HttpDependency),
+                var s when !string.IsNullOrEmpty(s) && (s.Contains('\\') || s.Contains('/')) => typeof(LocalDependency),
+                _ => throw new JsonException($"Unknown source type [{source}]. Please report to the author."),
+            };
+
+            using var newReader = jObject.CreateReader();
+            return serializer.Deserialize(newReader, concreteType)!;
+        }
+
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer) => serializer.Serialize(writer, value);
+    }
+}
