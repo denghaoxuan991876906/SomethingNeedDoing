@@ -110,6 +110,16 @@ public class ExcelModule : LuaModuleBase
             return row == null ? null : new ExcelRowWrapper(row, rowId, subRowId);
         }
 
+        [LuaDocs]
+        public int Count
+        {
+            get
+            {
+                var prop = sheet.GetType().GetProperty(nameof(ExcelSheet<>.Count));
+                return prop?.GetValue(sheet) is int count ? count : 0;
+            }
+        }
+
         public override string ToString()
         {
             return $"{(isSubrowSheet ? nameof(SubrowExcelSheet<>) : nameof(ExcelSheet<>))}<{GetGenericSheetType(sheet.GetType())?.Name}>";
