@@ -133,6 +133,8 @@ public class ExcelModule : LuaModuleBase
 
         [LuaDocs] public object? this[string propertyName] => GetPropertyValue(row, propertyName);
 
+        [LuaDocs] public object? GetProperty(string propertyName) => GetPropertyValue(row, propertyName);
+
         private static object? GetPropertyValue(object? obj, string propertyName)
         {
             var property = obj?.GetType().GetProperty(propertyName, PropertyFlags);
