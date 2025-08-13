@@ -414,7 +414,7 @@ public class MacroParser
             "list" or "listindex" => new ListIndexModifier(info.OriginalText, int.Parse(info.Parameter)),
             "partyindex" => new PartyIndexModifier(info.OriginalText, int.Parse(info.Parameter)),
             "distance" => new DistanceModifier(info.OriginalText, float.Parse(info.Parameter, CultureInfo.InvariantCulture)),
-            "quality" => new ItemQualityModifier(info.OriginalText, int.Parse(info.Parameter) > 0),
+            "hq" => new ItemQualityModifier(info.OriginalText, true),
             "errorif" => new ErrorIfModifier(info.OriginalText, Enum.Parse<ErrorCondition>(info.Parameter, true)),
             _ => throw new MacroSyntaxError($"Unknown modifier: {info.Name}"),
         };
