@@ -53,7 +53,7 @@ public unsafe class NodeWrapper : IWrapper
 
     [LuaDocs] public uint Id => Node->NodeId;
     [LuaDocs] public bool IsVisible => Node->IsVisible();
-    [LuaDocs] public string Text { get => Node->GetAsAtkTextNode()->NodeText.ToString(); set => Node->GetAsAtkTextNode()->NodeText.SetString(value); }
+    [LuaDocs] public string Text { get => Node->GetAsAtkTextNode()->NodeText.GetText(); set => Node->GetAsAtkTextNode()->NodeText.SetString(value); }
     [LuaDocs] public NodeType NodeType => Node->Type;
 }
 
