@@ -121,9 +121,11 @@ public class AutoRetainer : IPC
     [LuaFunction(
         description: "Sets suppressed state in which AutoRetainer will not perform any actions regardless of configuration",
         parameterDescriptions: ["boolean"])]
+    [Changelog(ChangelogAttribute.Unreleased)]
     public void SetSuppressed(bool suppressed) => StaticsService.AutoRetainerApi.Suppressed = suppressed;
 
     [LuaFunction(description: "Marks character post-processing as complete")]
+    [Changelog(ChangelogAttribute.Unreleased)]
     public void FinishCharacterPostProcess() => StaticsService.AutoRetainerApi.FinishCharacterPostProcess();
 
     public class OfflineCharacterDataWrapper(OfflineCharacterData data) : IWrapper
@@ -132,7 +134,7 @@ public class AutoRetainer : IPC
         [LuaDocs][Changelog("12.19")] public string Name => data.Name;
         [LuaDocs][Changelog("12.19")] public string World => data.World;
         [LuaDocs][Changelog("12.19")] public bool Enabled => data.Enabled;
-        [LuaDocs] public bool WorkshopEnabled => data.WorkshopEnabled;
+        [LuaDocs][Changelog(ChangelogAttribute.Unreleased)] public bool WorkshopEnabled => data.WorkshopEnabled;
         [LuaDocs][Changelog("12.19")] public List<OfflineRetainerDataWrapper> RetainerData => [.. data.RetainerData.Select(x => new OfflineRetainerDataWrapper(x))];
         [LuaDocs][Changelog("12.19")] public uint InventorySpace => data.InventorySpace;
         [LuaDocs][Changelog("12.19")] public uint VentureCoffers => data.VentureCoffers;
@@ -144,7 +146,7 @@ public class AutoRetainer : IPC
         [LuaDocs][Changelog("12.19")] public bool RetainersAwaitingProcessing => RetainerData.Any(x => x.HasVenture && x.VentureEndsAt <= TimeProvider.System.GetUtcNow().ToUnixTimeSeconds());
         [LuaDocs][Changelog("12.19")] public bool SubsAwaitingProcessing => OfflineSubmarineData.Any(x => x.ReturnTime <= TimeProvider.System.GetUtcNow().ToUnixTimeSeconds());
         [LuaDocs][Changelog("12.19")] public bool AnyAwaitingProcessing => RetainersAwaitingProcessing || SubsAwaitingProcessing;
-        [LuaDocs] public List<short> ClassJobLevelArray => [.. data.ClassJobLevelArray];
+        [LuaDocs][Changelog(ChangelogAttribute.Unreleased)] public List<short> ClassJobLevelArray => [.. data.ClassJobLevelArray];
     }
 
     public class OfflineRetainerDataWrapper(OfflineRetainerData data) : IWrapper
