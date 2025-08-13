@@ -1,3 +1,4 @@
+using SomethingNeedDoing.Core;
 using SomethingNeedDoing.Core.Events;
 using SomethingNeedDoing.NativeMacro;
 using System.Threading;
@@ -26,29 +27,8 @@ public class NativeEngine(MacroParser parser) : IEngine
     {
         try
         {
-            var commands = parser.Parse(content);
-            var tempMacro = new TemporaryMacro(content);
-
-            foreach (var command in commands)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                    break;
-
-                var context = new MacroContext(tempMacro);
-
-                // Subscribe to macro execution requests from commands
-                context.MacroExecutionRequested += (sender, e) =>
-                    MacroExecutionRequested?.Invoke(this, e);
-
-                // Subscribe to loop control events from commands
-                context.LoopControlRequested += (sender, e) =>
-                    LoopControlRequested?.Invoke(this, e);
-
-                if (command.RequiresFrameworkThread)
-                    await Svc.Framework.RunOnTick(() => command.Execute(context, cancellationToken), cancellationToken: cancellationToken);
-                else
-                    await command.Execute(context, cancellationToken);
-            }
+            var tempMacro = new TemporaryMacro(content) { Type = MacroType.Native };
+            MacroExecutionRequested?.Invoke(this, new MacroExecutionRequestedEventArgs(tempMacro));
         }
         catch (Exception ex)
         {

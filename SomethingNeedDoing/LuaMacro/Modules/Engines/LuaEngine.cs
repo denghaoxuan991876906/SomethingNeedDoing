@@ -9,8 +9,6 @@ namespace SomethingNeedDoing.LuaMacro.Modules.Engines;
 /// </summary>
 public class LuaEngine : IEngine
 {
-    private readonly NLuaMacroEngine _luaEngine;
-
     public string Name => "NLua";
 
     /// <inheritdoc/>
@@ -18,8 +16,6 @@ public class LuaEngine : IEngine
 
     public LuaEngine(NLuaMacroEngine luaEngine)
     {
-        _luaEngine = luaEngine;
-
         // Forward macro execution requests from the Lua engine
         luaEngine.MacroExecutionRequested += (sender, e) =>
             MacroExecutionRequested?.Invoke(this, e);
@@ -30,7 +26,7 @@ public class LuaEngine : IEngine
         try
         {
             var tempMacro = new TemporaryMacro(content) { Type = MacroType.Lua };
-            await _luaEngine.StartMacro(tempMacro, cancellationToken);
+            MacroExecutionRequested?.Invoke(this, new MacroExecutionRequestedEventArgs(tempMacro));
         }
         catch (Exception ex)
         {
