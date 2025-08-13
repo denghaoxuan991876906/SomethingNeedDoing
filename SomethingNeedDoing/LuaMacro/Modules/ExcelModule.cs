@@ -111,7 +111,7 @@ public class ExcelModule : LuaModuleBase
         }
 
         [LuaDocs]
-        [Changelog(ChangelogAttribute.Unreleased)]
+        [Changelog("13.3")]
         public int Count
         {
             get
@@ -135,7 +135,7 @@ public class ExcelModule : LuaModuleBase
         [LuaDocs] public object? this[string propertyName] => GetPropertyValue(row, propertyName);
 
         [LuaDocs]
-        [Changelog(ChangelogAttribute.Unreleased)]
+        [Changelog("13.3")]
         public object? GetProperty(string propertyName) => GetPropertyValue(row, propertyName);
 
         private static object? GetPropertyValue(object? obj, string propertyName)
