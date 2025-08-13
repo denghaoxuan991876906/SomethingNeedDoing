@@ -179,6 +179,22 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                 kvp => kvp.Key,
                 kvp =>
                 {
+                    // Check if this is a simple config that can be written as a direct value
+                    var isSimpleConfig = string.IsNullOrEmpty(kvp.Value.Description) &&
+                                        kvp.Value.MinValue == null &&
+                                        kvp.Value.MaxValue == null &&
+                                        string.IsNullOrEmpty(kvp.Value.ValidationPattern) &&
+                                        string.IsNullOrEmpty(kvp.Value.ValidationMessage) &&
+                                        !kvp.Value.Choices.Any() &&
+                                        kvp.Value.Type != typeof(List<string>);
+
+                    if (isSimpleConfig)
+                    {
+                        // Write as simple value
+                        return kvp.Value.Value;
+                    }
+
+                    // Write as complex object
                     var configDict = new Dictionary<string, object>();
 
                     if (!string.IsNullOrEmpty(kvp.Value.DefaultValue?.ToString()))
@@ -187,8 +203,8 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                     if (!string.IsNullOrEmpty(kvp.Value.Description))
                         configDict["description"] = kvp.Value.Description;
 
-                    if (!string.IsNullOrEmpty(kvp.Value.Type))
-                        configDict["type"] = kvp.Value.Type;
+                    if (kvp.Value.Type != typeof(string))
+                        configDict["type"] = kvp.Value.TypeName;
 
                     if (kvp.Value.MinValue != null)
                         configDict["min"] = kvp.Value.MinValue;
@@ -196,14 +212,24 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                     if (kvp.Value.MaxValue != null)
                         configDict["max"] = kvp.Value.MaxValue;
 
-                    if (kvp.Value.Required)
-                        configDict["required"] = kvp.Value.Required;
+
 
                     if (!string.IsNullOrEmpty(kvp.Value.ValidationPattern))
                         configDict["validation_pattern"] = kvp.Value.ValidationPattern;
 
                     if (!string.IsNullOrEmpty(kvp.Value.ValidationMessage))
                         configDict["validation_message"] = kvp.Value.ValidationMessage;
+
+                    // Handle list-specific properties
+                    if (kvp.Value.Type == typeof(List<string>))
+                    {
+                        if (kvp.Value.Choices.Any())
+                            configDict["choices"] = kvp.Value.Choices;
+
+                        // Only write is_choice if it's true (choice list)
+                        if (kvp.Value.IsChoice)
+                            configDict["is_choice"] = true;
+                    }
 
                     return configDict;
                 }
@@ -272,10 +298,11 @@ public class MetadataParser(DependencyFactory dependencyFactory)
             var configName = kvp.Key.ToString();
             if (string.IsNullOrEmpty(configName)) continue;
 
+            var configItem = new MacroConfigItem();
+
             if (kvp.Value is Dictionary<object, object> configData)
             {
-                var configItem = new MacroConfigItem();
-
+                // Complex config object with metadata
                 if (configData.TryGetValue("default", out var defaultValue))
                     configItem.DefaultValue = defaultValue ?? string.Empty;
 
@@ -283,7 +310,7 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                     configItem.Description = description?.ToString() ?? string.Empty;
 
                 if (configData.TryGetValue("type", out var type))
-                    configItem.Type = type?.ToString() ?? "string";
+                    configItem.TypeName = type?.ToString() ?? "string";
 
                 if (configData.TryGetValue("min", out var min))
                     configItem.MinValue = min;
@@ -291,8 +318,7 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                 if (configData.TryGetValue("max", out var max))
                     configItem.MaxValue = max;
 
-                if (configData.TryGetValue("required", out var required))
-                    configItem.Required = required?.ToString()?.ToLower() == "true";
+
 
                 if (configData.TryGetValue("validation_pattern", out var pattern))
                     configItem.ValidationPattern = pattern?.ToString();
@@ -300,11 +326,71 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                 if (configData.TryGetValue("validation_message", out var message))
                     configItem.ValidationMessage = message?.ToString();
 
-                configItem.Value = configItem.DefaultValue;
-                result[configName] = configItem;
+                // Handle list-specific properties
+                if (configData.TryGetValue("choices", out var choices))
+                {
+                    if (choices is List<object> choiceList)
+                        configItem.Choices = choiceList.Select(c => c?.ToString() ?? string.Empty).Where(c => !string.IsNullOrEmpty(c)).ToList();
+                }
+
+                if (configData.TryGetValue("is_choice", out var isChoiceList))
+                    configItem.IsChoice = isChoiceList?.ToString()?.ToLower() == "true";
             }
+            else
+            {
+                // Simple config value - infer type from the value itself
+                configItem.DefaultValue = kvp.Value ?? string.Empty;
+                configItem.Description = configName; // Use the config name as description
+            }
+
+            // Infer type from default value if not explicitly specified
+            if (configItem.Type == typeof(string))
+            {
+                configItem.Type = InferTypeFromValue(configItem.DefaultValue);
+            }
+
+            // Initialize value based on inferred type
+            if (configItem.Type == typeof(List<string>))
+            {
+                if (configItem.IsChoice)
+                {
+                    configItem.Value = configItem.Choices.Any()
+                        ? configItem.Choices.First()
+                        : configItem.DefaultValue?.ToString() ?? string.Empty;
+                }
+                else
+                {
+                    configItem.Value = configItem.DefaultValue is List<object> defaultList
+                        ? defaultList.Select(x => x?.ToString() ?? string.Empty).ToList()
+                        : new List<string>();
+                }
+            }
+            else
+            {
+                configItem.Value = configItem.DefaultValue;
+            }
+
+            result[configName] = configItem;
         }
 
         return result;
     }
+
+    private static Type InferTypeFromValue(object? value)
+    {
+        if (value == null) return typeof(string);
+
+        return value switch
+        {
+            bool => typeof(bool),
+            int => typeof(int),
+            long => typeof(int),
+            float => typeof(float),
+            double => typeof(float),
+            List<object> => typeof(List<string>),
+            _ => typeof(string)
+        };
+    }
+
+
 }

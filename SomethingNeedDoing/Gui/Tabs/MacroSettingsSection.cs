@@ -73,11 +73,10 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                 ImGuiEx.Tooltip($"Reset to default value: {configValue.DefaultValue}");
                 ImGui.Spacing();
 
-                // Value editor based on type
                 var valueChanged = false;
-                switch (configValue.Type.ToLower())
+                switch (configValue.Type)
                 {
-                    case "int":
+                    case var t when t == typeof(int):
                         var intValue = Convert.ToInt32(configValue.Value);
                         var intDefault = Convert.ToInt32(configValue.DefaultValue);
                         var intMin = configValue.MinValue != null ? Convert.ToInt32(configValue.MinValue) : int.MinValue;
@@ -99,8 +98,7 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                         }
                         break;
 
-                    case "float":
-                    case "double":
+                    case var t when t == typeof(float) || t == typeof(double):
                         var floatValue = Convert.ToSingle(configValue.Value);
                         var floatDefault = Convert.ToSingle(configValue.DefaultValue);
                         var floatMin = configValue.MinValue != null ? Convert.ToSingle(configValue.MinValue) : float.MinValue;
@@ -122,8 +120,7 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                         }
                         break;
 
-                    case "bool":
-                    case "boolean":
+                    case var t when t == typeof(bool):
                         var boolValue = Convert.ToBoolean(configValue.Value);
                         ImGui.SetNextItemWidth(200);
                         if (ImGui.Checkbox($"##{configName}Value", ref boolValue))
@@ -133,7 +130,64 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                         }
                         break;
 
-                    case "string":
+                    case var t when t == typeof(List<string>):
+                        if (configValue.IsChoice)
+                        {
+                            var currentChoice = configValue.Value?.ToString() ?? "";
+                            var choices = configValue.Choices.ToArray();
+
+                            if (choices.Length > 0)
+                            {
+                                var currentIndex = Array.IndexOf(choices, currentChoice);
+                                if (currentIndex == -1) currentIndex = 0;
+
+                                ImGui.SetNextItemWidth(200);
+                                if (ImGui.Combo($"##{configName}Value", ref currentIndex, choices, choices.Length))
+                                {
+                                    configValue.Value = choices[currentIndex];
+                                    valueChanged = true;
+                                }
+                            }
+                            else
+                                ImGui.TextColored(ImGuiColors.DalamudRed, "No choices defined");
+                        }
+                        else
+                        {
+                            var list = configValue.Value as List<string> ?? [];
+
+                            ImGui.SetNextItemWidth(200);
+                            var entry = "";
+                            if (ImGui.InputText($"##{configName}Add", ref entry, 512, ImGuiInputTextFlags.EnterReturnsTrue))
+                            {
+                                list.Add(entry);
+                                valueChanged = true;
+                            }
+
+                            for (var i = 0; i < list.Count; i++)
+                            {
+                                using var id = ImRaii.PushId($"{configName}_{i}");
+                                ImGui.SetNextItemWidth(200);
+                                var item = list[i];
+                                if (ImGui.InputText("", ref item, 512))
+                                {
+                                    list[i] = item;
+                                    valueChanged = true;
+                                }
+
+                                ImGui.SameLine();
+                                if (ImGui.Button("Remove"))
+                                {
+                                    list.RemoveAt(i);
+                                    valueChanged = true;
+                                    break;
+                                }
+                            }
+
+                            configValue.Value = list;
+                        }
+                        break;
+
+                    case var t when t == typeof(string):
                     default:
                         var stringValue = configValue.Value.ToString() ?? string.Empty;
                         ImGui.SetNextItemWidth(300);
@@ -180,13 +234,6 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
 
                 if (valueChanged)
                     C.Save();
-
-                if (configValue.Required)
-                {
-                    ImGui.SameLine();
-                    ImGui.TextColored(ImGuiColors.DalamudRed, "*");
-                    ImGuiEx.Tooltip("This configuration is required");
-                }
 
                 ImGui.Spacing();
                 ImGui.Separator();

@@ -115,7 +115,7 @@ public class ConfigModule(IMacro macro) : LuaModuleBase
             return "string";
 
         if (macro.Metadata.Configs.TryGetValue(name, out var configItem))
-            return configItem.Type;
+            return configItem.TypeName;
 
         return "string";
     }
@@ -130,10 +130,9 @@ public class ConfigModule(IMacro macro) : LuaModuleBase
     {
         try
         {
-            switch (configItem.Type.ToLower())
+            switch (configItem.Type)
             {
-                case "number":
-                case "int":
+                case var t when t == typeof(int):
                     if (int.TryParse(value.ToString(), out var intValue))
                     {
                         if (configItem.MinValue != null && int.TryParse(configItem.MinValue.ToString(), out var min) && intValue < min)
@@ -144,8 +143,7 @@ public class ConfigModule(IMacro macro) : LuaModuleBase
                     }
                     return configItem.DefaultValue;
 
-                case "float":
-                case "double":
+                case var t when t == typeof(float) || t == typeof(double):
                     if (double.TryParse(value.ToString(), out var doubleValue))
                     {
                         if (configItem.MinValue != null && double.TryParse(configItem.MinValue.ToString(), out var min) && doubleValue < min)
@@ -156,13 +154,27 @@ public class ConfigModule(IMacro macro) : LuaModuleBase
                     }
                     return configItem.DefaultValue;
 
-                case "bool":
-                case "boolean":
+                case var t when t == typeof(bool):
                     if (bool.TryParse(value.ToString(), out var boolValue))
                         return boolValue;
                     return configItem.DefaultValue;
 
-                case "string":
+                case var t when t == typeof(List<string>):
+                    if (value is List<string> list)
+                    {
+                        if (!configItem.IsChoice)
+                            return list;
+                        else
+                        {
+                            var choice = value.ToString();
+                            if (configItem.Choices.Contains(choice))
+                                return choice;
+                            return configItem.Choices.FirstOrDefault() ?? string.Empty;
+                        }
+                    }
+                    return !configItem.IsChoice ? new List<string>() : configItem.Choices.FirstOrDefault() ?? string.Empty;
+
+                case var t when t == typeof(string):
                 default:
                     if (value.ToString() is { } str && !string.IsNullOrEmpty(configItem.ValidationPattern))
                     {
