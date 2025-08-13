@@ -63,7 +63,7 @@ public class ActionCommand(string text, string actionName) : MacroCommandBase(te
                     }
                 }
 
-                if (C.QualitySkip && Game.Crafting.IsMaxQuality() && craftAction.IncreasesQuality)
+                if (C.QualitySkip && Game.Crafting.IsMaxQuality() && craftAction.IncreasesQuality && !craftAction.IncreasesProgress) // allow actions that do both
                 {
                     FrameworkLogger.Debug($"Max quality skip: {CommandText}");
                     return;
