@@ -124,10 +124,6 @@ public class AutoRetainer : IPC
     [Changelog(ChangelogAttribute.Unreleased)]
     public void SetSuppressed(bool suppressed) => StaticsService.AutoRetainerApi.Suppressed = suppressed;
 
-    [LuaFunction(description: "Marks character post-processing as complete")]
-    [Changelog(ChangelogAttribute.Unreleased)]
-    public void FinishCharacterPostProcess() => StaticsService.AutoRetainerApi.FinishCharacterPostProcess();
-
     public class OfflineCharacterDataWrapper(OfflineCharacterData data) : IWrapper
     {
         [LuaDocs][Changelog("12.19")] public ulong CID => data.CID;
