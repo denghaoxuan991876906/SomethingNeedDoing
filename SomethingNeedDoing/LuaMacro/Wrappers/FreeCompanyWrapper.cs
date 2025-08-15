@@ -10,6 +10,6 @@ public unsafe class FreeCompanyWrapper : IWrapper
     [LuaDocs] public byte Rank => FreeCompanyProxy->Rank;
     [LuaDocs] public int OnlineMemebers => FreeCompanyProxy->OnlineMembers;
     [LuaDocs] public int TotalMembers => FreeCompanyProxy->TotalMembers;
-    [LuaDocs] public string Name => FreeCompanyProxy->Name.ToString();
+    [LuaDocs][Changelog("13.4", ChangelogType.Fixed)] public string Name => FreeCompanyProxy->NameString;
     [LuaDocs] public ulong Id => FreeCompanyProxy->Id;
 }
