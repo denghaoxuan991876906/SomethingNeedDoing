@@ -179,7 +179,6 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                 kvp => kvp.Key,
                 kvp =>
                 {
-                    // Check if this is a simple config that can be written as a direct value
                     var isSimpleConfig = string.IsNullOrEmpty(kvp.Value.Description) &&
                                         kvp.Value.MinValue == null &&
                                         kvp.Value.MaxValue == null &&
@@ -189,12 +188,8 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                                         kvp.Value.Type != typeof(List<string>);
 
                     if (isSimpleConfig)
-                    {
-                        // Write as simple value
                         return kvp.Value.Value;
-                    }
 
-                    // Write as complex object
                     var configDict = new Dictionary<string, object>();
 
                     if (!string.IsNullOrEmpty(kvp.Value.DefaultValue?.ToString()))
@@ -220,13 +215,11 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                     if (!string.IsNullOrEmpty(kvp.Value.ValidationMessage))
                         configDict["validation_message"] = kvp.Value.ValidationMessage;
 
-                    // Handle list-specific properties
                     if (kvp.Value.Type == typeof(List<string>))
                     {
                         if (kvp.Value.Choices.Any())
                             configDict["choices"] = kvp.Value.Choices;
 
-                        // Only write is_choice if it's true (choice list)
                         if (kvp.Value.IsChoice)
                             configDict["is_choice"] = true;
                     }
@@ -243,12 +236,10 @@ public class MetadataParser(DependencyFactory dependencyFactory)
         var match = MetadataBlockRegex.Match(macro.Content);
         if (match.Success)
         {
-            // Replace existing block
             var afterMetadata = macro.Content[(match.Index + match.Length)..]; // for ensuring there's a new line after the end
             macro.Content = macro.Content[..match.Index] + metadataBlock + (afterMetadata.StartsWith('\n') || afterMetadata.StartsWith('\r') ? "" : "\n") + afterMetadata;
         }
         else
-            // Add new block
             macro.Content = metadataBlock + (macro.Content.StartsWith('\n') ? "" : "\n") + macro.Content;
 
         C.Save();
@@ -262,13 +253,11 @@ public class MetadataParser(DependencyFactory dependencyFactory)
     /// <param name="macroType">The type of macro.</param>
     /// <returns>Tuple of (startComment, endComment) strings.</returns>
     private static (string startComment, string endComment) GetCommentSyntax(MacroType macroType)
-    {
-        return macroType switch
+        => macroType switch
         {
             MacroType.Lua => ("--[=====[", "--]=====]"),
             _ => ("", "")
         };
-    }
 
     private List<IMacroDependency> ParseDependencies(object dependencies)
     {
@@ -302,7 +291,6 @@ public class MetadataParser(DependencyFactory dependencyFactory)
 
             if (kvp.Value is Dictionary<object, object> configData)
             {
-                // Complex config object with metadata
                 if (configData.TryGetValue("default", out var defaultValue))
                     configItem.DefaultValue = defaultValue ?? string.Empty;
 
@@ -326,49 +314,35 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                 if (configData.TryGetValue("validation_message", out var message))
                     configItem.ValidationMessage = message?.ToString();
 
-                // Handle list-specific properties
                 if (configData.TryGetValue("choices", out var choices))
-                {
                     if (choices is List<object> choiceList)
                         configItem.Choices = choiceList.Select(c => c?.ToString() ?? string.Empty).Where(c => !string.IsNullOrEmpty(c)).ToList();
-                }
 
                 if (configData.TryGetValue("is_choice", out var isChoiceList))
                     configItem.IsChoice = isChoiceList?.ToString()?.ToLower() == "true";
             }
             else
             {
-                // Simple config value - infer type from the value itself
                 configItem.DefaultValue = kvp.Value ?? string.Empty;
-                configItem.Description = configName; // Use the config name as description
+                configItem.Description = configName;
             }
 
-            // Infer type from default value if not explicitly specified
             if (configItem.Type == typeof(string))
-            {
                 configItem.Type = InferTypeFromValue(configItem.DefaultValue);
-            }
 
-            // Initialize value based on inferred type
             if (configItem.Type == typeof(List<string>))
             {
                 if (configItem.IsChoice)
-                {
                     configItem.Value = configItem.Choices.Any()
                         ? configItem.Choices.First()
                         : configItem.DefaultValue?.ToString() ?? string.Empty;
-                }
                 else
-                {
                     configItem.Value = configItem.DefaultValue is List<object> defaultList
-                        ? defaultList.Select(x => x?.ToString() ?? string.Empty).ToList()
+                        ? [.. defaultList.Select(x => x?.ToString() ?? string.Empty)]
                         : new List<string>();
-                }
             }
             else
-            {
                 configItem.Value = configItem.DefaultValue;
-            }
 
             result[configName] = configItem;
         }
