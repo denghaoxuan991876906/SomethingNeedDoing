@@ -160,19 +160,15 @@ public class ConfigModule(IMacro macro) : LuaModuleBase
                     return configItem.DefaultValue;
 
                 case var t when t == typeof(List<string>):
-                    if (value is List<string> list)
+                    if (configItem.IsChoice)
                     {
-                        if (!configItem.IsChoice)
-                            return list;
-                        else
-                        {
-                            var choice = value.ToString();
-                            if (configItem.Choices.Contains(choice))
-                                return choice;
-                            return configItem.Choices.FirstOrDefault() ?? string.Empty;
-                        }
+                        var choice = value?.ToString() ?? string.Empty;
+                        return configItem.Choices.Contains(choice) ? choice : configItem.Choices.FirstOrDefault() ?? string.Empty;
                     }
-                    return !configItem.IsChoice ? new List<string>() : configItem.Choices.FirstOrDefault() ?? string.Empty;
+                    else
+                    {
+                        return value is List<string> list ? list : [];
+                    }
 
                 case var t when t == typeof(string):
                 default:

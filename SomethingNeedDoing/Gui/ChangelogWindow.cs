@@ -79,6 +79,7 @@ public class ChangelogWindow : Window
         Add("12.64", "Changed list index modifier name from listindex to list");
         Add("12.75", "Added duty started/wiped/completed events");
         Add("12.76", "Fixed git macros resetting configs on update");
+        Add("13.41", "Fixed how some lists were handled in the configs, as well as string representations of other types");
     }
 
     private void Add(string version, string description)

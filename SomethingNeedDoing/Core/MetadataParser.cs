@@ -299,6 +299,8 @@ public class MetadataParser(DependencyFactory dependencyFactory)
 
                 if (configData.TryGetValue("type", out var type))
                     configItem.TypeName = type?.ToString() ?? "string";
+                else
+                    configItem.Type = InferTypeFromValue(configItem.DefaultValue);
 
                 if (configData.TryGetValue("min", out var min))
                     configItem.MinValue = min;
@@ -320,22 +322,27 @@ public class MetadataParser(DependencyFactory dependencyFactory)
 
                 if (configData.TryGetValue("is_choice", out var isChoiceList))
                     configItem.IsChoice = isChoiceList?.ToString()?.ToLower() == "true";
+
+                if (configItem.Choices.Any() && configItem.IsChoice)
+                    configItem.Type = typeof(List<string>);
             }
             else
             {
                 configItem.DefaultValue = kvp.Value ?? string.Empty;
                 configItem.Description = configName;
-            }
-
-            if (configItem.Type == typeof(string))
                 configItem.Type = InferTypeFromValue(configItem.DefaultValue);
+            }
 
             if (configItem.Type == typeof(List<string>))
             {
                 if (configItem.IsChoice)
-                    configItem.Value = configItem.Choices.Any()
-                        ? configItem.Choices.First()
-                        : configItem.DefaultValue?.ToString() ?? string.Empty;
+                {
+                    var defaultValue = configItem.DefaultValue?.ToString() ?? string.Empty;
+                    if (configItem.Choices.Contains(defaultValue))
+                        configItem.Value = defaultValue;
+                    else
+                        configItem.Value = configItem.Choices.Any() ? configItem.Choices.First() : string.Empty;
+                }
                 else
                     configItem.Value = configItem.DefaultValue is List<object> defaultList
                         ? [.. defaultList.Select(x => x?.ToString() ?? string.Empty)]
@@ -354,17 +361,23 @@ public class MetadataParser(DependencyFactory dependencyFactory)
     {
         if (value == null) return typeof(string);
 
-        return value switch
+        if (value is bool) return typeof(bool);
+        if (value is int) return typeof(int);
+        if (value is long) return typeof(int);
+        if (value is float) return typeof(float);
+        if (value is double) return typeof(float);
+        if (value is List<object>) return typeof(List<string>);
+
+        if (value is string stringValue) // in case someone does "bool" or whatever
         {
-            bool => typeof(bool),
-            int => typeof(int),
-            long => typeof(int),
-            float => typeof(float),
-            double => typeof(float),
-            List<object> => typeof(List<string>),
-            _ => typeof(string)
-        };
+            if (bool.TryParse(stringValue, out _))
+                return typeof(bool);
+            if (int.TryParse(stringValue, out _))
+                return typeof(int);
+            if (float.TryParse(stringValue, out _))
+                return typeof(float);
+        }
+
+        return typeof(string);
     }
-
-
 }
