@@ -188,46 +188,78 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                         break;
 
                     case var t when t == typeof(string):
+                        if (configValue.IsChoice)
+                        {
+                            var currentChoice = configValue.Value?.ToString() ?? "";
+                            var choices = configValue.Choices.ToArray();
+
+                            if (choices.Length > 0)
+                            {
+                                var currentIndex = Array.IndexOf(choices, currentChoice);
+                                if (currentIndex == -1) currentIndex = 0;
+
+                                ImGui.SetNextItemWidth(200);
+                                if (ImGui.Combo($"##{configName}Value", ref currentIndex, choices, choices.Length))
+                                {
+                                    configValue.Value = choices[currentIndex];
+                                    valueChanged = true;
+                                }
+                            }
+                            else
+                                ImGui.TextColored(ImGuiColors.DalamudRed, "No choices defined");
+                        }
+                        else
+                        {
+                            var stringValue = configValue.Value.ToString() ?? string.Empty;
+                            ImGui.SetNextItemWidth(300);
+
+                            var isValid = true;
+                            var validationMessage = string.Empty;
+                            if (!string.IsNullOrEmpty(configValue.ValidationPattern))
+                            {
+                                try
+                                {
+                                    var regex = new System.Text.RegularExpressions.Regex(configValue.ValidationPattern);
+                                    isValid = regex.IsMatch(stringValue);
+                                    if (!isValid)
+                                        validationMessage = configValue.ValidationMessage ?? "Value does not match pattern";
+                                }
+                                catch (Exception ex)
+                                {
+                                    isValid = false;
+                                    validationMessage = $"Invalid validation pattern: {ex.Message}";
+                                }
+                            }
+
+                            using (ImRaii.PushColor(ImGuiCol.Text, isValid ? ImGuiColors.HealerGreen : ImGuiColors.DalamudRed, !string.IsNullOrEmpty(configValue.ValidationPattern)))
+                            {
+                                if (ImGui.InputText($"##{configName}Value", ref stringValue, 1000))
+                                {
+                                    configValue.Value = stringValue;
+                                    valueChanged = true;
+                                }
+                            }
+
+                            if (!string.IsNullOrEmpty(configValue.ValidationPattern))
+                            {
+                                ImGui.SameLine();
+                                ImGuiEx.Icon(isValid ? ImGuiColors.HealerGreen : ImGuiColors.DalamudRed, isValid ? FontAwesomeIcon.Check : FontAwesomeIcon.ExclamationTriangle);
+
+                                if (!isValid && !string.IsNullOrEmpty(validationMessage))
+                                    ImGuiEx.Tooltip(validationMessage);
+                                else if (isValid)
+                                    ImGuiEx.Tooltip("Value matches validation pattern");
+                            }
+                        }
+                        break;
+
                     default:
-                        var stringValue = configValue.Value.ToString() ?? string.Empty;
+                        var defaultValue = configValue.Value.ToString() ?? string.Empty;
                         ImGui.SetNextItemWidth(300);
-
-                        var isValid = true;
-                        var validationMessage = string.Empty;
-                        if (!string.IsNullOrEmpty(configValue.ValidationPattern))
+                        if (ImGui.InputText($"##{configName}Value", ref defaultValue, 1000))
                         {
-                            try
-                            {
-                                var regex = new System.Text.RegularExpressions.Regex(configValue.ValidationPattern);
-                                isValid = regex.IsMatch(stringValue);
-                                if (!isValid)
-                                    validationMessage = configValue.ValidationMessage ?? "Value does not match pattern";
-                            }
-                            catch (Exception ex)
-                            {
-                                isValid = false;
-                                validationMessage = $"Invalid validation pattern: {ex.Message}";
-                            }
-                        }
-
-                        using (ImRaii.PushColor(ImGuiCol.Text, isValid ? ImGuiColors.HealerGreen : ImGuiColors.DalamudRed, !string.IsNullOrEmpty(configValue.ValidationPattern)))
-                        {
-                            if (ImGui.InputText($"##{configName}Value", ref stringValue, 1000))
-                            {
-                                configValue.Value = stringValue;
-                                valueChanged = true;
-                            }
-                        }
-
-                        if (!string.IsNullOrEmpty(configValue.ValidationPattern))
-                        {
-                            ImGui.SameLine();
-                            ImGuiEx.Icon(isValid ? ImGuiColors.HealerGreen : ImGuiColors.DalamudRed, isValid ? FontAwesomeIcon.Check : FontAwesomeIcon.ExclamationTriangle);
-
-                            if (!isValid && !string.IsNullOrEmpty(validationMessage))
-                                ImGuiEx.Tooltip(validationMessage);
-                            else if (isValid)
-                                ImGuiEx.Tooltip("Value matches validation pattern");
+                            configValue.Value = defaultValue;
+                            valueChanged = true;
                         }
                         break;
                 }

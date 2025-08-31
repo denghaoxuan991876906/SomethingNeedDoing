@@ -221,6 +221,13 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                         if (kvp.Value.IsChoice)
                             configDict["is_choice"] = true;
                     }
+                    else if (kvp.Value.IsChoice && kvp.Value.Type == typeof(string))
+                    {
+                        if (kvp.Value.Choices.Any())
+                            configDict["choices"] = kvp.Value.Choices;
+
+                        configDict["is_choice"] = true;
+                    }
 
                     return configDict;
                 }
@@ -342,6 +349,14 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                     configItem.Value = configItem.DefaultValue is List<object> defaultList
                         ? [.. defaultList.Select(x => x?.ToString() ?? string.Empty)]
                         : new List<string>();
+            }
+            else if (configItem.IsChoice && configItem.Type == typeof(string))
+            {
+                var defaultValue = configItem.DefaultValue?.ToString() ?? string.Empty;
+                if (configItem.Choices.Contains(defaultValue))
+                    configItem.Value = defaultValue;
+                else
+                    configItem.Value = configItem.Choices.Any() ? configItem.Choices.First() : string.Empty;
             }
             else
                 configItem.Value = configItem.DefaultValue;

@@ -166,29 +166,37 @@ public class ConfigModule(IMacro macro) : LuaModuleBase
                         return configItem.Choices.Contains(choice) ? choice : configItem.Choices.FirstOrDefault() ?? string.Empty;
                     }
                     else
-                    {
                         return value is List<string> list ? list : [];
-                    }
 
                 case var t when t == typeof(string):
-                default:
-                    if (value.ToString() is { } str && !string.IsNullOrEmpty(configItem.ValidationPattern))
+                    if (configItem.IsChoice)
                     {
-                        try
+                        var choice = value?.ToString() ?? string.Empty;
+                        return configItem.Choices.Contains(choice) ? choice : configItem.Choices.FirstOrDefault() ?? string.Empty;
+                    }
+                    else
+                    {
+                        if (value.ToString() is { } str && !string.IsNullOrEmpty(configItem.ValidationPattern))
                         {
-                            var regex = new System.Text.RegularExpressions.Regex(configItem.ValidationPattern);
-                            if (!regex.IsMatch(str))
+                            try
                             {
-                                FrameworkLogger.Warning($"Config validation failed for '{configItem.Description}': {configItem.ValidationMessage ?? "Value does not match pattern"}");
-                                return configItem.DefaultValue;
+                                var regex = new System.Text.RegularExpressions.Regex(configItem.ValidationPattern);
+                                if (!regex.IsMatch(str))
+                                {
+                                    FrameworkLogger.Warning($"Config validation failed for '{configItem.Description}': {configItem.ValidationMessage ?? "Value does not match pattern"}");
+                                    return configItem.DefaultValue;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                FrameworkLogger.Error(ex, $"Invalid validation pattern for config: {configItem.ValidationPattern}");
                             }
                         }
-                        catch (Exception ex)
-                        {
-                            FrameworkLogger.Error(ex, $"Invalid validation pattern for config: {configItem.ValidationPattern}");
-                        }
+
+                        return value.ToString() ?? string.Empty;
                     }
 
+                default:
                     return value.ToString() ?? string.Empty;
             }
         }
