@@ -207,8 +207,6 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                     if (kvp.Value.MaxValue != null)
                         configDict["max"] = kvp.Value.MaxValue;
 
-
-
                     if (!string.IsNullOrEmpty(kvp.Value.ValidationPattern))
                         configDict["validation_pattern"] = kvp.Value.ValidationPattern;
 
@@ -293,6 +291,8 @@ public class MetadataParser(DependencyFactory dependencyFactory)
             {
                 if (configData.TryGetValue("default", out var defaultValue))
                     configItem.DefaultValue = defaultValue ?? string.Empty;
+                else if (configData.ContainsKey("choices"))
+                    configItem.DefaultValue = new List<object>(); // if no default for lists, we want the default value to be a list so the type can be inferred properly
 
                 if (configData.TryGetValue("description", out var description))
                     configItem.Description = description?.ToString() ?? string.Empty;
@@ -308,8 +308,6 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                 if (configData.TryGetValue("max", out var max))
                     configItem.MaxValue = max;
 
-
-
                 if (configData.TryGetValue("validation_pattern", out var pattern))
                     configItem.ValidationPattern = pattern?.ToString();
 
@@ -318,13 +316,10 @@ public class MetadataParser(DependencyFactory dependencyFactory)
 
                 if (configData.TryGetValue("choices", out var choices))
                     if (choices is List<object> choiceList)
-                        configItem.Choices = choiceList.Select(c => c?.ToString() ?? string.Empty).Where(c => !string.IsNullOrEmpty(c)).ToList();
+                        configItem.Choices = [.. choiceList.Select(c => c?.ToString() ?? string.Empty).Where(c => !string.IsNullOrEmpty(c))];
 
                 if (configData.TryGetValue("is_choice", out var isChoiceList))
                     configItem.IsChoice = isChoiceList?.ToString()?.ToLower() == "true";
-
-                if (configItem.Choices.Any() && configItem.IsChoice)
-                    configItem.Type = typeof(List<string>);
             }
             else
             {
@@ -366,7 +361,7 @@ public class MetadataParser(DependencyFactory dependencyFactory)
         if (value is long) return typeof(int);
         if (value is float) return typeof(float);
         if (value is double) return typeof(float);
-        if (value is List<object>) return typeof(List<string>);
+        if (value is List<object> or List<string>) return typeof(List<string>);
 
         if (value is string stringValue) // in case someone does "bool" or whatever
         {
