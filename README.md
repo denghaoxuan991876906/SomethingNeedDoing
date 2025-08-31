@@ -17,3 +17,7 @@ Home of the soon to be legendary functions file, tutorials and alt/retainer/hunt
 #### The Dumpster Fire
 https://github.com/McVaxius/dhogsbreakfeast  
 Frenrider, script examples, post AR processing scripts, fishing and more.
+
+#### Nonu's collection
+https://github.com/Nonunon/SomethingNeedScripting
+Various random functions and scripts
