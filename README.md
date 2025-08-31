@@ -19,5 +19,9 @@ https://github.com/McVaxius/dhogsbreakfeast
 Frenrider, script examples, post AR processing scripts, fishing and more.
 
 #### Nonu's collection
-https://github.com/Nonunon/SomethingNeedScripting
+https://github.com/Nonunon/SomethingNeedScripting  
 Various random functions and scripts
+
+#### Minnu's collection
+https://github.com/MinnuVerse/SnD  
+CrafterScrips (Crafting & TurningIn), Daily Allied Quests, CosmicFishing and more.
