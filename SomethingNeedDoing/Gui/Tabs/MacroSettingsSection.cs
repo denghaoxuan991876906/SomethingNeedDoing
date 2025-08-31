@@ -77,10 +77,10 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                 switch (configValue.Type)
                 {
                     case var t when t == typeof(int):
-                        var intValue = Convert.ToInt32(configValue.Value);
-                        var intDefault = Convert.ToInt32(configValue.DefaultValue);
-                        var intMin = configValue.MinValue != null ? Convert.ToInt32(configValue.MinValue) : int.MinValue;
-                        var intMax = configValue.MaxValue != null ? Convert.ToInt32(configValue.MaxValue) : int.MaxValue;
+                        var intValue = configValue.Value.ToInt();
+                        var intDefault = configValue.DefaultValue.ToInt();
+                        var intMin = configValue.MinValue != null ? configValue.MinValue.ToInt() : int.MinValue;
+                        var intMax = configValue.MaxValue != null ? configValue.MaxValue.ToInt() : int.MaxValue;
 
                         ImGui.SetNextItemWidth(200);
                         if (ImGui.InputInt($"##{configName}Value", ref intValue))
@@ -99,10 +99,10 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                         break;
 
                     case var t when t == typeof(float) || t == typeof(double):
-                        var floatValue = Convert.ToSingle(configValue.Value);
-                        var floatDefault = Convert.ToSingle(configValue.DefaultValue);
-                        var floatMin = configValue.MinValue != null ? Convert.ToSingle(configValue.MinValue) : float.MinValue;
-                        var floatMax = configValue.MaxValue != null ? Convert.ToSingle(configValue.MaxValue) : float.MaxValue;
+                        var floatValue = configValue.Value.ToFloat();
+                        var floatDefault = configValue.DefaultValue.ToFloat();
+                        var floatMin = configValue.MinValue != null ? configValue.MinValue.ToFloat() : float.MinValue;
+                        var floatMax = configValue.MaxValue != null ? configValue.MaxValue.ToFloat() : float.MaxValue;
 
                         ImGui.SetNextItemWidth(200);
                         if (ImGui.InputFloat($"##{configName}Value", ref floatValue))
@@ -121,7 +121,7 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                         break;
 
                     case var t when t == typeof(bool):
-                        var boolValue = Convert.ToBoolean(configValue.Value);
+                        var boolValue = configValue.Value.ToBool();
                         ImGui.SetNextItemWidth(200);
                         if (ImGui.Checkbox($"##{configName}Value", ref boolValue))
                         {
