@@ -30,45 +30,24 @@ public class EnginesModule : LuaModuleBase
     {
         var moduleDocs = new List<LuaFunctionDoc>
         {
-            // Register global helper functions
             new(
             ModuleName,
             "Run",
-            "Executes content using the best available engine (fire and forget)",
+            "Executes content using the relevant engine",
             LuaTypeConverter.GetLuaType(typeof(void)),
-            [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
-            null,
-            true
-        ),
-            new(
-            ModuleName,
-            "RunAsync",
-            "Executes content using the best available engine asynchronously",
-            LuaTypeConverter.GetLuaType(typeof(Task)),
             [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
             null,
             true
         )
         };
 
-        // Register each engine's functions
         foreach (var (name, engine) in _engines)
         {
             moduleDocs.Add(new LuaFunctionDoc(
                 $"{ModuleName}.{name}",
                 "Run",
-                $"Executes content using the {engine.Name} engine (fire and forget)",
+                $"Executes content using the {engine.Name} engine",
                 LuaTypeConverter.GetLuaType(typeof(void)),
-                [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
-                null,
-                true
-            ));
-
-            moduleDocs.Add(new LuaFunctionDoc(
-                $"{ModuleName}.{name}",
-                "RunAsync",
-                $"Executes content using the {engine.Name} engine asynchronously",
-                LuaTypeConverter.GetLuaType(typeof(Task)),
                 [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
                 null,
                 true
@@ -89,17 +68,8 @@ public class EnginesModule : LuaModuleBase
             new(
             "Engines",
             "Run",
-            "Executes content using the best available engine (fire and forget)",
+            "Executes content using the relevant engine",
             LuaTypeConverter.GetLuaType(typeof(void)),
-            [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
-            null,
-            true
-        ),
-            new(
-            "Engines",
-            "RunAsync",
-            "Executes content using the best available engine asynchronously",
-            LuaTypeConverter.GetLuaType(typeof(Task)),
             [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
             null,
             true
@@ -112,18 +82,8 @@ public class EnginesModule : LuaModuleBase
             moduleDocs.Add(new LuaFunctionDoc(
                 $"Engines.{engineName}",
                 "Run",
-                $"Executes content using the {engineName} engine (fire and forget)",
+                $"Executes content using the {engineName} engine",
                 LuaTypeConverter.GetLuaType(typeof(void)),
-                [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
-                null,
-                true
-            ));
-
-            moduleDocs.Add(new LuaFunctionDoc(
-                $"Engines.{engineName}",
-                "RunAsync",
-                $"Executes content using the {engineName} engine asynchronously",
-                LuaTypeConverter.GetLuaType(typeof(Task)),
                 [("content", LuaTypeConverter.GetLuaType(typeof(string)), "The content to execute", null)],
                 null,
                 true
@@ -135,19 +95,9 @@ public class EnginesModule : LuaModuleBase
 
     private void RegisterEngineFunctions(Lua lua)
     {
-        // Register each engine
         foreach (var (name, engine) in _engines)
-        {
-            lua[$"{ModuleName}.{name}"] = new
-            {
-                Run = new Action<string>(content => ExecuteEngine(engine, content)),
-                RunAsync = new Func<string, Task>(content => ExecuteEngineAsync(engine, content)),
-            };
-        }
-
-        // Register helper functions for auto-detection
+            lua[$"{ModuleName}.{name}"] = new { Run = new Action<string>(content => ExecuteEngine(engine, content)) };
         lua[$"{ModuleName}.Run"] = new Action<string>(ExecuteBestEngine);
-        lua[$"{ModuleName}.RunAsync"] = new Func<string, Task>(ExecuteBestEngineAsync);
     }
 
     /// <summary>
@@ -157,7 +107,6 @@ public class EnginesModule : LuaModuleBase
     /// <param name="content">The content to execute.</param>
     private void ExecuteEngine(IEngine engine, string content)
     {
-        // Execute synchronously (fire and forget)
         _ = Task.Run(async () =>
         {
             try
@@ -172,14 +121,6 @@ public class EnginesModule : LuaModuleBase
     }
 
     /// <summary>
-    /// Executes content using the specified engine asynchronously.
-    /// </summary>
-    /// <param name="engine">The engine to use.</param>
-    /// <param name="content">The content to execute.</param>
-    /// <returns>A task representing the execution.</returns>
-    private async Task ExecuteEngineAsync(IEngine engine, string content) => await engine.ExecuteAsync(content);
-
-    /// <summary>
     /// Executes content using the best available engine.
     /// </summary>
     /// <param name="content">The content to execute.</param>
@@ -187,19 +128,6 @@ public class EnginesModule : LuaModuleBase
     {
         if (FindBestEngine(content) is { } engine)
             ExecuteEngine(engine, content);
-        else
-            FrameworkLogger.Warning($"No suitable engine found for content: {content}");
-    }
-
-    /// <summary>
-    /// Executes content using the best available engine asynchronously.
-    /// </summary>
-    /// <param name="content">The content to execute.</param>
-    /// <returns>A task representing the execution.</returns>
-    private async Task ExecuteBestEngineAsync(string content)
-    {
-        if (FindBestEngine(content) is { } engine)
-            await ExecuteEngineAsync(engine, content);
         else
             FrameworkLogger.Warning($"No suitable engine found for content: {content}");
     }
