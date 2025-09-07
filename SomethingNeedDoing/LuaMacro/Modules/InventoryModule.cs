@@ -195,8 +195,9 @@ public unsafe class InventoryModule : LuaModuleBase
 
         [LuaDocs]
         [Changelog("12.51")]
+        [Changelog("13.46", ChangelogType.Fixed, "Stop fake item movement")]
         public void MoveItemSlot(InventoryType destinationContainer)
-            => InventoryManager.Instance()->MoveItemSlot(Container, (ushort)Slot, destinationContainer, GetFirstEmptySlot(destinationContainer));
+            => InventoryManager.Instance()->MoveItemSlot(Container, (ushort)Slot, destinationContainer, GetFirstEmptySlot(destinationContainer), true);
     }
 
     private static unsafe ushort GetFirstEmptySlot(InventoryType container)
