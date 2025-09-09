@@ -1,5 +1,4 @@
-﻿using ECommons.Automation;
-using FFXIVClientStructs.FFXIV.Component.GUI;
+﻿using FFXIVClientStructs.FFXIV.Component.GUI;
 using System.Threading;
 using System.Threading.Tasks;
 

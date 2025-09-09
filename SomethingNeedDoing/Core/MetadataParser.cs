@@ -1,6 +1,5 @@
 using Dalamud.Game.Addon.Lifecycle;
 using SomethingNeedDoing.Core.Interfaces;
-using System.IO;
 using System.Text.RegularExpressions;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;

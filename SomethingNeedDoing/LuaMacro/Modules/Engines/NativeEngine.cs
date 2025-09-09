@@ -1,6 +1,4 @@
-using SomethingNeedDoing.Core;
 using SomethingNeedDoing.Core.Events;
-using SomethingNeedDoing.NativeMacro;
 using System.Threading;
 using System.Threading.Tasks;
 

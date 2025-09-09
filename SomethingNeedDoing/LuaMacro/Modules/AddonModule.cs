@@ -1,5 +1,4 @@
-﻿using FFXIVClientStructs.FFXIV.Component.GUI;
-using NLua;
+﻿using NLua;
 using SomethingNeedDoing.LuaMacro.Wrappers;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;

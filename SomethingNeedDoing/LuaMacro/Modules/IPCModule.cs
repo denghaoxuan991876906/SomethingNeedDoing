@@ -3,7 +3,6 @@ using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Documentation;
 using System.Reflection;
 using System.Linq.Expressions;
-using SomethingNeedDoing.External;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;
 

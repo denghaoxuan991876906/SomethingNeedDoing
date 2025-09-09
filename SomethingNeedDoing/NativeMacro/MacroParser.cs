@@ -318,11 +318,7 @@ public class MacroParser
         return new RecipeCommand(parameters, recipeName);
     }
 
-    private RequireCommand ParseRequireCommand(string parameters)
-    {
-        var conditions = parameters.Split(',').Select(c => c.Trim()).ToArray();
-        return new RequireCommand(parameters, conditions);
-    }
+    private RequireCommand ParseRequireCommand(string parameters) => new(parameters, parameters.Trim('"'));
 
     private RequireRepairCommand ParseRequireRepairCommand(string parameters)
     {

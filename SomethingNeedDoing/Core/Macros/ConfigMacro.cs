@@ -1,5 +1,4 @@
-﻿using SomethingNeedDoing.Core.Events;
-using SomethingNeedDoing.Core.Interfaces;
+﻿using SomethingNeedDoing.Core.Interfaces;
 
 namespace SomethingNeedDoing.Core;
 /// <summary>
