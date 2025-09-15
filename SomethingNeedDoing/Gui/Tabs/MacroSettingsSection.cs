@@ -73,15 +73,14 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                 ImGuiEx.Tooltip($"重置为默认值: {configValue.DefaultValue}");
                 ImGui.Spacing();
 
-                // Value editor based on type
                 var valueChanged = false;
-                switch (configValue.Type.ToLower())
+                switch (configValue.Type)
                 {
-                    case "int":
-                        var intValue = Convert.ToInt32(configValue.Value);
-                        var intDefault = Convert.ToInt32(configValue.DefaultValue);
-                        var intMin = configValue.MinValue != null ? Convert.ToInt32(configValue.MinValue) : int.MinValue;
-                        var intMax = configValue.MaxValue != null ? Convert.ToInt32(configValue.MaxValue) : int.MaxValue;
+                    case var t when t == typeof(int):
+                        var intValue = configValue.Value.ToInt();
+                        var intDefault = configValue.DefaultValue.ToInt();
+                        var intMin = configValue.MinValue != null ? configValue.MinValue.ToInt() : int.MinValue;
+                        var intMax = configValue.MaxValue != null ? configValue.MaxValue.ToInt() : int.MaxValue;
 
                         ImGui.SetNextItemWidth(200);
                         if (ImGui.InputInt($"##{configName}Value", ref intValue))
@@ -99,12 +98,11 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                         }
                         break;
 
-                    case "float":
-                    case "double":
-                        var floatValue = Convert.ToSingle(configValue.Value);
-                        var floatDefault = Convert.ToSingle(configValue.DefaultValue);
-                        var floatMin = configValue.MinValue != null ? Convert.ToSingle(configValue.MinValue) : float.MinValue;
-                        var floatMax = configValue.MaxValue != null ? Convert.ToSingle(configValue.MaxValue) : float.MaxValue;
+                    case var t when t == typeof(float) || t == typeof(double):
+                        var floatValue = configValue.Value.ToFloat();
+                        var floatDefault = configValue.DefaultValue.ToFloat();
+                        var floatMin = configValue.MinValue != null ? configValue.MinValue.ToFloat() : float.MinValue;
+                        var floatMax = configValue.MaxValue != null ? configValue.MaxValue.ToFloat() : float.MaxValue;
 
                         ImGui.SetNextItemWidth(200);
                         if (ImGui.InputFloat($"##{configName}Value", ref floatValue))
@@ -122,9 +120,8 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                         }
                         break;
 
-                    case "bool":
-                    case "boolean":
-                        var boolValue = Convert.ToBoolean(configValue.Value);
+                    case var t when t == typeof(bool):
+                        var boolValue = configValue.Value.ToBool();
                         ImGui.SetNextItemWidth(200);
                         if (ImGui.Checkbox($"##{configName}Value", ref boolValue))
                         {
@@ -133,60 +130,142 @@ public class MacroSettingsSection(IMacroScheduler scheduler, DependencyFactory d
                         }
                         break;
 
-                    case "string":
-                    default:
-                        var stringValue = configValue.Value.ToString() ?? string.Empty;
-                        ImGui.SetNextItemWidth(300);
-
-                        var isValid = true;
-                        var validationMessage = string.Empty;
-                        if (!string.IsNullOrEmpty(configValue.ValidationPattern))
+                    case var t when t == typeof(List<string>):
+                        if (configValue.IsChoice)
                         {
-                            try
+                            var currentChoice = configValue.Value?.ToString() ?? "";
+                            var choices = configValue.Choices.ToArray();
+
+                            if (choices.Length > 0)
                             {
-                                var regex = new System.Text.RegularExpressions.Regex(configValue.ValidationPattern);
-                                isValid = regex.IsMatch(stringValue);
-                                if (!isValid)
-                                    validationMessage = configValue.ValidationMessage ?? "值不匹配模式";
+                                var currentIndex = Array.IndexOf(choices, currentChoice);
+                                if (currentIndex == -1) currentIndex = 0;
+
+                                ImGui.SetNextItemWidth(200);
+                                if (ImGui.Combo($"##{configName}Value", ref currentIndex, choices, choices.Length))
+                                {
+                                    configValue.Value = choices[currentIndex];
+                                    valueChanged = true;
+                                }
                             }
-                            catch (Exception ex)
-                            {
-                                isValid = false;
-                                validationMessage = $"验证模式无效: {ex.Message}";
-                            }
+                            else
+                                ImGui.TextColored(ImGuiColors.DalamudRed, "No choices defined");
                         }
-
-                        using (ImRaii.PushColor(ImGuiCol.Text, isValid ? ImGuiColors.HealerGreen : ImGuiColors.DalamudRed, !string.IsNullOrEmpty(configValue.ValidationPattern)))
+                        else
                         {
-                            if (ImGui.InputText($"##{configName}Value", ref stringValue, 1000))
+                            var list = configValue.Value as List<string> ?? [];
+
+                            ImGui.SetNextItemWidth(200);
+                            var entry = "";
+                            if (ImGui.InputText($"##{configName}Add", ref entry, 512, ImGuiInputTextFlags.EnterReturnsTrue))
                             {
-                                configValue.Value = stringValue;
+                                list.Add(entry);
                                 valueChanged = true;
                             }
+
+                            for (var i = 0; i < list.Count; i++)
+                            {
+                                using var id = ImRaii.PushId($"{configName}_{i}");
+                                ImGui.SetNextItemWidth(200);
+                                var item = list[i];
+                                if (ImGui.InputText("", ref item, 512))
+                                {
+                                    list[i] = item;
+                                    valueChanged = true;
+                                }
+
+                                ImGui.SameLine();
+                                if (ImGui.Button("Remove"))
+                                {
+                                    list.RemoveAt(i);
+                                    valueChanged = true;
+                                    break;
+                                }
+                            }
+
+                            configValue.Value = list;
                         }
+                        break;
 
-                        if (!string.IsNullOrEmpty(configValue.ValidationPattern))
+                    case var t when t == typeof(string):
+                        if (configValue.IsChoice)
                         {
-                            ImGui.SameLine();
-                            ImGuiEx.Icon(isValid ? ImGuiColors.HealerGreen : ImGuiColors.DalamudRed, isValid ? FontAwesomeIcon.Check : FontAwesomeIcon.ExclamationTriangle);
+                            var currentChoice = configValue.Value?.ToString() ?? "";
+                            var choices = configValue.Choices.ToArray();
 
-                            if (!isValid && !string.IsNullOrEmpty(validationMessage))
-                                ImGuiEx.Tooltip(validationMessage);
-                            else if (isValid)
-                                ImGuiEx.Tooltip("值匹配验证模式");
+                            if (choices.Length > 0)
+                            {
+                                var currentIndex = Array.IndexOf(choices, currentChoice);
+                                if (currentIndex == -1) currentIndex = 0;
+
+                                ImGui.SetNextItemWidth(200);
+                                if (ImGui.Combo($"##{configName}Value", ref currentIndex, choices, choices.Length))
+                                {
+                                    configValue.Value = choices[currentIndex];
+                                    valueChanged = true;
+                                }
+                            }
+                            else
+                                ImGui.TextColored(ImGuiColors.DalamudRed, "No choices defined");
+                        }
+                        else
+                        {
+                            var stringValue = configValue.Value.ToString() ?? string.Empty;
+                            ImGui.SetNextItemWidth(300);
+
+                            var isValid = true;
+                            var validationMessage = string.Empty;
+                            if (!string.IsNullOrEmpty(configValue.ValidationPattern))
+                            {
+                                try
+                                {
+                                    var regex = new System.Text.RegularExpressions.Regex(configValue.ValidationPattern);
+                                    isValid = regex.IsMatch(stringValue);
+                                    if (!isValid)
+                                        validationMessage = configValue.ValidationMessage ?? "值不匹配模式";
+                                }
+                                catch (Exception ex)
+                                {
+                                    isValid = false;
+                                    validationMessage = $"验证模式无效: {ex.Message}";
+                                }
+                            }
+
+                            using (ImRaii.PushColor(ImGuiCol.Text, isValid ? ImGuiColors.HealerGreen : ImGuiColors.DalamudRed, !string.IsNullOrEmpty(configValue.ValidationPattern)))
+                            {
+                                if (ImGui.InputText($"##{configName}Value", ref stringValue, 1000))
+                                {
+                                    configValue.Value = stringValue;
+                                    valueChanged = true;
+                                }
+                            }
+
+                            if (!string.IsNullOrEmpty(configValue.ValidationPattern))
+                            {
+                                ImGui.SameLine();
+                                ImGuiEx.Icon(isValid ? ImGuiColors.HealerGreen : ImGuiColors.DalamudRed, isValid ? FontAwesomeIcon.Check : FontAwesomeIcon.ExclamationTriangle);
+
+                                if (!isValid && !string.IsNullOrEmpty(validationMessage))
+                                    ImGuiEx.Tooltip(validationMessage);
+                                else if (isValid)
+                                    ImGuiEx.Tooltip("值匹配验证模式");
+                            }
+                        }
+                        break;
+
+                    default:
+                        var defaultValue = configValue.Value.ToString() ?? string.Empty;
+                        ImGui.SetNextItemWidth(300);
+                        if (ImGui.InputText($"##{configName}Value", ref defaultValue, 1000))
+                        {
+                            configValue.Value = defaultValue;
+                            valueChanged = true;
                         }
                         break;
                 }
 
                 if (valueChanged)
                     C.Save();
-
-                if (configValue.Required)
-                {
-                    ImGui.SameLine();
-                    ImGui.TextColored(ImGuiColors.DalamudRed, "*");
-                    ImGuiEx.Tooltip("此配置是必需的");
-                }
 
                 ImGui.Spacing();
                 ImGui.Separator();

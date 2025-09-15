@@ -97,7 +97,7 @@ public unsafe class InventoryModule : LuaModuleBase
     public unsafe class InventoryContainerWrapper(InventoryType container) : IWrapper
     {
         private readonly InventoryContainer* _container = InventoryManager.Instance()->GetInventoryContainer(container);
-        [LuaDocs] public uint Count => _container->Size;
+        [LuaDocs] public int Count => _container->Size;
 
         [LuaDocs]
         public int FreeSlots
@@ -195,8 +195,9 @@ public unsafe class InventoryModule : LuaModuleBase
 
         [LuaDocs]
         [Changelog("12.51")]
+        [Changelog("13.46", ChangelogType.Fixed, "Potential fix for fake movement")]
         public void MoveItemSlot(InventoryType destinationContainer)
-            => InventoryManager.Instance()->MoveItemSlot(Container, (ushort)Slot, destinationContainer, GetFirstEmptySlot(destinationContainer));
+            => InventoryManager.Instance()->MoveItemSlot(Container, (ushort)Slot, destinationContainer, GetFirstEmptySlot(destinationContainer), true);
     }
 
     private static unsafe ushort GetFirstEmptySlot(InventoryType container)

@@ -27,9 +27,6 @@ public class TemporaryMacro : MacroBase
     public override MacroType Type { get; set; } = MacroType.Native;
 
     /// <inheritdoc/>
-    public override string Content { get; set; }
-
-    /// <inheritdoc/>
     public override MacroMetadata Metadata { get; set; } = new();
 
     public TemporaryMacro(string content, string? id = null)

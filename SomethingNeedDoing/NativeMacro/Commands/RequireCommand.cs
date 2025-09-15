@@ -1,5 +1,4 @@
-﻿using FFXIVClientStructs.FFXIV.Client.Game;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 
 namespace SomethingNeedDoing.NativeMacro.Commands;
@@ -11,13 +10,13 @@ namespace SomethingNeedDoing.NativeMacro.Commands;
     ["conditions"],
     ["/require \"Well Fed\""]
 )]
-public class RequireCommand(string text, string[] conditions) : RequireCommandBase(text)
+public class RequireCommand(string text, string statusName) : RequireCommandBase(text)
 {
     /// <inheritdoc/>
     protected override async Task<bool> CheckCondition(MacroContext context)
     {
         var result = false;
-        await context.RunOnFramework(() => result = Svc.ClientState.LocalPlayer?.StatusList.Any(s => s.GameData.Value.Name.ExtractText().EqualsIgnoreCase(conditions.ToString() ?? string.Empty)) ?? false);
+        await context.RunOnFramework(() => result = Svc.ClientState.LocalPlayer?.StatusList.Any(s => s.GameData.Value.Name.ExtractText().EqualsIgnoreCase(statusName.ToString() ?? string.Empty)) ?? false);
         return result;
     }
 
@@ -30,7 +29,4 @@ public class RequireCommand(string text, string[] conditions) : RequireCommandBa
         await context.WaitForCondition(() => CheckCondition(context).Result, MaxWaitModifier?.MaxWaitMilliseconds ?? DefaultTimeout, DefaultCheckInterval);
         await PerformWait(token);
     }
-
-    private unsafe bool InInstance() => GameMain.Instance()->CurrentContentFinderConditionId != 0;
-    private unsafe bool HasItem(uint id) => InventoryManager.Instance()->GetInventoryItemCount(id) > 0;
 }

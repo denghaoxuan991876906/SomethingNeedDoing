@@ -10,6 +10,7 @@ using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.LuaMacro;
 using SomethingNeedDoing.LuaMacro.Wrappers;
 using SomethingNeedDoing.NativeMacro;
+using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,16 +21,17 @@ namespace SomethingNeedDoing.Managers;
 /// </summary>
 public class MacroScheduler : IMacroScheduler, IDisposable
 {
-    private readonly Dictionary<string, MacroExecutionState> _macroStates = [];
-    private readonly Dictionary<string, IMacroEngine> _enginesByMacroId = [];
-    private readonly Dictionary<string, AutoRetainerApi> _arApis = [];
-    private readonly Dictionary<string, AddonEventConfig> _addonEvents = [];
-    private readonly MacroHierarchyManager _macroHierarchy = new();
-    private readonly Dictionary<string, IDisableable> _disableablePlugins = [];
+    private readonly ConcurrentDictionary<string, MacroExecutionState> _macroStates = [];
+    private readonly ConcurrentDictionary<string, IMacroEngine> _enginesByMacroId = [];
+    private readonly ConcurrentDictionary<string, AutoRetainerApi> _arApis = [];
+    private readonly ConcurrentDictionary<string, AddonEventConfig> _addonEvents = [];
+    private readonly ConcurrentDictionary<string, IDisableable> _disableablePlugins = [];
+    private readonly ConcurrentDictionary<string, List<string>> _cachedFunctionNames = []; // avoid duplicate regex matching in rapid succession (OnUpdate, etc)
 
     private readonly NativeMacroEngine _nativeEngine;
     private readonly NLuaMacroEngine _luaEngine;
     private readonly TriggerEventManager _triggerEventManager;
+    private readonly MacroHierarchyManager _hierarchyManager;
 
     private readonly HashSet<string> _functionTriggersRegistered = [];
 
@@ -41,11 +43,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     /// </summary>
     public event EventHandler<MacroErrorEventArgs>? MacroError;
 
-    public MacroScheduler(NativeMacroEngine nativeEngine, NLuaMacroEngine luaEngine, TriggerEventManager triggerEventManager, IEnumerable<IDisableable> disableablePlugins)
+    public MacroScheduler(NativeMacroEngine nativeEngine, NLuaMacroEngine luaEngine, TriggerEventManager triggerEventManager, MacroHierarchyManager hierarchyManager, IEnumerable<IDisableable> disableablePlugins)
     {
         _nativeEngine = nativeEngine;
         _luaEngine = luaEngine;
         _triggerEventManager = triggerEventManager;
+        _hierarchyManager = hierarchyManager;
 
         _nativeEngine.MacroError += OnEngineError;
         _luaEngine.MacroError += OnEngineError;
@@ -121,7 +124,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     arApi.OnCharacterPostprocessStep -= () => CheckCharacterPostProcess(macro);
                     arApi.OnCharacterReadyToPostProcess -= () => DoCharacterPostProcess(macro);
                     arApi.Dispose();
-                    _arApis.Remove(macro.Id);
+                    _arApis.Remove(macro.Id, out _);
                 }
                 _triggerEventManager.UnregisterTrigger(macro, triggerEvent);
                 break;
@@ -129,7 +132,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 if (_addonEvents.TryGetValue(macro.Id, out var cfg))
                 {
                     Svc.AddonLifecycle.UnregisterListener(cfg.EventType, cfg.AddonName, OnAddonEvent);
-                    _addonEvents.Remove(macro.Id);
+                    _addonEvents.Remove(macro.Id, out _);
                 }
                 break;
             default:
@@ -143,64 +146,69 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     public async Task StartMacro(IMacro macro) => await StartMacro(macro, null);
 
     /// <summary>
-    /// Registers function-level triggers for a macro.
+    /// Parses and caches function names from macro content to avoid regex on every start/stop.
+    /// </summary>
+    /// <param name="macro">The macro to parse function names for.</param>
+    /// <returns>List of function names found in the macro.</returns>
+    private List<string> ParseFunctionNames(IMacro macro)
+    {
+        if (_cachedFunctionNames.TryGetValue(macro.Id, out var cachedNames))
+            return cachedNames;
+
+        var functionNames = new List<string>();
+
+        if (macro.Type == MacroType.Lua)
+        {
+            // match "function OnEventName()"
+            var matches = Regex.Matches(macro.Content, @"function\s+(\w+)\s*\(");
+            foreach (Match match in matches)
+            {
+                var functionName = match.Groups[1].Value;
+                functionNames.Add(functionName);
+            }
+        }
+        else
+        {
+            // match "/OnEventName"
+            var matches = Regex.Matches(macro.Content, @"^/\s*(\w+)", RegexOptions.Multiline);
+            foreach (Match match in matches)
+            {
+                var functionName = match.Groups[1].Value;
+                functionNames.Add(functionName);
+            }
+        }
+
+        _cachedFunctionNames[macro.Id] = functionNames;
+        return functionNames;
+    }
+
+    /// <summary>
+    /// Registers function-level triggers for a macro using cached function names.
     /// </summary>
     /// <param name="macro">The macro to register function triggers for.</param>
     private void RegisterFunctionTriggers(IMacro macro)
     {
         if (macro is TemporaryMacro) return;
         if (_functionTriggersRegistered.Contains(macro.Id)) return;
-        if (macro.Type == MacroType.Lua)
-        {
-            // match "function OnEventName()"
-            var matches = Regex.Matches(macro.Content, @"function\s+(\w+)\s*\(");
-            foreach (Match match in matches)
-            {
-                var functionName = match.Groups[1].Value;
-                _triggerEventManager.RegisterFunctionTrigger(macro, functionName);
-            }
-        }
-        else
-        {
-            // match "/OnEventName"
-            var matches = Regex.Matches(macro.Content, @"^/\s*(\w+)", RegexOptions.Multiline);
-            foreach (Match match in matches)
-            {
-                var functionName = match.Groups[1].Value;
-                _triggerEventManager.RegisterFunctionTrigger(macro, functionName);
-            }
-        }
+
+        var functionNames = ParseFunctionNames(macro);
+        foreach (var functionName in functionNames)
+            _triggerEventManager.RegisterFunctionTrigger(macro, functionName);
         _functionTriggersRegistered.Add(macro.Id);
     }
 
     /// <summary>
-    /// Unregisters function-level triggers for a macro.
+    /// Unregisters function-level triggers for a macro using cached function names.
     /// </summary>
     /// <param name="macro">The macro to unregister function triggers for.</param>
     private void UnregisterFunctionTriggers(IMacro macro)
     {
         if (macro is TemporaryMacro) return;
         if (!_functionTriggersRegistered.Contains(macro.Id)) return;
-        if (macro.Type == MacroType.Lua)
-        {
-            // match "function OnEventName()"
-            var matches = Regex.Matches(macro.Content, @"function\s+(\w+)\s*\(");
-            foreach (Match match in matches)
-            {
-                var functionName = match.Groups[1].Value;
-                _triggerEventManager.UnregisterFunctionTrigger(macro, functionName);
-            }
-        }
-        else
-        {
-            // match "/OnEventName"
-            var matches = Regex.Matches(macro.Content, @"^/\s*(\w+)", RegexOptions.Multiline);
-            foreach (Match match in matches)
-            {
-                var functionName = match.Groups[1].Value;
-                _triggerEventManager.UnregisterFunctionTrigger(macro, functionName);
-            }
-        }
+
+        var functionNames = ParseFunctionNames(macro);
+        foreach (var functionName in functionNames)
+            _triggerEventManager.UnregisterFunctionTrigger(macro, functionName);
         _functionTriggersRegistered.Remove(macro.Id);
     }
 
@@ -226,14 +234,6 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             return;
         }
 
-        var (areAvailable, missingDependencies) = await AreDependenciesAvailableAsync(macro);
-        if (!areAvailable)
-        {
-            FrameworkLogger.Error($"Cannot run {macro.Name}. The following dependencies are not available: {string.Join(", ", missingDependencies)}");
-            Svc.Chat.PrintErrorMsg($"Cannot run {macro.Name}. The following dependencies are not available: {string.Join(", ", missingDependencies)}");
-            return;
-        }
-
         if (!macro.HasValidConfigs())
         {
             FrameworkLogger.Error($"Cannot run {macro.Name}. One or more of its configs failed to validate.");
@@ -241,13 +241,11 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             return;
         }
 
-        await SetPluginStates(macro, false);
-
-        // Subscribe to state changes before creating the state
         macro.StateChanged += OnMacroStateChanged;
+        macro.ContentChanged += OnMacroContentChanged;
         var state = new MacroExecutionState(macro);
-
         RegisterFunctionTriggers(macro);
+
         state.ExecutionTask = Task.Run(async () =>
         {
             try
@@ -261,6 +259,29 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
                 _enginesByMacroId[macro.Id] = engine;
                 _macroStates[macro.Id] = state;
+
+                // Defer dependency checking to avoid blocking main thread when rapidly executing a macro
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var (areAvailable, missingDependencies) = await AreDependenciesAvailableAsync(macro);
+                        if (!areAvailable)
+                        {
+                            FrameworkLogger.Error($"Cannot run {macro.Name}. The following dependencies are not available: {string.Join(", ", missingDependencies)}");
+                            Svc.Chat.PrintErrorMsg($"Cannot run {macro.Name}. The following dependencies are not available: {string.Join(", ", missingDependencies)}");
+                            StopMacro(macro.Id);
+                            return;
+                        }
+
+                        await SetPluginStates(macro, false);
+                    }
+                    catch (Exception ex)
+                    {
+                        FrameworkLogger.Error(ex, $"Error in deferred operations for macro {macro.Name}");
+                        StopMacro(macro.Id);
+                    }
+                });
 
                 await Svc.Framework.RunOnTick(async () =>
                 {
@@ -303,7 +324,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
             if (C.PropagateControlsToChildren)
             {
-                foreach (var child in _macroHierarchy.GetChildMacros(macroId))
+                foreach (var child in _hierarchyManager.GetChildMacros(macroId))
                 {
                     if (_macroStates.TryGetValue(child.Id, out var childState))
                     {
@@ -326,7 +347,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
             if (C.PropagateControlsToChildren)
             {
-                foreach (var child in _macroHierarchy.GetChildMacros(macroId))
+                foreach (var child in _hierarchyManager.GetChildMacros(macroId))
                 {
                     if (_macroStates.TryGetValue(child.Id, out var childState))
                     {
@@ -351,7 +372,7 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             await SetPluginStates(state.Macro, true);
 
             if (C.PropagateControlsToChildren)
-                foreach (var child in _macroHierarchy.GetChildMacros(macroId).ToList())
+                foreach (var child in _hierarchyManager.GetChildMacros(macroId).ToList())
                     StopMacro(child.Id);
         }
     }
@@ -371,10 +392,18 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             state.CancellationSource.Cancel();
             state.CancellationSource.Dispose();
             state.Macro.StateChanged -= OnMacroStateChanged;
+            state.Macro.ContentChanged -= OnMacroContentChanged;
         }
 
-        _enginesByMacroId.Remove(macroId);
+        _enginesByMacroId.Remove(macroId, out _);
+        _cachedFunctionNames.Remove(macroId, out _);
     }
+
+    /// <summary>
+    /// Invalidates cached function names for a macro when its content changes.
+    /// </summary>
+    /// <param name="macroId">The ID of the macro to invalidate cache for.</param>
+    public void InvalidateFunctionCache(string macroId) => _cachedFunctionNames.Remove(macroId, out _);
 
     /// <inheritdoc/>
     public void StopAllMacros() => _enginesByMacroId.Keys.Each(StopMacro);
@@ -440,7 +469,8 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         if (macro.Metadata.Dependencies.Count == 0)
             return (true, missingDependencies);
 
-        foreach (var dependency in macro.Metadata.Dependencies)
+        // Process dependencies in parallel to reduce total time
+        var dependencyTasks = macro.Metadata.Dependencies.Select(async dependency =>
         {
             try
             {
@@ -455,20 +485,24 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                     catch (Exception downloadEx)
                     {
                         FrameworkLogger.Error(downloadEx, $"Failed to download dependency {dependency.Name}");
-                        missingDependencies.Add($"{dependency.Name} ({dependency.Source}) - Download failed: {downloadEx.Message}");
-                        continue;
+                        return $"{dependency.Name} ({dependency.Source}) - Download failed: {downloadEx.Message}";
                     }
                 }
 
                 if (!await dependency.IsAvailableAsync())
-                    missingDependencies.Add($"{dependency.Name} ({dependency.Source}) - Not available after download attempt");
+                    return $"{dependency.Name} ({dependency.Source}) - Not available after download attempt";
+
+                return null; // Success
             }
             catch (Exception ex)
             {
                 FrameworkLogger.Error(ex, $"Error checking availability of dependency {dependency.Name}");
-                missingDependencies.Add($"{dependency.Name} ({dependency.Source}) - Error: {ex.Message}");
+                return $"{dependency.Name} ({dependency.Source}) - Error: {ex.Message}";
             }
-        }
+        });
+
+        var results = await Task.WhenAll(dependencyTasks);
+        missingDependencies.AddRange(results.Where(r => r != null)!);
 
         return (missingDependencies.Count == 0, missingDependencies);
     }
@@ -535,11 +569,11 @@ public class MacroScheduler : IMacroScheduler, IDisposable
             {
                 if (e.NewState == MacroState.Error)
                 {
-                    var rootParent = _macroHierarchy.GetRootParentMacro(temp.Id);
+                    var rootParent = _hierarchyManager.GetRootParentMacro(temp.Id);
                     if (rootParent is { } parentMacro)
                         parentMacro.State = MacroState.Error;
                 }
-                _macroHierarchy.UnregisterTemporaryMacro(e.MacroId);
+                _hierarchyManager.UnregisterTemporaryMacro(e.MacroId);
                 temp.StateChanged -= OnMacroStateChanged;
             }
 
@@ -549,10 +583,17 @@ public class MacroScheduler : IMacroScheduler, IDisposable
                 state.CancellationSource.Cancel();
                 state.CancellationSource.Dispose();
                 state.Macro.StateChanged -= OnMacroStateChanged;
+                state.Macro.ContentChanged -= OnMacroContentChanged;
             }
 
-            _enginesByMacroId.Remove(e.MacroId);
+            _enginesByMacroId.Remove(e.MacroId, out _);
         }
+    }
+
+    private void OnMacroContentChanged(object? sender, MacroContentChangedEventArgs e)
+    {
+        FrameworkLogger.Debug($"Macro content changed for {e.MacroId}, invalidating function cache");
+        InvalidateFunctionCache(e.MacroId);
     }
 
     #region Triggers
@@ -560,6 +601,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     {
         if (sender is IMacro macro)
         {
+            if (_macroStates.ContainsKey(macro.Id))
+            {
+                FrameworkLogger.Debug($"Skipping trigger event for macro {macro.Name} - cannot start");
+                return;
+            }
+
             if (macro is TemporaryMacro tempMacro)
             {
                 FrameworkLogger.Verbose($"Processing temporary macro {macro.Id}");
@@ -622,8 +669,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     private void SubscribeToTriggerEvents()
     {
         foreach (var macro in C.Macros)
+        {
             foreach (var triggerEvent in macro.Metadata.TriggerEvents)
                 SubscribeToTriggerEvent(macro, triggerEvent);
+
+            macro.ContentChanged += OnMacroContentChanged;
+        }
 
         Svc.Framework.Update += OnFrameworkUpdate;
         Svc.Condition.ConditionChange += OnConditionChange;
@@ -773,6 +824,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
 
         if (e.ControlType == MacroControlType.Start)
         {
+            if (_macroStates.ContainsKey(e.MacroId))
+            {
+                FrameworkLogger.Debug($"Skipping start request for macro {e.MacroId} - already running");
+                return;
+            }
+
             if (C.GetMacro(e.MacroId) is { } macro)
             {
                 FrameworkLogger.Info($"Starting macro {e.MacroId}");
@@ -818,6 +875,12 @@ public class MacroScheduler : IMacroScheduler, IDisposable
     {
         FrameworkLogger.Verbose($"Received macro execution request for {e.Macro.Name}");
 
+        if (_macroStates.ContainsKey(e.Macro.Id))
+        {
+            FrameworkLogger.Debug($"Skipping execution request for macro {e.Macro.Name} - already running");
+            return;
+        }
+
         if (e.Macro is TemporaryMacro tempMacro)
         {
             FrameworkLogger.Verbose($"Subscribing to state changes for temporary macro {tempMacro.Id}");
@@ -849,6 +912,8 @@ public class MacroScheduler : IMacroScheduler, IDisposable
         _macroStates.Values.Each(s => s.Dispose());
         _macroStates.Clear();
         _enginesByMacroId.Clear();
+
+        C.Macros.ForEach(m => m.ContentChanged -= OnMacroContentChanged);
 
         Svc.Framework.Update -= OnFrameworkUpdate;
         Svc.Condition.ConditionChange -= OnConditionChange;

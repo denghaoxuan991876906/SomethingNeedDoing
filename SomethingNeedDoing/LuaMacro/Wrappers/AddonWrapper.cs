@@ -5,7 +5,7 @@ using SomethingNeedDoing.Core.Interfaces;
 namespace SomethingNeedDoing.LuaMacro.Wrappers;
 public unsafe class AddonWrapper(string name) : IWrapper
 {
-    private AtkUnitBase* Addon => (AtkUnitBase*)Svc.GameGui.GetAddonByName(name);
+    private AtkUnitBase* Addon => (AtkUnitBase*)Svc.GameGui.GetAddonByName(name).Address;
     private Pointer<AtkResNode>[] NodeList => Addon->UldManager.Nodes.ToArray();
     private AtkValue[] AtkValuesList => Addon->AtkValuesSpan.ToArray();
 
@@ -53,7 +53,7 @@ public unsafe class NodeWrapper : IWrapper
 
     [LuaDocs] public uint Id => Node->NodeId;
     [LuaDocs] public bool IsVisible => Node->IsVisible();
-    [LuaDocs] public string Text { get => Node->GetAsAtkTextNode()->NodeText.ToString(); set => Node->GetAsAtkTextNode()->NodeText.SetString(value); }
+    [LuaDocs] public string Text { get => Node->GetAsAtkTextNode()->NodeText.GetText(); set => Node->GetAsAtkTextNode()->NodeText.SetString(value); }
     [LuaDocs] public NodeType NodeType => Node->Type;
 }
 

@@ -13,7 +13,7 @@ public class HelpCliTab(CommandService cmds)
 
         ImGuiUtils.Section("主命令", () => ImGui.TextUnformatted(cmds.MainCommand), contentFont: UiBuilder.MonoFont);
 
-        ImGuiUtils.Section("别名", () => cmds.Aliases.Each(ImGui.TextUnformatted), contentFont: UiBuilder.MonoFont);
+        ImGuiUtils.Section("别名", () => cmds.Aliases.Each(a => ImGui.TextUnformatted(a)), contentFont: UiBuilder.MonoFont);
 
         ImGuiUtils.Section("命令列表", () =>
         {

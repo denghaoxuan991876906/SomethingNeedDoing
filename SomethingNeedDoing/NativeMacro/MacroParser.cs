@@ -164,7 +164,7 @@ public class MacroParser
                 case DistanceModifier distanceMod:
                     command.DistanceModifier = distanceMod;
                     break;
-                case ItemQualityModifier qualityMod:
+                case HqModifier qualityMod:
                     command.ItemQualityModifier = qualityMod;
                     break;
                 case ErrorIfModifier errorIfMod:
@@ -318,11 +318,7 @@ public class MacroParser
         return new RecipeCommand(parameters, recipeName);
     }
 
-    private RequireCommand ParseRequireCommand(string parameters)
-    {
-        var conditions = parameters.Split(',').Select(c => c.Trim()).ToArray();
-        return new RequireCommand(parameters, conditions);
-    }
+    private RequireCommand ParseRequireCommand(string parameters) => new(parameters, parameters.Trim('"'));
 
     private RequireRepairCommand ParseRequireRepairCommand(string parameters)
     {
@@ -414,7 +410,7 @@ public class MacroParser
             "list" or "listindex" => new ListIndexModifier(info.OriginalText, int.Parse(info.Parameter)),
             "partyindex" => new PartyIndexModifier(info.OriginalText, int.Parse(info.Parameter)),
             "distance" => new DistanceModifier(info.OriginalText, float.Parse(info.Parameter, CultureInfo.InvariantCulture)),
-            "quality" => new ItemQualityModifier(info.OriginalText, int.Parse(info.Parameter) > 0),
+            "hq" => new HqModifier(info.OriginalText, true),
             "errorif" => new ErrorIfModifier(info.OriginalText, Enum.Parse<ErrorCondition>(info.Parameter, true)),
             _ => throw new MacroSyntaxError($"Unknown modifier: {info.Name}"),
         };

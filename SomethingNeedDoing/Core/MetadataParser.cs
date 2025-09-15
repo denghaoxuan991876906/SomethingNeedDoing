@@ -1,6 +1,5 @@
 using Dalamud.Game.Addon.Lifecycle;
 using SomethingNeedDoing.Core.Interfaces;
-using System.IO;
 using System.Text.RegularExpressions;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -179,6 +178,17 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                 kvp => kvp.Key,
                 kvp =>
                 {
+                    var isSimpleConfig = string.IsNullOrEmpty(kvp.Value.Description) &&
+                                        kvp.Value.MinValue == null &&
+                                        kvp.Value.MaxValue == null &&
+                                        string.IsNullOrEmpty(kvp.Value.ValidationPattern) &&
+                                        string.IsNullOrEmpty(kvp.Value.ValidationMessage) &&
+                                        !kvp.Value.Choices.Any() &&
+                                        kvp.Value.Type != typeof(List<string>);
+
+                    if (isSimpleConfig)
+                        return kvp.Value.Value;
+
                     var configDict = new Dictionary<string, object>();
 
                     if (!string.IsNullOrEmpty(kvp.Value.DefaultValue?.ToString()))
@@ -187,8 +197,8 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                     if (!string.IsNullOrEmpty(kvp.Value.Description))
                         configDict["description"] = kvp.Value.Description;
 
-                    if (!string.IsNullOrEmpty(kvp.Value.Type))
-                        configDict["type"] = kvp.Value.Type;
+                    if (kvp.Value.Type != typeof(string))
+                        configDict["type"] = kvp.Value.TypeName;
 
                     if (kvp.Value.MinValue != null)
                         configDict["min"] = kvp.Value.MinValue;
@@ -196,14 +206,27 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                     if (kvp.Value.MaxValue != null)
                         configDict["max"] = kvp.Value.MaxValue;
 
-                    if (kvp.Value.Required)
-                        configDict["required"] = kvp.Value.Required;
-
                     if (!string.IsNullOrEmpty(kvp.Value.ValidationPattern))
                         configDict["validation_pattern"] = kvp.Value.ValidationPattern;
 
                     if (!string.IsNullOrEmpty(kvp.Value.ValidationMessage))
                         configDict["validation_message"] = kvp.Value.ValidationMessage;
+
+                    if (kvp.Value.Type == typeof(List<string>))
+                    {
+                        if (kvp.Value.Choices.Any())
+                            configDict["choices"] = kvp.Value.Choices;
+
+                        if (kvp.Value.IsChoice)
+                            configDict["is_choice"] = true;
+                    }
+                    else if (kvp.Value.IsChoice && kvp.Value.Type == typeof(string))
+                    {
+                        if (kvp.Value.Choices.Any())
+                            configDict["choices"] = kvp.Value.Choices;
+
+                        configDict["is_choice"] = true;
+                    }
 
                     return configDict;
                 }
@@ -217,12 +240,10 @@ public class MetadataParser(DependencyFactory dependencyFactory)
         var match = MetadataBlockRegex.Match(macro.Content);
         if (match.Success)
         {
-            // Replace existing block
             var afterMetadata = macro.Content[(match.Index + match.Length)..]; // for ensuring there's a new line after the end
             macro.Content = macro.Content[..match.Index] + metadataBlock + (afterMetadata.StartsWith('\n') || afterMetadata.StartsWith('\r') ? "" : "\n") + afterMetadata;
         }
         else
-            // Add new block
             macro.Content = metadataBlock + (macro.Content.StartsWith('\n') ? "" : "\n") + macro.Content;
 
         C.Save();
@@ -236,13 +257,11 @@ public class MetadataParser(DependencyFactory dependencyFactory)
     /// <param name="macroType">The type of macro.</param>
     /// <returns>Tuple of (startComment, endComment) strings.</returns>
     private static (string startComment, string endComment) GetCommentSyntax(MacroType macroType)
-    {
-        return macroType switch
+        => macroType switch
         {
             MacroType.Lua => ("--[=====[", "--]=====]"),
             _ => ("", "")
         };
-    }
 
     private List<IMacroDependency> ParseDependencies(object dependencies)
     {
@@ -272,18 +291,22 @@ public class MetadataParser(DependencyFactory dependencyFactory)
             var configName = kvp.Key.ToString();
             if (string.IsNullOrEmpty(configName)) continue;
 
+            var configItem = new MacroConfigItem();
+
             if (kvp.Value is Dictionary<object, object> configData)
             {
-                var configItem = new MacroConfigItem();
-
                 if (configData.TryGetValue("default", out var defaultValue))
                     configItem.DefaultValue = defaultValue ?? string.Empty;
+                else if (configData.ContainsKey("choices"))
+                    configItem.DefaultValue = new List<object>(); // if no default for lists, we want the default value to be a list so the type can be inferred properly
 
                 if (configData.TryGetValue("description", out var description))
                     configItem.Description = description?.ToString() ?? string.Empty;
 
                 if (configData.TryGetValue("type", out var type))
-                    configItem.Type = type?.ToString() ?? "string";
+                    configItem.TypeName = type?.ToString() ?? "string";
+                else
+                    configItem.Type = InferTypeFromValue(configItem.DefaultValue);
 
                 if (configData.TryGetValue("min", out var min))
                     configItem.MinValue = min;
@@ -291,20 +314,79 @@ public class MetadataParser(DependencyFactory dependencyFactory)
                 if (configData.TryGetValue("max", out var max))
                     configItem.MaxValue = max;
 
-                if (configData.TryGetValue("required", out var required))
-                    configItem.Required = required?.ToString()?.ToLower() == "true";
-
                 if (configData.TryGetValue("validation_pattern", out var pattern))
                     configItem.ValidationPattern = pattern?.ToString();
 
                 if (configData.TryGetValue("validation_message", out var message))
                     configItem.ValidationMessage = message?.ToString();
 
-                configItem.Value = configItem.DefaultValue;
-                result[configName] = configItem;
+                if (configData.TryGetValue("choices", out var choices))
+                    if (choices is List<object> choiceList)
+                        configItem.Choices = [.. choiceList.Select(c => c?.ToString() ?? string.Empty).Where(c => !string.IsNullOrEmpty(c))];
+
+                if (configData.TryGetValue("is_choice", out var isChoiceList))
+                    configItem.IsChoice = isChoiceList?.ToString()?.ToLower() == "true";
             }
+            else
+            {
+                configItem.DefaultValue = kvp.Value ?? string.Empty;
+                configItem.Description = configName;
+                configItem.Type = InferTypeFromValue(configItem.DefaultValue);
+            }
+
+            if (configItem.Type == typeof(List<string>))
+            {
+                if (configItem.IsChoice)
+                {
+                    var defaultValue = configItem.DefaultValue?.ToString() ?? string.Empty;
+                    if (configItem.Choices.Contains(defaultValue))
+                        configItem.Value = defaultValue;
+                    else
+                        configItem.Value = configItem.Choices.Any() ? configItem.Choices.First() : string.Empty;
+                }
+                else
+                    configItem.Value = configItem.DefaultValue is List<object> defaultList
+                        ? [.. defaultList.Select(x => x?.ToString() ?? string.Empty)]
+                        : new List<string>();
+            }
+            else if (configItem.IsChoice && configItem.Type == typeof(string))
+            {
+                var defaultValue = configItem.DefaultValue?.ToString() ?? string.Empty;
+                if (configItem.Choices.Contains(defaultValue))
+                    configItem.Value = defaultValue;
+                else
+                    configItem.Value = configItem.Choices.Any() ? configItem.Choices.First() : string.Empty;
+            }
+            else
+                configItem.Value = configItem.DefaultValue;
+
+            result[configName] = configItem;
         }
 
         return result;
+    }
+
+    private static Type InferTypeFromValue(object? value)
+    {
+        if (value == null) return typeof(string);
+
+        if (value is bool) return typeof(bool);
+        if (value is int) return typeof(int);
+        if (value is long) return typeof(int);
+        if (value is float) return typeof(float);
+        if (value is double) return typeof(float);
+        if (value is List<object> or List<string>) return typeof(List<string>);
+
+        if (value is string stringValue) // in case someone does "bool" or whatever
+        {
+            if (bool.TryParse(stringValue, out _))
+                return typeof(bool);
+            if (int.TryParse(stringValue, out _))
+                return typeof(int);
+            if (float.TryParse(stringValue, out _))
+                return typeof(float);
+        }
+
+        return typeof(string);
     }
 }

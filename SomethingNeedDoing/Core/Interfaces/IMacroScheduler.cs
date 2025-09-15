@@ -122,4 +122,12 @@ public interface IMacroScheduler
     /// <param name="macroId">The ID of the macro.</param>
     /// <returns>The engine, or null if not found.</returns>
     IMacroEngine? GetEngineForMacro(string macroId);
+
+    /// <summary>
+    /// Invalidates cached function names for a macro when its content changes.
+    /// This should be called when a macro's content is modified to ensure
+    /// function triggers are properly updated.
+    /// </summary>
+    /// <param name="macroId">The ID of the macro to invalidate cache for.</param>
+    void InvalidateFunctionCache(string macroId);
 }

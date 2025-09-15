@@ -1,5 +1,4 @@
-﻿using ECommons.Automation;
-using FFXIVClientStructs.FFXIV.Client.Game;
+﻿using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using System.Threading;
@@ -61,9 +60,9 @@ public class EquipItemCommand(string text, uint itemId) : MacroCommandBase(text)
 
         var addonId = AgentModule.Instance()->GetAgentByInternalId(agentId)->GetAddonId();
         var ctx = AgentInventoryContext.Instance();
-        ctx->OpenForItemSlot(pos.Value.inv, pos.Value.slot, addonId);
+        ctx->OpenForItemSlot(pos.Value.inv, pos.Value.slot, 0, addonId);
 
-        var contextMenu = (AtkUnitBase*)Svc.GameGui.GetAddonByName("ContextMenu");
+        var contextMenu = (AtkUnitBase*)Svc.GameGui.GetAddonByName("ContextMenu").Address;
         if (contextMenu != null)
         {
             for (var i = 0; i < contextMenu->AtkValuesCount; i++)

@@ -53,42 +53,42 @@ public class Wrath : IPC
     [LuaFunction(
         description: "Lists all internal names of combos for the given job ID",
         parameterDescriptions: ["jobId"])]
-    [Changelog(ChangelogAttribute.Unreleased)]
+    [Changelog("13.3")]
     public readonly Func<uint, List<string>?> GetComboNamesForJob = null!;
 
     [EzIPC]
     [LuaFunction(
         description: "Lists all internal names of options (in a dictionary, keyed to the parent combo's internal name) for the given job ID",
         parameterDescriptions: ["jobId"])]
-    [Changelog(ChangelogAttribute.Unreleased)]
+    [Changelog("13.3")]
     public readonly Func<uint, Dictionary<string, List<string>>?> GetComboOptionNamesForJob = null!;
 
     [EzIPC]
     [LuaFunction(
         description: "Sets the state of a Combo, given its internal name (or ID, as a string) (both the newComboState and the newComboAutoModeState should be true to enable them)",
         parameterDescriptions: ["leaseId", "comboInternalName", "newComboState", "newComboAutoModeState"])]
-    [Changelog(ChangelogAttribute.Unreleased)]
+    [Changelog("13.3")]
     public readonly Func<Guid, string, bool, bool, SetResult> SetComboState = null!;
 
     [EzIPC]
     [LuaFunction(
         description: "Gets the state of a Combo, given its internal name (or ID, as a string)\n(this returns a table accessible via ComboStateKeys as keys)",
         parameterDescriptions: ["comboInternalName"])]
-    [Changelog(ChangelogAttribute.Unreleased)]
+    [Changelog("13.3")]
     public readonly Func<string, Dictionary<ComboStateKeys, bool>?> GetComboState = null!;
 
     [EzIPC]
     [LuaFunction(
         description: "Sets the state of a Combo's Option, given its internal name (or ID, as a string)",
         parameterDescriptions: ["leaseId", "optionInternalName", "newOptionState"])]
-    [Changelog(ChangelogAttribute.Unreleased)]
+    [Changelog("13.3")]
     public readonly Func<Guid, string, bool, SetResult> SetComboOptionState = null!;
 
     [EzIPC]
     [LuaFunction(
         description: "Gets the state of a Combo's Option, given its internal name (or ID, as a string)",
         parameterDescriptions: ["optionInternalName"])]
-    [Changelog(ChangelogAttribute.Unreleased)]
+    [Changelog("13.3")]
     public readonly Func<string, bool> GetComboOptionState = null!;
 
     [EzIPC]
@@ -118,6 +118,11 @@ public class Wrath : IPC
         AutoRezDPSJobs = 10, //bool
         AutoCleanse = 11, //bool
         IncludeNPCs = 12, //bool
+        OnlyAttackInCombat = 13, // bool
+        OrbwalkerIntegration = 14, // bool
+        AutoRezOutOfParty = 15, // bool
+        DPSAoETargets = 16, // int
+        SingleTargetExcogHPP = 17, // int
     }
 
     public enum SetResult

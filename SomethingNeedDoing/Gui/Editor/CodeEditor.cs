@@ -167,9 +167,10 @@ public class CodeEditor : IDisposable
                 v1.Type != v2.Type ||
                 v1.MinValue?.ToString() != v2.MinValue?.ToString() ||
                 v1.MaxValue?.ToString() != v2.MaxValue?.ToString() ||
-                v1.Required != v2.Required ||
                 v1.ValidationPattern != v2.ValidationPattern ||
-                v1.ValidationMessage != v2.ValidationMessage)
+                v1.ValidationMessage != v2.ValidationMessage ||
+                v1.IsChoice != v2.IsChoice ||
+                !v1.Choices.SequenceEqual(v2.Choices))
             {
                 return false;
             }

@@ -309,7 +309,7 @@ public class GitMacroManager : IDisposable
             if (url.StartsWith("git://"))
             {
                 // git://owner/repo/branch/path
-                var parts = url.Substring(6).Split('/');
+                var parts = url[6..].Split('/');
                 if (parts.Length >= 2)
                     return (parts[0], parts[1]);
                 return (string.Empty, string.Empty);
