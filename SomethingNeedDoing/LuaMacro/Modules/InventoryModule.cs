@@ -48,6 +48,8 @@ public unsafe class InventoryModule : LuaModuleBase
         return InventoryManager.Instance()->GetEmptySlotsInBag();
     }
     [LuaFunction]
+    public unsafe InventoryItemWrapper? GetInventoryItem(uint itemId);
+    [LuaFunction]
     public int GetItemSlots(uint itemId)
     {
         var count = 0;
