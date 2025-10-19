@@ -65,6 +65,21 @@ public unsafe class InventoryModule : LuaModuleBase
     }
 
     [LuaFunction]
+    public int GetItemSlots(uint itemId)
+    {
+        var count = 0;
+        foreach (var type in Enum.GetValues<InventoryType>())
+        {
+            var container = InventoryManager.Instance()->GetInventoryContainer(type);
+            if (container == null) continue;
+            for (var i = 0; i < container->Size; i++)
+                if (container->Items[i].ItemId == itemId)
+                    count++;
+        }
+        return count;
+    }
+
+    [LuaFunction]
     [Changelog("12.8")]
     public List<InventoryItemWrapper> GetItemsInNeedOfRepairs(int durability = 0)
     {

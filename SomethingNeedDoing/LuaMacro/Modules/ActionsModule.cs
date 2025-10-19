@@ -1,5 +1,6 @@
 ﻿using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using Lumina.Excel.Sheets;
 using SomethingNeedDoing.LuaMacro.Wrappers;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;
@@ -12,7 +13,14 @@ public unsafe class ActionsModule : LuaModuleBase
 
     [LuaFunction] public void ExecuteAction(uint actionID, ActionType actionType = ActionType.Action) => ActionManager.Instance()->UseAction(actionType, actionID);
     [LuaFunction] public void ExecuteGeneralAction(uint actionID) => ActionManager.Instance()->UseAction(ActionType.GeneralAction, actionID);
-    [LuaFunction] public void Teleport(uint aetheryteId) => Telepo.Instance()->Teleport(aetheryteId, 0);
+    [LuaFunction]
+    public void Teleport(uint aetheryteId)
+    {
+        if (GetRow<Aetheryte>(aetheryteId) is not { IsAetheryte: true })
+            throw new InvalidOperationException("snD ShoUlD pReVENt me frOm bEING StUPId");
+        Telepo.Instance()->Teleport(aetheryteId, 0);
+    }
+
     [LuaFunction] public void CancelCast() => UIState.Instance()->Hotbar.CancelCast();
 
     [LuaFunction(description: "Returns LogMessage id")]

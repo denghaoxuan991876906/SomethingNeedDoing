@@ -1,8 +1,8 @@
 using NLua;
 using SomethingNeedDoing.Core.Interfaces;
 using SomethingNeedDoing.Documentation;
-using System.Reflection;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace SomethingNeedDoing.LuaMacro.Modules;
 
@@ -33,6 +33,8 @@ public class IPCModule : LuaModuleBase
 
     public override void Register(Lua lua)
     {
+        RegisterIpcEnums(lua);
+
         lua.DoString($"{ModuleName} = {{}}");
 
         RegisterHelperFunctions(lua);
@@ -246,33 +248,73 @@ public class IPCModule : LuaModuleBase
         docs.RegisterModule(this, moduleDocs);
     }
 
-    /// <summary>
-    /// Registers helper functions in the Lua environment
-    /// </summary>
+    private void RegisterIpcEnums(Lua lua)
+    {
+        var enumTypes = new HashSet<Type>();
+        foreach (var instance in _ipcInstances.Values)
+        {
+            var type = instance.GetType();
+            foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance).Where(f => f.GetCustomAttribute<LuaFunctionAttribute>() != null))
+                GetEnumsFromType(field.FieldType, enumTypes);
+
+            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance).Where(m => m.GetCustomAttribute<LuaFunctionAttribute>() != null))
+            {
+                GetEnumsFromType(method.ReturnType, enumTypes);
+                foreach (var parameter in method.GetParameters())
+                    GetEnumsFromType(parameter.ParameterType, enumTypes);
+            }
+        }
+
+        foreach (var enumType in enumTypes)
+        {
+            try
+            {
+                var registerEnumMethod = typeof(LuaExtensions).GetMethod("RegisterEnum", BindingFlags.Public | BindingFlags.Static);
+                registerEnumMethod?.MakeGenericMethod(enumType).Invoke(null, [lua]);
+            }
+            catch (Exception ex)
+            {
+                FrameworkLogger.Error($"Failed to register enum {enumType.Name}: {ex.Message}");
+            }
+        }
+    }
+
+    private void GetEnumsFromType(Type? type, HashSet<Type> enumTypes)
+    {
+        if (type == null) return;
+
+        if (Nullable.GetUnderlyingType(type) is { } underlying)
+            type = underlying;
+
+        if (type.IsArray)
+        {
+            GetEnumsFromType(type.GetElementType(), enumTypes);
+            return;
+        }
+
+        if (type.IsEnum)
+        {
+            enumTypes.Add(type);
+            return;
+        }
+
+        if (type.IsGenericType)
+        {
+            foreach (var arg in type.GetGenericArguments())
+                GetEnumsFromType(arg, enumTypes);
+        }
+    }
+
     private void RegisterHelperFunctions(Lua lua)
     {
         lua[$"{ModuleName}.IsInstalled"] = new Func<string, bool>(IsIPCInstalled);
         lua[$"{ModuleName}.GetAvailablePlugins"] = new Func<string[]>(GetAvailablePlugins);
     }
 
-    /// <summary>
-    /// Checks if an IPC plugin is installed
-    /// </summary>
     private bool IsIPCInstalled(string name) => GetIPC<IPC>(name)?.IsInstalled ?? false;
-
-    /// <summary>
-    /// Gets all available IPC plugins
-    /// </summary>
     private string[] GetAvailablePlugins() => [.. _ipcInstances.Values.Where(ipc => ipc.IsInstalled).Select(ipc => ipc.Name)];
-
-    /// <summary>
-    /// Gets an IPC instance by name
-    /// </summary>
     private T? GetIPC<T>(string name) where T : IPC => _ipcInstances.TryGetValue(name, out var instance) ? instance as T : null;
 
-    /// <summary>
-    /// Gets the delegate type for a method
-    /// </summary>
     private Type GetDelegateType(MethodInfo method)
     {
         var parameters = method.GetParameters().Select(p => p.ParameterType).ToArray();

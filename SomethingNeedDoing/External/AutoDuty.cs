@@ -22,7 +22,8 @@ public class AutoDuty : IPC
         description: "Sets a configuration value",
         parameterDescriptions: ["key", "value"])]
     [Changelog("12.9", ChangelogType.Fixed)]
-    public readonly Action<string, string> SetConfig = null!;
+    [Changelog("13.50", ChangelogType.Changed, "Changed value type to object to accept arrays")]
+    public readonly Action<string, object> SetConfig = null!;
 
     [EzIPC]
     [LuaFunction(
